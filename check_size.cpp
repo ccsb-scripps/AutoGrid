@@ -1,5 +1,5 @@
 /*
-  $Id
+  $Id: check_size.cpp,v 1.5 2004/11/23 22:09:09 lindy Exp $
 */
 
 #include <iostream>
