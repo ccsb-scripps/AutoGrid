@@ -1,3 +1,7 @@
+/*
+  $Id: printhms.c,v 1.2 2004/11/23 22:07:45 lindy Exp $
+*/
+
 #include <stdio.h>
 #include "autogrid.h"
 
@@ -11,9 +15,9 @@ void printhms( float t )
     float T, s;
     float hrs = 3600., min = 60.;
 
-    h = t/hrs;
+    h = (int) (t/hrs);
     T = t - h*hrs;
-    m = T/min;
+    m = (int) (T/min);
     s = T - m*min;
 
     if (h == 0) {
