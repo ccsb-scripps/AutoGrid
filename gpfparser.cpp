@@ -65,6 +65,12 @@ int gpfparser( char line[LINE_LEN] )
         token = GPF_LIGAND_TYPES;
         token = GPF_TYPES;
     } else if (equal(c,"ligand_types",12)) {
+        token = GPF_LIGAND_TYPES;
+        token = GPF_TYPES;
+
+    } else if (equal(c,"receptor_types",14)) {
+        token = GPF_RECEPTOR_TYPES;
+    } else if (equal(c,"map",3)) {
         token = GPF_MAP;
 
     } else if (equal(c,"elecmap",7)) {
