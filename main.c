@@ -904,8 +904,13 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                         gridmap[i].xB[j] = 10;
                         gridmap[i].hbonder[j] = 1;
                         gridmap[i].is_hbonder = TRUE;
-                        gridmap[i].nbp_r[j] = (gridmap[i].Rij_hb + found_parm->Rij_hb)/2.;
-                        gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij_hb * found_parm->epsij_hb);
+                        /*Rij and epsij for this hb interaction in
+                         * parm_data.dat file as Rii and epsii for heavy atom
+                         * hb factors*/
+                        gridmap[i].nbp_r[j] = gridmap[i].Rij_hb;
+                        gridmap[i].nbp_eps[j] = gridmap[i].epsij_hb;
+                        /*gridmap[i].nbp_r[j] = (gridmap[i].Rij_hb + found_parm->Rij_hb)/2.;*/
+                        /*gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij_hb * found_parm->epsij_hb);*/
 #ifdef DEBUG
                         printf("set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
 #endif
@@ -914,8 +919,13 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                         gridmap[i].xB[j] = 10;
                         gridmap[i].hbonder[j] = 1;
                         gridmap[i].is_hbonder = TRUE;
-                        gridmap[i].nbp_r[j] = (gridmap[i].Rij_hb + found_parm->Rij_hb)/2.;
-                        gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij_hb * found_parm->epsij_hb);
+                        /*Rij and epsij for this hb interaction in
+                         * parm_data.dat file as Rii and epsii for heavy atom
+                         * hb factors*/
+                        gridmap[i].nbp_r[j] = found_parm->Rij_hb;
+                        gridmap[i].nbp_eps[j] = found_parm->epsij_hb;
+                        /*gridmap[i].nbp_r[j] = (gridmap[i].Rij_hb + found_parm->Rij_hb)/2.;
+                        gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij_hb * found_parm->epsij_hb);*/
 #ifdef DEBUG
                         printf("2: set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
 #endif
@@ -1122,7 +1132,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             exit(-1);
         }
         /* Read in the filename for this grid map */ /* GPF_MAP */
-        (void) sscanf( GPF_line, "%*s  %*s %s", gridmap[map_index].map_filename);
+        (void) sscanf( GPF_line, "%*s %s", gridmap[map_index].map_filename);
         if ( (gridmap[map_index].map_fileptr = fopen( gridmap[map_index].map_filename, "w")) == NULL ) {
             (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[map_index].map_filename);
             (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
@@ -1436,9 +1446,7 @@ for (ia=0; ia<num_atom_maps; ia++){
 
 
             /* smooth with min function */ /* GPF_MAP */
-        printf("i_smooth=%d\n", i_smooth);
             if (i_smooth > 0) {
-                printf("in i_smooth>0 loop\n");
                 for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
                     energy_smooth[indx_r] = 100000.;
                     for (j = max(0, indx_r - i_smooth);  j < min(MAX_DIST, indx_r + i_smooth);  j++) {
@@ -1448,7 +1456,6 @@ for (ia=0; ia<num_atom_maps; ia++){
                 for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
                     energy_lookup[i][indx_r][ia] = energy_smooth[indx_r];
                 }
-                printf("end_i_smooth if: replaced %d receptor-%d ligand map\n", i, ia);
                 } /* end smoothing */
             } /* for i in receptor types: build energy table for this map */
 
@@ -1487,7 +1494,6 @@ for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
      /* sol_fn[indx_r] = exp(-sq(r)/(2.*sigma*sigma)); */
      sol_fn[indx_r] = exp( sq(r) * minus_inv_two_sigma_sqd);
 }
-printf("built sol_fn table\n");
 
 /**************************************************
  * Loop over all RECEPTOR atoms to
@@ -1907,7 +1913,6 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 /********************************************
  * End bond vector loop
  ********************************************/
-printf("after calculating bond vectors: num_atom_maps=%d\n", num_atom_maps);
 for (k = 0;  k < num_atom_maps + 1;  k++) {
     gridmap[k].energy_max = (double)-BIG;
     gridmap[k].energy_min = (double)BIG;
@@ -1952,7 +1957,6 @@ if (floating_grid) {
 
 ic = 0;
 
-printf("about to start calculating maps \n");
 ctr = 0;
 for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
     /*
@@ -2394,10 +2398,8 @@ for (i = 0;  i < num_atom_maps;  i++) {
     /*(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%6.2le\n", i + 1, gridmap[i].atom_type, gridmap[i].energy_min, gridmap[i].energy_max);*/
 }
 
-printf("elecPE filename=%s\n", gridmap[elecPE].map_filename);
 (void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%6.2le\tElectrostatic Potential\n", num_atom_maps + 1, 'e', gridmap[elecPE].energy_min, gridmap[i].energy_max);
 
-printf("dsolvPE filename=%s\n", gridmap[dsolvPE].map_filename);
 (void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%6.2le\tDesolvation Potential\n", num_atom_maps + 2, 'd', gridmap[dsolvPE].energy_min, gridmap[i+1].energy_max);
 (void) fprintf( logFile, "\n\n * Note:  Every pairwise-atomic interaction was clamped at %.2f\n\n", EINTCLAMP);
 
