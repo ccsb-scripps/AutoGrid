@@ -10,4 +10,4 @@ smooth 0.5
 map HD testHD.HD.map                       # atom-specific affinity map
 elecmap testHD.e.map                # electrostatic potential map
 dsolvmap testHD.d.map
-dielectric -0.00906                   # <0, distance-dep.diel;>0, constant
+dielectric -0.00306                   # <0, distance-dep.diel;>0, constant

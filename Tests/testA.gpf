@@ -10,4 +10,4 @@ smooth 0.5                           # store minimum energy w/in rad(A)
 map A testA.A.map                    # atom-specific affinity map
 elecmap testA.e.map                  # electrostatic potential map
 dsolvmap testA.d.map
-dielectric -0.00906                   # <0, distance-dep.diel;>0, constant
+dielectric -0.00306                   # <0, distance-dep.diel;>0, constant
