@@ -3,11 +3,11 @@
 #include <string.h>
 #include "autogrid.h"
 
-extern FILE *GPF;
+extern FILE *GPF_fileptr;
 extern FILE *logFile;
 extern char *programname;
 extern char AutoGridHelp[];
-extern char grid_param_fn[];
+extern char GPF_filename[];
 extern int  debug;
 extern int  oldpdbq;
 
@@ -28,10 +28,10 @@ int setflags( int argc, char **argv )
 /*----------------------------------------------------------------------------*/
 /*    Inputs: argc,argv                                                       */
 /*   Returns: argindex                                                        */
-/*   Globals: *GPF;                                                           */
+/*   Globals: *GPF_fileptr;                                                           */
 /*            *logFile;                                                       */
 /*            *programname;                                                   */
-/*            grid_param_fn[];                                                */
+/*            GPF_filename[];                                                */
 /*----------------------------------------------------------------------------*/
 /* Modification Record                                                        */
 /* Date     Inits   Comments                                                  */
@@ -49,7 +49,7 @@ int setflags( int argc, char **argv )
 /*----------------------------------------------------------------------------*/
     argindex = 1;
     programname = argv[0];
-    GPF = stdin;
+    GPF_fileptr = stdin;
     logFile = stdout;
 /*----------------------------------------------------------------------------*/
 /* Loop over arguments                                                        */
@@ -85,8 +85,8 @@ int setflags( int argc, char **argv )
             argindex++;
             break;
         case 'p':
-            strcpy(grid_param_fn, argv[2]);
-            if ( (GPF = fopen(argv[2], "r")) == NULL ) {
+            strcpy(GPF_filename, argv[2]);
+            if ( (GPF_fileptr = fopen(argv[2], "r")) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't find or open Grid Parameter File \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
                 exit(911);
