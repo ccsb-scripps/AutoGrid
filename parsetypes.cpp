@@ -26,36 +26,48 @@ int parsetypes(char * line, char *words[], int maxwords)
 /* 06/02/03 RH      Entered code.                                             */
 /******************************************************************************/
 
-    char *p = line;
-    int nwords = 0;
+    char *char_ptr = line;
+    int num_types = 0;
+    /*flag for first word which is always a keyword*/
     int found_keyword = 0;
     int index = 0;
 
     while(1) {
-        while(isspace(*p)){
-            p++;
+        /*skip spaces*/
+        while(isspace(*char_ptr)){
+            char_ptr++;
             index++;
         };
-        if (*p == '\0'){
-            return nwords;
+        /*done parsing when get eol 'null' character*/
+        /* could get null after a space*/
+        if (*char_ptr == '\0'){
+            /*return number of 'types' found*/
+            return num_types;
         };
-        /*words[nwords++] = p;*/
+        /* the first word is the keyword not a type*/
         if(found_keyword==0){
             found_keyword++;
         } else {
-            words[nwords++] = p;
+            /*words is a list of indicies of beginning of 1 or 2 char types*/
+            words[num_types++] = char_ptr;
         };
-        while(!isspace(*p) && *p!='\0'){
-            p++;
+        /*once in a type, skip possible 2nd characters up to a space or null
+         * character*/
+        while(!isspace(*char_ptr) && *char_ptr!='\0'){
+            char_ptr++;
             index++;
         };
-        if(*p=='\0'){
-            return nwords;
+        /*done parsing when get eol 'null' character*/
+        /* could get null after a character*/
+        if(*char_ptr=='\0'){
+            return num_types;
         };
-        *p++ = '\0';
+        /*make each 'type' a null terminated string*/
+        *char_ptr++ = '\0';
         index++;
-        if(nwords >=maxwords){
-            return nwords;
+        /*if there are too many types, return*/
+        if(num_types >=maxwords){
+            return num_types;
         };
     }
 
