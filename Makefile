@@ -1,8 +1,8 @@
 #
 # Makefile to build AutoGrid from Object files.
 #
-# (c) 1994-2001, TSRI
-# Garrett M. Morris
+# (c) 1994-2004, TSRI
+# Garrett M. Morris, Ruth Huey, David S. Goodsell
 #
 
 EXE = .
@@ -65,21 +65,21 @@ OPTLEVEL = -O3 # Agressive optimization.
 # OPTLEVEL = -O1 # Do optimizations that can be done quickly;default.
 # OPTLEVEL = -O0 # Do not optimize.
 
-# OPT_SGI_IPNUM = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
+OPT_SGI_IPNUM = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
 # OPT_SGI_IPNUM = -Ofast=ip19 # SGI, 'uname -a' says 'IP19'
 # OPT_SGI_IPNUM = -Ofast=ip21 # SGI, 'uname -a' says 'IP21'
 # OPT_SGI_IPNUM = -Ofast=ip25 # SGI, 'uname -a' says 'IP25' PowerChallenge is R10000, IP25
-OPT_SGI_IPNUM = -Ofast=ip27 # SGI, 'uname -a' says 'IP27'  Atlas Cluster is R12000, IP27
+# OPT_SGI_IPNUM = -Ofast=ip27 # SGI, 'uname -a' says 'IP27'  Atlas Cluster is R12000, IP27
 # OPT_SGI_IPNUM = -Ofast=ip30 # SGI, 'uname -a' says 'IP30'
 
-# OPT_SGI_R000 = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
+OPT_SGI_R000 = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
 # OPT_SGI_R000 = -r4000 -mips2 # SGI, 'hinv' says MIPS Processor is R4000
 # OPT_SGI_R000 = -r8000 -mips4 # SGI, 'hinv' says MIPS Processor is R8000
 # OPT_SGI_R000 = -r10000 -mips4 # SGI, 'hinv' says MIPS Processor is R10000
 # OPT_SGI_R000 = -r12000 -mips4 # SGI, 'hinv' says MIPS Processor is R12000
-OPT_SGI_R000 = -r14000 -mips4 # SGI, 'hinv' says MIPS Processor is R14000
+# OPT_SGI_R000 = -r14000 -mips4 # SGI, 'hinv' says MIPS Processor is R14000
 
-# OPT_ARCH_SPECIFIC = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
+OPT_ARCH_SPECIFIC = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
 # OPT_ARCH_SPECIFIC = -n32 $(OPT_SGI_IPNUM) $(OPT_SGI_R000) -IPA $(LNO_OPT) # SGI, new 32-bit
 # OPT_ARCH_SPECIFIC = -n32 $(OPT_SGI_IPNUM) $(OPT_SGI_R000) -IPA $(LNO_OPT) -DUSE_INT_AS_LONG # SGI (long is 8bytes).
 # OPT_ARCH_SPECIFIC = $(OPT_SGI_IPNUM) $(OPT_SGI_R000) $(LNO_OPT) # SGI, not new 32-bit
@@ -87,7 +87,7 @@ OPT_SGI_R000 = -r14000 -mips4 # SGI, 'hinv' says MIPS Processor is R14000
 # OPT_ARCH_SPECIFIC = -O +O3 +Obb2048 # Hewlett-Packard
 # OPT_ARCH_SPECIFIC = -ur # Convex
 # OPT_ARCH_SPECIFIC = -g # debugging
-OPT_ARCH_SPECIFIC = # Mac OS X
+# OPT_ARCH_SPECIFIC = # Mac OS X
 
 OPT = $(CSTD) $(OPTLEVEL) $(OPT_ARCH_SPECIFIC) # All platforms
 
@@ -108,13 +108,13 @@ LINTFLAGS = $(LIB) -lansi -c # DEC-Alpha # MA
 # LINTFLAGS = $(LIB) -n -lansic # Sun Sparc
 
 
-###DBUG = -DNDEBUG # No debugging and no assert code.
+DBUG = -DNDEBUG # No debugging and no assert code.
 # DBUG = # Use assert code.
 # DBUG = -g # dbx.
 # DBUG = -g -DDEBUG # dbx + DEBUG-specific code.
 # DBUG = -g3 # dbx + optimization.
 # DBUG = -g3 -DDEBUG # dbx + optimization, + DEBUG-specific code.
-DBUG = -DDEBUG # Just DEBUG-specific code.
+# DBUG = -DDEBUG # Just DEBUG-specific code.
 # DBUG = -DDEBUG2 # Just DEBUG2-specific code for tracking prop.selection.
 # DBUG = -DDEBUG3 # Just DEBUG3-specific code for print age of individuals.
 
@@ -136,7 +136,7 @@ convertmap : convertmap.o
 
 
 
-main.o : main.c autogrid.h autoglobal.h parm-ii.c parm-ii.h banner.c gpfparser.c gpftoken.h
+main.o : main.c autogrid.h autoglobal.h parm-ii.c parm-ii.h banner.c gpfparser.c gpftoken.h parsetypes.c
 	$(CC) $(OPT) $(OLIMIT) -c main.c
 
 check_size.o : check_size.c autogrid.h
@@ -165,6 +165,9 @@ banner.o : banner.c autogrid.h
 
 gpfparser.o : gpfparser.c autogrid.h gpftoken.h
 	$(CC) $(OPT) -c gpfparser.c
+
+parsetypes.o : parsetypes.c autogrid.h
+	$(CC) $(OPT) -c parsetypes.c
 
 strindex.o : strindex.c autogrid.h
 	$(CC) $(OPT) -c strindex.c
@@ -207,6 +210,9 @@ banner.ln : banner.c autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
 gpfparser.ln : gpfparser.c autogrid.h gpftoken.h
+	$(LINT) $(LINTFLAGS) $?
+
+parsetypes.ln : parsetypes.c autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
 strindex.ln : strindex.c autogrid.h
