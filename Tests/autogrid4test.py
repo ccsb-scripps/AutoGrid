@@ -1,7 +1,7 @@
 #
 # 
 #
-# $Id: autogrid4test.py,v 1.1 2004/05/28 18:03:10 rhuey Exp $
+# $Id: autogrid4test.py,v 1.2 2004/05/28 22:45:26 garrett Exp $
 #
 """
 
@@ -11,7 +11,6 @@
 import os
 import types
 import unittest
-import time
 from string import split, strip
 
 
@@ -61,8 +60,6 @@ class Autogrid4TestCase(unittest.TestCase):
         (i,o,e) = os.popen3(cmd_str) # trap all the outputs
         #print 'calculating map...'
         os.wait() # for the child process to finish
-        time.sleep(10)
-
 
     def compare_maps(self, stem):
         """Compare maps 
