@@ -35,9 +35,9 @@ LNS = \
       strindex.ln
 
 
-#CC = cc # SGI, Sun, MacOS X
+CC = cc # SGI, Sun, MacOS X
 # CC = cxx # Alpha.
-CC = gcc # use this if you have the Gnu compiler, as on Linux, MkLinux, LinuxPPC systems.
+# CC = gcc # use this if you have the Gnu compiler, as on Linux, MkLinux, LinuxPPC systems.
 
 LIB = -lm # SGI, Sun, Linux, MacOS X
 # LIB = -lm -lc # Alpha, Convex.
@@ -63,21 +63,24 @@ OPTLEVEL = -O3 # Agressive optimization.
 # OPTLEVEL = -O1 # Do optimizations that can be done quickly;default.
 # OPTLEVEL = -O0 # Do not optimize.
 
-OPT_SGI_IPNUM = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
+# OPT_SGI_IPNUM = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
 # OPT_SGI_IPNUM = -Ofast=ip19 # SGI, 'uname -a' says 'IP19'
 # OPT_SGI_IPNUM = -Ofast=ip21 # SGI, 'uname -a' says 'IP21'
+# OPT_SGI_IPNUM = -Ofast=ip22 # SGI, 'uname -a' says 'IP22'
 # OPT_SGI_IPNUM = -Ofast=ip25 # SGI, 'uname -a' says 'IP25' PowerChallenge is R10000, IP25
 # OPT_SGI_IPNUM = -Ofast=ip27 # SGI, 'uname -a' says 'IP27'  Atlas Cluster is R12000, IP27
-#OPT_SGI_IPNUM = -Ofast=ip30 # SGI, 'uname -a' says 'IP30'
+OPT_SGI_IPNUM = -Ofast=ip30 # SGI, 'uname -a' says 'IP30'
 
 # OPT_SGI_R000 = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
 # OPT_SGI_R000 = -r4000 -mips2 # SGI, 'hinv' says MIPS Processor is R4000
+# OPT_SGI_R000 = -r4000 -mips3 # SGI, 'hinv' says MIPS Processor is R4000
 # OPT_SGI_R000 = -r8000 -mips4 # SGI, 'hinv' says MIPS Processor is R8000
-# OPT_SGI_R000 = -r10000 -mips4 # SGI, 'hinv' says MIPS Processor is R10000
-#OPT_SGI_R000 = -r12000 -mips4 # SGI, 'hinv' says MIPS Processor is R12000
+OPT_SGI_R000 = -r10000 -mips4 # SGI, 'hinv' says MIPS Processor is R10000
+# OPT_SGI_R000 = -r12000 -mips4 # SGI, 'hinv' says MIPS Processor is R12000
+# OPT_SGI_R000 = -r14000 -mips4 # SGI, 'hinv' says MIPS Processor is R14000
 
-OPT_ARCH_SPECIFIC = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
-#OPT_ARCH_SPECIFIC = -n32 $(OPT_SGI_IPNUM) $(OPT_SGI_R000) -IPA $(LNO_OPT) # SGI, new 32-bit
+# OPT_ARCH_SPECIFIC = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
+OPT_ARCH_SPECIFIC = -n32 $(OPT_SGI_IPNUM) $(OPT_SGI_R000) -IPA $(LNO_OPT) # SGI, new 32-bit
 # OPT_ARCH_SPECIFIC = -n32 $(OPT_SGI_IPNUM) $(OPT_SGI_R000) -IPA $(LNO_OPT) -DUSE_INT_AS_LONG # SGI (long is 8bytes).
 # OPT_ARCH_SPECIFIC = $(OPT_SGI_IPNUM) $(OPT_SGI_R000) $(LNO_OPT) # SGI, not new 32-bit
 # OPT_ARCH_SPECIFIC = -ifo # DEC Alpha

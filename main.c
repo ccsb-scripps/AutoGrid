@@ -1,16 +1,6 @@
-/*
-
- $Id: main.c,v 1.2 2003/02/12 19:32:29 lindy Exp $
-
-*/
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 /* main.c */
 
-#include <sys/types.h> 
+#include <sys/types.h>
 #include <sys/times.h>
 #include <sys/param.h>
 #include <math.h>
@@ -92,7 +82,7 @@ char atomname[6];
 char atmtypstr[MAX_MAPS];
 char AVSmaps_fn[MAX_CHARS];
 char chtype[MAX_TYPES];
-char error_message[LINE_LEN];
+char message[LINE_LEN];
 /*char extension[5];*/
 char filename[MAX_MAPS][MAX_CHARS];
 char fname[MAX_CHARS];
@@ -108,10 +98,10 @@ char warned = 'F';
 char xyz[5];
 char xyzfilename[MAX_CHARS];
 
-FILE *macromolFile, 
-     *AVSmapsFLD, 
-     *xyzFile, 
-     *mapFile[MAX_MAPS], 
+FILE *macromolFile,
+     *AVSmapsFLD,
+     *xyzFile,
+     *mapFile[MAX_MAPS],
      *disFile;
 
 double A, epsilon0, rk, lambda, B, lambda_B;
@@ -166,7 +156,6 @@ int Ais2B = FALSE;
 int Bis2A = FALSE;
 int atomtype[MAX_ATOMS], disGrid = FALSE, dddiel = FALSE, disorder_h = FALSE;
 int disorder[MAX_ATOMS];
-int donecovalent = FALSE;
 int elecPE;
 /* int covmap; */
 int from, to;
@@ -208,8 +197,8 @@ struct tms  tms_grd_start;
 struct tms  tms_grd_end;
 
 /*
-** Fetch clock ticks per second.
-*/
+ * Fetch clock ticks per second.
+ */
 
 if (clktck == 0) {
     if ( (clktck = sysconf(_SC_CLK_TCK)) < 0) {
@@ -224,20 +213,20 @@ if (clktck == 0) {
 ln_half = (double) log(0.5);
 
 /*
-** Get the time at the start of the run...
-*/
+ * Get the time at the start of the run...
+ */
 
 job_start = times( &tms_job_start );
 
 /*
-** Parse the command line...
-*/
+ * Parse the command line...
+ */
 
 (void) setflags( argc, argv );
 
 /*
-** Initialize the atom type array, 
-*/
+ * Initialize the atom type array,
+ */
 
 (void) strcpy( chtype, ATOMTYPE );
 
@@ -263,15 +252,23 @@ for (i=0; i<MAX_TYPES; i++) {
     tycount[i] = 0;
 }
 
-/*
-** Output the "AutoGrid" banner...
-*/
+/* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
+ * 
+ * Output the "AutoGrid" banner...
+ */
 
 banner( version_num );
 
 /*
-** Print the time and date when the file was created...
-*/
+ * Print out MAX_MAPS - maximum number of maps allowed
+ */
+
+(void) fprintf(logFile, "Maximum number of maps that can be computed = %d (defined by MAX_MAPS in \"autocomm.h\").\n\n", MAX_MAPS);
+
+
+/*
+ * Print the time and date when the file was created...
+ */
 
 (void) fprintf( logFile, "This file was created at:\t\t\t" );
 printdate( logFile, 1 );
@@ -280,10 +277,11 @@ if (gethostname( hostnm, MAX_CHARS ) == 0) {
     (void) fprintf( logFile, "                   using:\t\t\t\"%s\"\n", hostnm );
 }
 /*
-** Read in the GPF...
-*/
+ * Read in the GPF...
+ */
 
 while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
+    /* Read in a new line of the GPF */
 
     gpfkeyword = gpfparser( gpfline );
 
@@ -292,9 +290,9 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
     switch( gpfkeyword ) {
         case -1:
             (void) fprintf( logFile, "GPF> %s", gpfline );
-            prStr( error_message, "%s: WARNING: Unrecognized keyword in grid parameter file.\n", programname );
-            (void) fprintf( logFile, "%s", error_message );
-            (void) fprintf( stderr,  "%s", error_message );
+            (void) sprintf( message, "%s: WARNING: Unrecognized keyword in grid parameter file.\n", programname );
+            (void) fprintf( logFile, "%s", message );
+            (void) fprintf( stderr,  "%s", message );
             continue;  /* while fgets gpfline... */
 
         case GPF_NULL:
@@ -319,13 +317,13 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
     switch( gpfkeyword ) {
 
 /******************************************************************************/
- 
+
         case GPF_NULL:
         case GPF_COMMENT:
             break;
 
 /******************************************************************************/
- 
+
         case GPF_RECEPTOR:
             (void) sscanf( gpfline, "%*s %s", macromol_fn);
             (void) fprintf( logFile, "Macromolecular Input File :\t%s\n\nAtom Type Assignments:\n\n", macromol_fn);
@@ -341,13 +339,13 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                 (void) sscanf(line, "%6s", record);
                 if (equal(record, "ATOM", 4) || /* Protein atoms */
                     equal(record, "HETA", 4) || /* Non-standard heteroatoms */
-                    equal(record, "CHAR", 4)) { /* Partial Atomic Charge - 
+                    equal(record, "CHAR", 4)) { /* Partial Atomic Charge -
                                                  not a PDB record */
 
                     /* (void) sscanf(&line[12], "%4s", atomname); */
 
                     (void) strncpy( atomname, &line[12], 4);
-                    /* atomname is declared as an array of 6 characters, 
+                    /* atomname is declared as an array of 6 characters,
                      * the PDB atom name is 4 characters (C elements 0, 1, 2 and 3)
                      * but let's ensure that the fifth character (C element 4)
                      * is a null character, which terminates the string. */
@@ -356,17 +354,17 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                     /* Output the number of this atom... */
                     (void) fprintf( logFile, "Atom no. %d,  \"%s\" ", ia+1, atomname);
                     (void) fflush( logFile );
-                    
-                    /* Read in this macromolecule atom's coordinates, 
+
+                    /* Read in this macromolecule atom's coordinates,
                      * partial charges, and
                      * solvation parameters in PDBQS format... */
-                    
+
                     (void) sscanf(&line[30], "%lf", &coord[ia][X]);
                     (void) sscanf(&line[38], "%lf", &coord[ia][Y]);
                     (void) sscanf(&line[46], "%lf", &coord[ia][Z]);
-                    
+
                     /* Output the coordinates of this atom... */
-                    (void) fprintf( logFile, " at (%.3lf, %.3lf, %.3lf), ", 
+                    (void) fprintf( logFile, " at (%.3lf, %.3lf, %.3lf), ",
                                     coord[ia][X], coord[ia][Y], coord[ia][Z]);
                     (void) fflush( logFile );
 
@@ -401,12 +399,12 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                         atomname[0] == '8' ||
                         atomname[0] == '9') {
                         if (atomname[1] == 'H') {
-                            /* Assume this is the 'mangled' name of a hydrogen atom, 
+                            /* Assume this is the 'mangled' name of a hydrogen atom,
                              * after the atom name has been changed from 'HD21' to '1HD2'
                              * for example.
                              *
                              * [0-9]H\(.\)\(.\)
-                             *   0  1  2    3   
+                             *   0  1  2    3
                              *   :  :  :    :
                              *   V  V  V    V
                              *  tmp 0  1    2
@@ -431,7 +429,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                         atomtype[ia] = METAL;
                     } else {
                         /*
-                         * The default atom type is 'X', 
+                         * The default atom type is 'X',
                          * atomtype[ia] = UNKNOWN;
                          */
                         atomtype[ia] = get_atom_type(atomname, chtype);
@@ -449,8 +447,8 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                     }
                     /* Total up the partial charges as we go... */
                     q_tot += charge[ia];
-                    /* 
-                     * Increment the atom counter 
+                    /*
+                     * Increment the atom counter
                      */
                     ia++;
                     /* Check that there aren't too many atoms... */
@@ -539,7 +537,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
             break;
 
 /******************************************************************************/
- 
+
         case GPF_GRIDFLD:
             (void) sscanf( gpfline, "%*s %s", AVSmaps_fn);
             infld = strindex( AVSmaps_fn, ".fld" );
@@ -652,12 +650,28 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
         case GPF_TYPES:
             (void) sscanf( gpfline, "%*s %s", atmtypstr);
             elecPE = atom_maps = strlen(atmtypstr);
-            veclen = atom_maps_1 = atom_maps + 1;
+            /* veclen is the number of maps to be created:
+             * the number of atom types, plus 1 for the electrostatic map;
+             * AutoDock can only read in MAX_MAPS maps, which must include
+             * the atom maps and electrostatic map */
+            atom_maps_1 = atom_maps + 1;
+            veclen = atom_maps_1;
+            /* Check number of atom maps requested */
+            if (veclen > MAX_MAPS) {
+                /* Too many maps requested */
+                (void) sprintf(message, "\n%s: ERROR:  The number of atom maps requested (%d) plus 1 for the electrostatics map, is too many;  this program can only calculate %d maps.  Change the definition of \"MAX_MAPS\" in \"autocomm.h\".\n", programname, atom_maps, MAX_MAPS);
+                (void) fprintf(stderr, "%s\n", message);
+                (void) fprintf(logFile, "%s\n", message);
+                (void) sprintf(message, "\n%s:  Unsuccessful completion.\n\n", programname);
+                (void) fprintf(stderr, "%s\n", message);
+                (void) fprintf(logFile, "%s\n", message);
+                exit(-1);
+            }
             for (i = 0;  i < atom_maps;  i++) {
                 iscovalent[i] = FALSE;
                 hbond[i] = FALSE;
             }
-            (void) fprintf( logFile, "\nAtom names for types 1-%d and for substrate-atom affinity grid maps :\t", atom_maps);
+            (void) fprintf( logFile, "\nAtom names for types 1-%d and for ligand-atom affinity grid maps :\t", atom_maps);
             for (i = 0;  i < atom_maps;  i++) {
                 (void) fprintf( logFile, "%c ", atmtypstr[i]);
                 if (atmtypstr[i] == COVALENTTYPE) {
@@ -669,7 +683,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
             break;
 
 /******************************************************************************/
- 
+
         case GPF_SOL_PAR:
             /*
             ** read volume and solvation parameter for probe *****************
@@ -680,7 +694,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
             }
             (void) sscanf( gpfline, "%*s %lf %lf", &vol_probe[probe], &solpar_probe[probe]);
             (void) fprintf( logFile, "\nProbe solvation parameters: \n\n\tatomic fragmental volume: %.2f A^3\n\tatomic solvation parameter: %.4f cal/mol A^3\n\n", vol_probe[probe], solpar_probe[probe]);
-            (void) fflush( logFile ); 
+            (void) fflush( logFile );
             solpar_probe[probe] *= 0.001; /*convert cal/molA^3 to kcal/molA^3 */
             break; /* end solvation parameter */
 
@@ -696,15 +710,32 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
             }
             (void) sscanf( gpfline, "%*s %lf", &constant[probe]);
             (void) fprintf( logFile, "\n\nConstant added to map: %.3f\n\n", constant[probe]);
-            (void) fflush( logFile ); 
+            (void) fflush( logFile );
             break;
 
 /******************************************************************************/
 
         case GPF_MAP:
-            /* probe is the index of the atom type we are calculating a map
-               for. */
+            /* The variable "probe" is the 0-based index of the atom type
+             * we are calculating a map for. 
+             * If the "types" line was CNOSH, there would be 5 atom maps to calculate,
+             * and since "probe" is initialized to -1, probe will increment
+             * each time there is a "map" keyword in the GPF.  The value of
+             * probe should therefore go from 0 to 4 for each "map" keyword.  
+             * In this example, atom_maps would be 5, and atom_maps-1 would be 
+             * 4, so if probe is > 4, there is something wrong in the number of
+             * "map" keywords. */
             ++probe;
+            if (probe > atom_maps-1) {
+                 (void) sprintf(message, "\n%s: ERROR:  Too many \"map\" keywords (%d);  this program can only calculate %d maps.\nRemove a \"map\" keyword from the GPF, or change the definition of \"MAX_MAPS\" in \"autocomm.h\".\n", programname, probe+1, MAX_MAPS);
+                (void) fprintf(stderr, "%s\n", message);
+                (void) fprintf(logFile, "%s\n", message);
+                (void) sprintf(message, "\n%s:  Unsuccessful completion.\n\n", programname);
+                (void) fprintf(stderr, "%s\n", message);
+                (void) fprintf(logFile, "%s\n", message);
+                exit(-1);
+            }
+            /* Read in the filename for this grid map */
             (void) sscanf( gpfline, "%*s %s", filename[ probe ] );
             if ( (mapFile[ probe ] = fopen( filename[ probe ], "w")) == NULL ) {
                 (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, filename[probe] );
@@ -714,18 +745,23 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                 exit(911);
             }
             (void) fprintf( logFile, "\n\nOutput File %d   %s\n\n", (probe+1), filename[probe] );
-            (void) fflush( logFile ); 
+            (void) fflush( logFile );
 
-            /* i is the index of the protein atom type, that probe will
-               interact with. */
-            for (i = 0;  i < NATOMTYPES;  i++) {
-                if ( fgets( line, LINE_LEN, GPF) != NULL ) {
-                (void) fprintf( logFile, "GPF> %s", line );
-                    switch( gpfparser( line ) ) {
+            if (iscovalent[probe] == FALSE) {
+                /* Parsing for internal non-bonded parameters is
+                 * not needed for covalent maps */
+
+                /* Loop over i, the index of the protein atom type, 
+                 * that the ligand probe will interact with. */
+                for (i = 0;  i < NATOMTYPES;  i++) {
+                    if ( fgets( line, LINE_LEN, GPF) != NULL ) {
+                        /* Read in a new line of the GPF */
+                        (void) fprintf( logFile, "GPF> %s", line );
+                        switch( gpfparser( line ) ) {
                         case -1:
-                            prStr( error_message, "%s: WARNING: Unrecognized keyword -- use either \"nbp_r_eps\" or \"nbp_coeffs\".\n", programname );
-                            (void) fprintf( logFile, "%s", error_message );
-                            (void) fprintf( stderr,  "%s", error_message );
+                            (void) sprintf( message, "%s: WARNING: Unrecognized keyword -- use either \"nbp_r_eps\" or \"nbp_coeffs\".\n", programname );
+                            (void) fprintf( logFile, "%s", message );
+                            (void) fprintf( stderr,  "%s", message );
                             break;
                         case GPF_NBP_COEFFS:
                             (void) sscanf( line, "%*s %lf %lf %d %d", &cA, &cB, &xA, &xB );
@@ -735,108 +771,115 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                             cA = (tmpconst = epsij / (double)(xA - xB)) * pow( Rij, (double)xA ) * (double)xB;
                             cB = tmpconst * pow( Rij, (double)xB ) * (double)xA;
                             break;
-                    } /* switch */
-                    dxA = (double) xA;
-                    dxB = (double) xB;
-                    if (xB == (2*xA)) {
-                        Bis2A = TRUE;
-                        Ais2B = FALSE;
-                    } else if (xA == (2*xB)) {
-                        Ais2B = TRUE;
-                        Bis2A = FALSE;
-                    } else {
-                        Ais2B = FALSE;
-                        Bis2A = FALSE;
-                    }
-                    if ( (xA != 12) || (xB != 6) ) {
-                        hbond[probe] = TRUE;
-                    }
-                    (void) fprintf( logFile, "\n             %9.1lf       %9.1lf \n", cA, cB);
-                    (void) fprintf( logFile, "    E    =  -----------  -  -----------\n");
-                    (void) fprintf( logFile, "     %c, %c         %2d              %2d\n", atmtypstr[probe], chtype[i], xA, xB);
-                    (void) fprintf( logFile, "                r               r \n\n");
-                    /* loop over distance index, indx_r, from 0 to MAX_DIST */
-                    for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
-                        r  = angstrom(indx_r);
-                        if (Bis2A) {
-                            rA = pow( r, dxA );
-                            rB = rA * rA;
-                        } else if (Ais2B) {
-                            rB = pow( r, dxB );
-                            rA = rB * rB;
+                        } /* switch */
+                        dxA = (double) xA;
+                        dxB = (double) xB;
+                        if (xB == (2*xA)) {
+                            Bis2A = TRUE;
+                            Ais2B = FALSE;
+                        } else if (xA == (2*xB)) {
+                            Ais2B = TRUE;
+                            Bis2A = FALSE;
                         } else {
-                            rA = pow( r, dxA );
-                            rB = pow( r, dxB );
-                        } /* if */
-                        /* calculate the dispersion-repulsion or hydrogen bonding energy
-                           between protein atom type i and ligand atom type
-                           probe, and store it for this distance, indx_r. */
-                        energy[i][indx_r][probe] = min( EINTCLAMP, (cA/rA - cB/rB) );
-                    } /* indx_r */
-                    energy[i][0][probe]    = EINTCLAMP;
-                    energy[i][MD_1][probe] = 0.;
-
-                    /* smooth with min function */
-                    if (i_smooth > 0) {
+                            Ais2B = FALSE;
+                            Bis2A = FALSE;
+                        }
+                        if ( (xA != 12) || (xB != 6) ) {
+                            hbond[probe] = TRUE;
+                        }
+                        (void) fprintf( logFile, "\n             %9.1lf       %9.1lf \n", cA, cB);
+                        (void) fprintf( logFile, "    E    =  -----------  -  -----------\n");
+                        (void) fprintf( logFile, "     %c, %c         %2d              %2d\n", atmtypstr[probe], chtype[i], xA, xB);
+                        (void) fprintf( logFile, "                r               r \n\n");
                         /* loop over distance index, indx_r, from 0 to MAX_DIST */
                         for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
-                            /* set energy_smooth at this distance, indx_r, to */
-                            /* 100, 000 -- effectively clamping the maximum */
-                            /* energy. */
-                            energy_smooth[indx_r] = 100000.;
-                            /* loop over j, from either 0 or indx_r - i_smooth, whichever is larger,  */
-                            /*              to either MAX_DIST or indx_r + i_smooth, whichever is smaller. */
-                            /* This effectively goes over all distances from */
-                            /* indx_r, plus or minus i_smooth. */
-                            for (j = max(0, indx_r-i_smooth);  j < min(MAX_DIST, indx_r+i_smooth);  j++) {
-                              /* store the minimum energy within the this */
-                              /* range, of this distance, indx_r, plus or minus the smoothing radius, i_smooth */
-                              energy_smooth[indx_r] = min(energy_smooth[indx_r], energy[i][j][probe]);
+                            r  = angstrom(indx_r);
+                            if (Bis2A) {
+                                rA = pow( r, dxA );
+                                rB = rA * rA;
+                            } else if (Ais2B) {
+                                rB = pow( r, dxB );
+                                rA = rB * rB;
+                            } else {
+                                rA = pow( r, dxA );
+                                rB = pow( r, dxB );
+                            } /* if */
+                            /* calculate the dispersion-repulsion or hydrogen bonding energy
+                             * between protein atom type i and ligand atom type
+                             * probe, and store it for this distance, indx_r. */
+                            energy[i][indx_r][probe] = min( EINTCLAMP, (cA/rA - cB/rB) );
+                        } /* indx_r */
+                        energy[i][0][probe]    = EINTCLAMP;
+                        energy[i][MD_1][probe] = 0.;
+
+                        /* smooth with min function */
+                        if (i_smooth > 0) {
+                            /* loop over distance index, indx_r, from 0 to MAX_DIST */
+                            for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
+                                /* set energy_smooth at this distance, indx_r, to
+                                 * 100000 -- effectively clamping the maximum
+                                 * energy. */
+                                energy_smooth[indx_r] = 100000.;
+                                /* loop over j, from either 0 or indx_r - i_smooth, 
+                                 * whichever is larger,
+                                 * to either MAX_DIST or indx_r + i_smooth, 
+                                 * whichever is smaller.
+                                 * This effectively goes over all distances from
+                                 * indx_r, plus or minus i_smooth. */
+                                for (j = max(0, indx_r-i_smooth);  j < min(MAX_DIST, indx_r+i_smooth);  j++) {
+                                  /* store the minimum energy within the this
+                                   * range, of this distance, indx_r, plus or 
+                                   * minus the smoothing radius, i_smooth */
+                                  energy_smooth[indx_r] = min(energy_smooth[indx_r], energy[i][j][probe]);
+                                }
                             }
-                        }
-                        /* loop over distance index, indx_r, from 0 to MAX_DIST */
-                        for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
-                            /* update the interatomic energy table with the */
-                            /* smoothed value at this distance, indx_r. */
-                            energy[i][indx_r][probe] = energy_smooth[indx_r];
-                        }
-                    } /* end smoothing */
-                } /* if */
-            } /*  i  */
+                            /* loop over distance index, indx_r, from 0 to MAX_DIST */
+                            for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
+                                /* update the interatomic energy table with the
+                                 * smoothed value at this distance, indx_r. */
+                                energy[i][indx_r][probe] = energy_smooth[indx_r];
+                            }
+                        } /* end smoothing */
+                    } /* if */
+                } /*  i, index of protein atom types  */
 
-           /* exponential function for protein and ligand desolvation */
-           /* note: the solvation term will not be smoothed */
-           sigma = 3.6;
-           minus_inv_two_sigma_sqd = -1. / (2. * sigma * sigma);
-           for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
-                r  = angstrom(indx_r);
-                /* sol_fn[indx_r] = exp(-sq(r)/(2.*sigma*sigma)); */
-                sol_fn[indx_r] = exp( sq(r) * minus_inv_two_sigma_sqd );
-           }
-/*
-** Print out a table, of distance versus energy...
-*/
-            (void) fprintf( logFile, "\n  r ");
-            for (iat = 0;  iat < NATOMTYPES;  iat++) {
-                (void) fprintf( logFile, "    %c    ", chtype[iat]);
-            } /* iat */
-            (void) fprintf( logFile, "\n ___");
-            for (iat = 0;  iat < NATOMTYPES;  iat++) {
-                (void) fprintf( logFile, " ________");
-            } /* iat */
-            (void) fprintf( logFile, "\n");
-            for (i = 0;  i <= 500;  i += 10) {
-                (void) fprintf( logFile, "%4.1lf", angstrom(i) );
+               /* exponential function for protein and ligand desolvation
+                * note: the solvation term will not be smoothed */
+               sigma = 3.6;
+               minus_inv_two_sigma_sqd = -1. / (2. * sigma * sigma);
+               for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
+                    r  = angstrom(indx_r);
+                    /* sol_fn[indx_r] = exp(-sq(r)/(2.*sigma*sigma)); */
+                    sol_fn[indx_r] = exp( sq(r) * minus_inv_two_sigma_sqd );
+               }
+               /*
+                * Print out a table, of distance versus energy...
+                */
+                (void) fprintf( logFile, "\n  r ");
                 for (iat = 0;  iat < NATOMTYPES;  iat++) {
-                    (void) fprintf( logFile, (energy[iat][i][probe]<100000.)?"%9.2lf":"%9.2lg", energy[iat][i][probe]);
+                    (void) fprintf( logFile, "    %c    ", chtype[iat]);
+                } /* iat */
+                (void) fprintf( logFile, "\n ___");
+                for (iat = 0;  iat < NATOMTYPES;  iat++) {
+                    (void) fprintf( logFile, " ________");
                 } /* iat */
                 (void) fprintf( logFile, "\n");
-            } /* i */
-            (void) fprintf( logFile, "\n");
+                for (i = 0;  i <= 500;  i += 10) {
+                    (void) fprintf( logFile, "%4.1lf", angstrom(i) );
+                    for (iat = 0;  iat < NATOMTYPES;  iat++) {
+                        (void) fprintf( logFile, (energy[iat][i][probe]<100000.)?"%9.2lf":"%9.2lg", energy[iat][i][probe]);
+                    } /* iat */
+                    (void) fprintf( logFile, "\n");
+                } /* i */
+                (void) fprintf( logFile, "\n");
+             /* parsing for intnbp not needed for covalent maps */
+            } else {
+                (void) fprintf( logFile, "\nAny internal non-bonded parameters will be ignored for this map, since this is a covalent map.\n");
+            }
             break;
 
 /******************************************************************************/
- 
+
         case GPF_ELECMAP:
             (void) sscanf( gpfline, "%*s %s", filename[ elecPE ] );
             if ( (mapFile[ elecPE ] = fopen( filename[ elecPE ], "w" )) == NULL){
@@ -852,6 +895,16 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
 /******************************************************************************/
 
         case GPF_COVALENTMAP:
+            /* The GPF should look like this example for a covalent map:
+             *
+             * map mymap.Z.map
+             * solpar 0.000 0.000
+             * constant 0.000
+             * covalentmap 5. 1000. -2.229 -0.442 19.351
+             *
+             * Note: there would normally be "nbp_r_eps" lines after "map"
+             * and before "sol_par" if this were an atomic affinity map.
+             */
             (void) sscanf( gpfline, "%*s %lf %lf %lf %lf %lf", &covhalfwidth, &covbarrier, &(covpos[X]), &(covpos[Y]), &(covpos[Z]) );
             (void) fprintf( logFile, "\ncovalentmap <half-width in Angstroms> <barrier> <x> <y> <z>\n");
             (void) fprintf( logFile, "\nCovalent well's half-width in Angstroms:         %8.3f\n", covhalfwidth);
@@ -864,14 +917,14 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
             break;
 
 /******************************************************************************/
- 
+
         case GPF_DISORDER:
             disorder_h = TRUE;
             (void) fprintf( logFile, "\nHydroxyls will be disordered \n\n");
             break;
 
 /******************************************************************************/
- 
+
         case GPF_SMOOTH:
             (void) sscanf( gpfline, "%*s %lf", &r_smooth );
             (void) fprintf( logFile, "\nPotentials will be smoothed by: %lf\n\n", r_smooth);
@@ -882,7 +935,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
             break;
 
 /******************************************************************************/
- 
+
         case GPF_DIEL:
             (void) sscanf( gpfline, "%*s %lf", &diel );
             if (diel < 0.) {
@@ -890,8 +943,8 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                 (void) fprintf( logFile, "\nUsing *distance-dependent* dielectric function of Mehler and Solmajer, Prot.Eng.4, 903-910.\n\n");
                 dddiel = TRUE;
 /*____________________________________________________________________________
-** Distance-dependent dielectric ewds: Mehler and Solmajer, Prot Eng 4, 903-910.
-**____________________________________________________________________________*/
+ * Distance-dependent dielectric ewds: Mehler and Solmajer, Prot Eng 4, 903-910.
+ *____________________________________________________________________________*/
                 lambda   = 0.003627;
                 epsilon0 = 78.4;
                 A        = (-8.5525);
@@ -911,7 +964,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                 }
                 (void) fprintf( logFile, "\n");
                 for (i = 1;  i < MAX_DIST;  i++) {
-                    epsilon[i] = 332.0 / epsilon[i]; 
+                    epsilon[i] = 332.0 / epsilon[i];
                    /* -diel: weight from free energy survey */
                     epsilon[i] *= -diel;
     /* Really, LHS should be "inv_epsilon[i]", but this way saves memory... */
@@ -928,7 +981,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
             break;
 
 /******************************************************************************/
- 
+
         case GPF_FMAP:
             (void) sscanf( gpfline, "%*s %s", fname );
             if ( (disFile = fopen( fname, "w" )) == NULL) {
@@ -944,13 +997,13 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
             break;
 
 /******************************************************************************/
- 
+
         default:
             break;
 
 /******************************************************************************/
 
-    } /* switch */ 
+    } /* switch */
 } /* while */
 
 (void) fprintf( logFile, "\n>>> Closing the grid parameter file (GPF)... <<<\n\n" );
@@ -966,7 +1019,7 @@ if ( ! disGrid ) {
 (void) fprintf( AVSmapsFLD, "# Created by %s.\n#\n", programname);
 (void) fprintf( AVSmapsFLD, "#SPACING %.3f\n", (float) spacing);
 (void) fprintf( AVSmapsFLD, "#NELEMENTS %d %d %d\n", nelements[X], nelements[Y], nelements[Z]);
-(void) fprintf( AVSmapsFLD, "#CENTER %.3f %.3f %.3f\n", (float)center[X], (float)center[Y], (float)center[Z]);
+(void) fprintf( AVSmapsFLD, "#CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
 (void) fprintf( AVSmapsFLD, "#MACROMOLECULE %s\n", macromol_fn);
 (void) fprintf( AVSmapsFLD, "#GRID_PARAMETER_FILE %s\n#\n", grid_param_fn);
 (void) fprintf( AVSmapsFLD, "ndim=3\t\t\t# number of dimensions in the field\n");
@@ -991,7 +1044,7 @@ if (disGrid) {
 for (i = 0;  i < atom_maps;  i++) {
     (void) fprintf( AVSmapsFLD, "variable %d file=%s filetype=ascii skip=6\n", (i+1), filename[i] );
 }
-(void) fprintf( AVSmapsFLD, "variable %d file=%s filetype=ascii skip=6\n", atom_maps_1, filename[ elecPE ]); 
+(void) fprintf( AVSmapsFLD, "variable %d file=%s filetype=ascii skip=6\n", atom_maps_1, filename[ elecPE ]);
 if (disGrid) {
     (void) fprintf( AVSmapsFLD, "variable %d file=%s filetype=ascii skip=6\n", veclen, fname);
 }
@@ -999,9 +1052,9 @@ if (disGrid) {
 
 
 /**************************************************
-** Loop over all MACROMOLECULE atoms to
-** calculate bond vectors for directional H-bonds
-***************************************************/
+ * Loop over all MACROMOLECULE atoms to
+ * calculate bond vectors for directional H-bonds
+ **************************************************/
 
 for (ia = 0;  ia < natom;  ia++) {
 
@@ -1009,33 +1062,33 @@ disorder[ia] = FALSE;  /*initialize disorder flag*/
 warned = 'F';
 
 /*
-** Set scan limits looking for bonded atoms
-*/
+ * Set scan limits looking for bonded atoms
+ */
     from = max(ia-20, 0);
     to   = min(ia+20, natom-1);
 
 /*
-** If 'ia' is a hydrogen atom, it could be a
-** MACROMOLECULE HYDROGEN-BOND DONOR, 
-*/
+ * If 'ia' is a hydrogen atom, it could be a
+ * MACROMOLECULE HYDROGEN-BOND DONOR,
+ */
     if (atomtype[ia] == HYDROGEN) {
 
         for ( ib = from; ib <= to; ib++) {
 /*
-** =>  NH-> or OH->
-*/
+ * =>  NH-> or OH->
+ */
             if ((atomtype[ib] == NITROGEN) || (atomtype[ib] == OXYGEN)) {
 /*
-** Calculate the square of the N-H or O-H bond distance, rd2, 
-**                            ib-ia  ib-ia
-*/
+ * Calculate the square of the N-H or O-H bond distance, rd2,
+ *                            ib-ia  ib-ia
+ */
                 for (i = 0;  i < XYZ;  i++) {
                     d[i] = coord[ia][i] - coord[ib][i];
                 }
                 rd2 = sq( d[X] ) + sq( d[Y] ) + sq( d[Z] );
 /*
-** If ia & ib are less than 1.3 A apart -- they are covalently bonded, 
-*/
+ * If ia & ib are less than 1.3 A apart -- they are covalently bonded,
+ */
                 if (rd2 < 1.69) {
                     if (rd2 < APPROX_ZERO) {
                         if (rd2 == 0.) {
@@ -1046,42 +1099,42 @@ warned = 'F';
                     }
                     inv_rd = 1./sqrt(rd2);
 /*
-** N-H: Set exponent rexp to 2 for m/m H-atom, 
-*/
+ * N-H: Set exponent rexp to 2 for m/m H-atom,
+ */
                     if (atomtype[ib] == NITROGEN) rexp[ia] = 2;
 /*
-** O-H: Set exponent rexp to 4 for m/m H-atom, 
-** and flag disordered hydroxyls
-*/
+ * O-H: Set exponent rexp to 4 for m/m H-atom,
+ * and flag disordered hydroxyls
+ */
                     if (atomtype[ib] == OXYGEN) {
                         rexp[ia] = 4;
                         if (disorder_h == TRUE) disorder[ia] = TRUE;
                     }
 /*
-** Normalize the vector from ib to ia, N->H or O->H...
-*/
+ * Normalize the vector from ib to ia, N->H or O->H...
+ */
                     for (i = 0;  i < XYZ;  i++) {
                         rvector[ia][i] = d[i] * inv_rd;
                     }
 /*
-** First O-H/N-H H-bond-donor found; Go on to next atom, 
-*/
+ * First O-H/N-H H-bond-donor found; Go on to next atom,
+ */
                     break;
                 } /* Found covalent bond.                                 */
             } /* Found NH or OH in macromolecule.                         */
         } /* Finished scanning for the NH or OH in macromolecule.         */
 
 /*
-** If 'ia' is an Oxygen atom, it could be a
-** MACROMOLECULE H_BOND ACCEPTOR, 
-*/
+ * If 'ia' is an Oxygen atom, it could be a
+ * MACROMOLECULE H_BOND ACCEPTOR,
+ */
 
     } else if (atomtype[ia] == OXYGEN) {
 /*
-** Scan from at most, (ia-20)th m/m atom, or ia-th (if ia<20)
-**        to (ia+5)th m/m-atom
-** determine number of atoms bonded to the oxygen
-*/
+ * Scan from at most, (ia-20)th m/m atom, or ia-th (if ia<20)
+ *        to (ia+5)th m/m-atom
+ * determine number of atoms bonded to the oxygen
+ */
         nbond = 0;
         for ( ib = from; ib <= to; ib++) {
             if ( ib != ia ) {
@@ -1097,7 +1150,7 @@ warned = 'F';
                         rd2 += sq(coord[ia][i] - coord[ib][i]);
                     }
                 */
-                if (((rd2 < 2.89) && (atomtype[ib] == CARBON)) || 
+                if (((rd2 < 2.89) && (atomtype[ib] == CARBON)) ||
                     ((rd2 < 1.69) && (atomtype[ib] == HYDROGEN))) {
                     if (nbond == 2) {
                         (void) fprintf( logFile, "WARNING! oxygen with three bonded atoms, atom serial number %d\n", ia+1);
@@ -1152,14 +1205,14 @@ warned = 'F';
                         dc[i] = coord[i1][i] - coord[i2][i]; /*NEW*/
                         rd2 += sq( dc[i] );
                     }
-                    if (((rd2 < 2.89) && (atomtype[i2] != HYDROGEN)) || 
+                    if (((rd2 < 2.89) && (atomtype[i2] != HYDROGEN)) ||
                         ((rd2 < 1.69) && (atomtype[i2] == HYDROGEN))) {
 
                         /* found one */
                         /* d[i] vector from carbon to second atom */
                         rd2 = 0.;
                         for (i = 0;  i < XYZ;  i++) {
-                            d[i] = coord[i2][i]-coord[i1][i]; 
+                            d[i] = coord[i2][i]-coord[i1][i];
                             rd2 += sq( d[i] );
                         }
                         if (rd2 < APPROX_ZERO) {
@@ -1205,7 +1258,7 @@ warned = 'F';
 
             /* disordered hydroxyl */
 
-            if ( ((atomtype[i1] == HYDROGEN) || (atomtype[i2] == HYDROGEN)) 
+            if ( ((atomtype[i1] == HYDROGEN) || (atomtype[i2] == HYDROGEN))
                 && (atomtype[i1] != atomtype[i2]) && (disorder_h == TRUE) )  {
 
                 if (atomtype[i1] == CARBON) ib = i1;
@@ -1253,9 +1306,9 @@ warned = 'F';
                 }
 
                 /* vector pointing between the lone pairs:
-                ** front of the vector is the oxygen atom, 
-                ** X1->O vector dotted with normalized X1->X2 vector plus 
-                ** coords of X1 gives the point on the X1-X2 line for the 
+                ** front of the vector is the oxygen atom,
+                ** X1->O vector dotted with normalized X1->X2 vector plus
+                ** coords of X1 gives the point on the X1-X2 line for the
                 ** back of the vector.
                 */
                 for (i = 0;  i < XYZ;  i++) {
@@ -1288,12 +1341,12 @@ warned = 'F';
 } /* Do Next macromolecular atom... */
 
 /********************************************
-** End bond vector loop
-*********************************************/
+ * End bond vector loop
+ ********************************************/
 
 for (k = 0;  k < atom_maps_1;  k++) {
     emax[k] = (double)-BIG;
-    emin[k] = (double)BIG; 
+    emin[k] = (double)BIG;
 }
 
 (void) fprintf( logFile, "Beginning grid calculations.\n");
@@ -1301,11 +1354,11 @@ for (k = 0;  k < atom_maps_1;  k++) {
 (void) fflush( logFile);
 
 /*____________________________________________________________________________
-** Write out the  correct grid_data '.fld' file_name at the  head of each map
-** file, to avoid centering errors in subsequent dockings...
-** AutoDock can then  check to see  if the  center of each  map  matches that
-** specified in its parameter file...
-**____________________________________________________________________________*/
+ * Write out the  correct grid_data '.fld' file_name at the  head of each map
+ * file, to avoid centering errors in subsequent dockings...
+ * AutoDock can then  check to see  if the  center of each  map  matches that
+ * specified in its parameter file...
+ *____________________________________________________________________________*/
 
 for (k = 0;  k < atom_maps_1;  k++) {
     (void) fprintf( mapFile[k], "GRID_PARAMETER_FILE %s\n", grid_param_fn);
@@ -1330,12 +1383,15 @@ if (disGrid) {
 (void) fprintf( logFile, "________  ________  ________  ______________  __________________________\n\n");
 
 /*
-** Iterate over all grid points
-*/
+ * Iterate over all grid points, Z( Y ( X ) ) (X is fastest)...
+ */
 
 ic = 0;
 
 for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
+    /*
+     *  c[0:2] contains the current grid point.
+     */
     c[Z] = ((double)icoord[Z]) * spacing;
     grd_start = times( &tms_grd_start );
 
@@ -1345,26 +1401,37 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
         for (icoord[X] = -ne[X]; icoord[X] <= ne[X]; icoord[X]++) {
             c[X] = ((double)icoord[X]) * spacing;
 
-/*
-**  c[] contains the current grid point.
-*/
             for (j = 0;  j < atom_maps_1;  j++) {
-                enrg[j] = constant[j];
+                if (iscovalent[j] == TRUE) {
+                    /* Calculate the distance from the current
+                     * grid point, c, to the covalent attachment point, covpos */
+                    for (ii = 0;  ii < XYZ;  ii++) {
+                        d[ii]  = covpos[ii] - c[ii];
+                    }
+                    rcov = hypotenuse( d[X], d[Y], d[Z] );
+                    rcov = rcov / covhalfwidth;
+                    if (rcov < APPROX_ZERO) {
+                        rcov = APPROX_ZERO;
+                    }
+                    enrg[j] = covbarrier * (1. - exp(ln_half * rcov * rcov)) + constant[j];
+                } else {
+                    enrg[j] = constant[j];
+                } /* is not covalent */
             }
             if (disGrid) {
                 r_min = BIG;
             }
 
-            donecovalent = FALSE;
-/*
-**  Do all Macromolecule (protein, DNA, etc.) atoms...
-*/
+            /*
+             *  Loop over all Macromolecule (protein, DNA, etc.) atoms...
+             */
             for (ia = 0;  ia < natom;  ia++) {
-/*
-**  Get distance, r, from current grid point, c, to this macromolecule atom, coord, 
-*/
-                for (i = 0;  i < XYZ;  i++) { 
-                    d[i]  = coord[ia][i] - c[i]; 
+                /*
+                 *  Get distance, r, from current grid point, c, 
+                 *  to this macromolecule atom, coord,
+                 */
+                for (i = 0;  i < XYZ;  i++) {
+                    d[i] = coord[ia][i] - c[i];
                 }
                 r = hypotenuse( d[X], d[Y], d[Z] );
                 if (r < APPROX_ZERO) {
@@ -1377,25 +1444,25 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 indx_r = min( lookup(r), MD_1 );
 
                 if (disGrid) {
-/* Calculate the so-called "Floating Grid"... */
+                    /* Calculate the so-called "Floating Grid"... */
                     r_min = min( r, r_min );
                 }
 
                 if (dddiel) {
-/* Distance-dependent dielectric... */
+                    /* Distance-dependent dielectric... */
                     enrg[elecPE] += charge[ia] * inv_r * epsilon[indx_r];
-/* elecPE is the last grid map, i.e. electrostatics */
+                    /* elecPE is the last grid map, i.e. electrostatics */
                 } else {
-/* Constant dielectric... */
+                    /* Constant dielectric... */
                     enrg[elecPE] += charge[ia] * inv_r * invdielcal;
                 }
 
-/*
-** If distance from grid point to atom ia is too large, 
-** or if atom is a disordered hydrogen, 
-**   add nothing to the grid-point's non-bond energy;
-**   just continue to next atom...
-*/
+                /*
+                 * If distance from grid point to atom ia is too large,
+                 * or if atom is a disordered hydrogen,
+                 *   add nothing to the grid-point's non-bond energy;
+                 *   just continue to next atom...
+                 */
                 if ( r > NBCUTOFF ) {
                     continue; /* onto the next atom... */
                 }
@@ -1406,34 +1473,34 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 /*** racc = rdon = 1.; ***/
                 racc = 1.;
                 rdon = 1.;
-                
+
                 if (atomtype[ia] == HYDROGEN) {
-/*
-**  ia-th macromolecule atom = Hydrogen ( 4 = H )
-**  => Protein H-bond donor, OH or NH.
-**  calculate racc for H-bond ACCEPTOR PROBES at this grid pt.
-**            ====     ======================
-*/
+                    /*
+                     *  ia-th macromolecule atom = Hydrogen ( 4 = H )
+                     *  => Protein H-bond donor, OH or NH.
+                     *  calculate racc for H-bond ACCEPTOR PROBES at this grid pt.
+                     *            ====     ======================
+                     */
                     cos_theta = 0.;
-/*
-**  d[] = Unit vector from current grid pt to ia_th m/m atom.
-**  cos_theta = d dot rvector == cos(angle) subtended.
-*/
+                    /*
+                     *  d[] = Unit vector from current grid pt to ia_th m/m atom.
+                     *  cos_theta = d dot rvector == cos(angle) subtended.
+                     */
                     for (i = 0;  i < XYZ;  i++) {
                         cos_theta -= d[i] * rvector[ia][i];
                     }
 
                     if (cos_theta <= 0.) {
-/*
-**  H->current-grid-pt vector >= 90 degrees from
-**  N->H or O->H vector, 
-*/
+                        /*
+                         *  H->current-grid-pt vector >= 90 degrees from
+                         *  N->H or O->H vector,
+                         */
                         racc = 0.;
                     } else {
-/*
-**  racc = [cos(theta)]^2.0 for N-H
-**  racc = [cos(theta)]^4.0 for O-H, 
-*/
+                        /*
+                         *  racc = [cos(theta)]^2.0 for N-H
+                         *  racc = [cos(theta)]^4.0 for O-H,
+                         */
                         switch( rexp[ia] ) {
                             case 1:
                             default:
@@ -1452,7 +1519,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     /* endif (atomtype[ia] == HYDROGEN) */
                 } else if ((atomtype[ia] == OXYGEN) && (disorder[ia] == FALSE)) {
                     /*
-                    **  ia-th macromolecule atom = Oxygen 
+                    **  ia-th macromolecule atom = Oxygen
                     **  => Protein H-bond acceptor, oxygen.
                     */
 
@@ -1464,8 +1531,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                         cos_theta -= d[i] * rvector[ia][i];
                     }
                     /*
-                    ** t0 is the angle out of the lone pair plane, calculated 
-                    ** as 90 deg - acos (vector to grid point DOT lone pair 
+                    ** t0 is the angle out of the lone pair plane, calculated
+                    ** as 90 deg - acos (vector to grid point DOT lone pair
                     ** plane normal)
                     */
                     t0 = 0.;
@@ -1474,16 +1541,16 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     }
                     if (t0 > 1.) {
                         t0 = 1.;
-                        (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %.3f, a value greater than 1.\n", t0);
+                        (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", t0);
                     } else if (t0 < -1.) {
                         t0 = -1.;
-                        (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %.3f, a value less than 1.\n", t0);
+                        (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", t0);
                     }
                     t0 = PI_halved - acos(t0);
 
                     /*
-                    ** ti is the angle in the lone pair plane, away from the 
-                    ** vector between the lone pairs, 
+                    ** ti is the angle in the lone pair plane, away from the
+                    ** vector between the lone pairs,
                     ** calculated as (grid vector CROSS lone pair plane normal)
                     ** DOT C=O vector - 90 deg
                     */
@@ -1510,10 +1577,10 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     if (cos_theta >= 0.) {
                         if (ti > 1.) {
                             ti = 1.;
-                            (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %.3f, a value greater than 1.\n", ti);
+                            (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", ti);
                         } else if (ti < -1.) {
                             ti = -1.;
-                            (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %.3f, a value less than 1.\n", ti);
+                            (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", ti);
                         }
                         ti = acos(ti) - PI_halved;
                         if (ti < 0.) {
@@ -1523,7 +1590,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                         rdon = (0.9+0.1*sin(ti+ti))*cos(t0);
                     /* 0.34202 = cos (100 deg) */
                     } else if (cos_theta >= -0.34202) {
-                        rdon = 562.25*pow(0.116978-sq(cos_theta), 3.)*cos(t0); 
+                        rdon = 562.25*pow(0.116978-sq(cos_theta), 3.)*cos(t0);
                     }
 
                     /* endif atomtype == OXYGEN, not disordered */
@@ -1533,56 +1600,43 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     cos_theta = 0.;
                     for (i = 0;  i < XYZ;  i++) {
                         cos_theta -= d[i] * rvector[ia][i];
-                    }        
+                    }
                     if (cos_theta > 1.) {
                         cos_theta = 1.;
-                        (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %.3f, a value greater than 1.\n", cos_theta);
+                        (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", cos_theta);
                     } else if (cos_theta < -1.) {
                         cos_theta = -1.;
-                        (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %.3f, a value less than 1.\n", cos_theta);
+                        (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", cos_theta);
                     }
                     theta = acos(cos_theta);
                     racc = 0.;
                     rdon = 0.;
                     if (theta <= 1.24791 + PI_halved) {
-                        /* 1.24791 rad = 180 deg minus C-O-H bond angle, 
+                        /* 1.24791 rad = 180 deg minus C-O-H bond angle,
                         ** 108.5 deg */
                         rdon = pow(cos(theta-1.24791), 4.);
                         racc = rdon;
                     }
                 } /* atomtype test */
 
-/*
-** For each probe atom-type, 
-** Sum pairwise interactions between each probe
-** and the current receptor atom...
-*/
+                /*
+                 * For each probe atom-type,
+                 * Sum pairwise interactions between each probe
+                 * at this grid point (c[0:2])
+                 * and the current receptor atom, ia...
+                 */
                 for (probe = 0;  probe < atom_maps;  probe++) {
 
-                    if (iscovalent[probe] == TRUE) {
-                      
-                        if (donecovalent == FALSE) {
-                            /* calculate the distance from the current
-                             * grid point to the covalent attachment point */
-                            for (ii = 0;  ii < XYZ;  ii++) { 
-                                d[ii]  = covpos[ii] - c[ii]; 
-                            }
-                            rcov = hypotenuse( d[X], d[Y], d[Z] );
-                            rcov = rcov / covhalfwidth;
-                            if (rcov < APPROX_ZERO) {
-                                rcov = APPROX_ZERO;
-                            }
-                            enrg[probe] = covbarrier * (1. - exp(ln_half * rcov * rcov)) + constant[probe];
-                            /* prevent unnecessary repetitions of this
-                             * calculation as we loop over all the
-                             * macromolecule's atoms... */
-                            donecovalent = TRUE;
-                        }
-
-                    } else {
+                    /* We do not want to change the current enrg value 
+                     * for any covalent maps, make sure iscovalent is
+                     * false... */
+                    if (iscovalent[probe] == FALSE) {
+                         
                         if (hbond[probe] == TRUE) {
-
-                            /* rsph ramps in angular dependence for distances with negative energy */
+                            /*  PROBE forms H-bonds... */
+                            
+                            /* rsph ramps in angular dependence 
+                             * for distances with negative energy */
                             rsph = energy[atomtype[ia]][indx_r][probe]/100.;
                             rsph = max(rsph, 0.);
                             rsph = min(rsph, 1.);
@@ -1590,47 +1644,47 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                             if ((atmtypstr[probe] == 'N') ||
                                 (atmtypstr[probe] == 'O') ||
                                 (atmtypstr[probe] == 'S')) {
-
+                            
                                   /* PROBE can be an H-BOND ACCEPTOR, */
                                 if (disorder[ia] == FALSE ) {
                                     enrg[probe] += energy[atomtype[ia]][indx_r][probe] * (racc+(1.-racc)*rsph);
                                 } else {
                                     enrg[probe] += energy[HYDROGEN][max(0, indx_r-110)][probe] * (racc+(1.-racc)*rsph);
                                 }
-
+                            
                             } else if (atmtypstr[probe] == 'H') {
-
+                            
                                 /*  PROBE is H-BOND DONOR, */
                                 enrg[probe] += energy[atomtype[ia]][indx_r][probe] *
                                                              (rdon+(1.-rdon)*rsph);
                             }
-
+                            
                         } else {
-
-                                /*  PROBE does not form H-bonds..., */
-                                enrg[probe] += energy[atomtype[ia]][indx_r][probe];
-
+                            
+                            /*  PROBE does not form H-bonds..., */
+                            enrg[probe] += energy[atomtype[ia]][indx_r][probe];
+                            
                         }/* hbond test */
-
+                            
                         /* add desolvation energy (notice sign) */
                         if ((atomtype[ia] != HYDROGEN) && (atmtypstr[probe] != 'H')) {
                             /* Full ligand and protein Stouten solvation energy */
-                            /* enrg[probe] -= (solpar_probe[probe]*vol[ia] + 
+                            /* enrg[probe] -= (solpar_probe[probe]*vol[ia] +
                             ** solpar[ia]*vol_probe[probe]) * sol_fn[indx_r]; */
-
+                            
                             /* Ligand only Stouten energy */
                             enrg[probe] -= solpar_probe[probe] * vol[ia] * sol_fn[indx_r];
                         }
-                    } /* is not covalent */
-                }/* probe */
+                    } /* not covalent */
+                } /* probe */
             }/* ia loop, over all macromolecule atoms... */
 
-/*
-** O U T P U T . . .
-**
-** Now output this grid point's energies to the maps:
-**
-*/
+            /*
+             * O U T P U T . . .
+             *
+             * Now output this grid point's energies to the maps:
+             *
+             */
             for (k = 0;  k < atom_maps_1;  k++) {
                 if (!problem_wrt) {
                     if (fabs(enrg[k]) < PRECISION) {
@@ -1651,9 +1705,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     problem_wrt = TRUE;
                 }
             }
-
         } /* icoord[X] loop */
-
     } /* icoord[Y] loop */
 
     if (problem_wrt) {
@@ -1672,13 +1724,13 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 } /* icoord[Z] loop */
 
 /*____________________________________________________________________________
-** Print a summary of extrema-values from the atomic-affinity and
-** electrostatics grid-maps, 
-**____________________________________________________________________________*/
+ * Print a summary of extrema-values from the atomic-affinity and
+ * electrostatics grid-maps,
+ *____________________________________________________________________________*/
 
-(void) fprintf(logFile, "\nGrid\tAtom\tMinimum\t\tMaximum\n");
-(void) fprintf(logFile, "Map \tType\tEnergy \t\tEnergy \n");
-(void) fprintf(logFile, "\t\t(kcal/mol)\t\t(kcal/mol)\n");
+(void) fprintf(logFile, "\nGrid\tAtom\tMinimum   \tMaximum\n");
+(void) fprintf(logFile, "Map \tType\tEnergy    \tEnergy \n");
+(void) fprintf(logFile, "\t\t(kcal/mol)\t(kcal/mol)\n");
 (void) fprintf(logFile, "___\t____\t_____________\t_____________\n");
 
 for (i = 0;  i < atom_maps;  i++) {
@@ -1690,8 +1742,8 @@ for (i = 0;  i < atom_maps;  i++) {
 (void) fprintf( logFile, "\n\n * Note:  Every pairwise-atomic interaction was clamped at %.2f\n\n", EINTCLAMP );
 
 /*
-** Close all files, ************************************************************
-*/
+ * Close all files, ************************************************************
+ */
 
 for (i = 0;  i < atom_maps_1;  i++) {
     (void) fclose( mapFile[i] );
@@ -1710,5 +1762,5 @@ timesyshms( job_end - job_start, &tms_job_start, &tms_job_end );
 return 0;
 }
 /*
-** End of main function.
-*/
+ * End of main function.
+ */

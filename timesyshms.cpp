@@ -1,13 +1,3 @@
-/*
-
- $Id: timesyshms.cpp,v 1.2 2003/02/12 19:32:29 lindy Exp $
-
-*/
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 /* timesyshms.c */
 
 #include <stdio.h>

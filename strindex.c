@@ -1,13 +1,3 @@
-/*
-
- $Id: strindex.c,v 1.2 2003/02/12 19:32:29 lindy Exp $
-
-*/
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 /* strindex.c */
 
 #include "autogrid.h"

@@ -1,13 +1,3 @@
-/*
-
- $Id: banner.c,v 1.2 2003/02/12 19:32:29 lindy Exp $
-
-*/
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 /* banner.c */
 
 #include <stdio.h>

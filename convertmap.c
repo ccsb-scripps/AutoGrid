@@ -1,13 +1,3 @@
-/*
-
- $Id: convertmap.c,v 1.2 2003/02/12 19:32:29 lindy Exp $
-
-*/
-
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
-
 #include <stdio.h>
 char shorten_num(double);
 
