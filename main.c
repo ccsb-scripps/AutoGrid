@@ -1,5 +1,5 @@
 /* main.c */
-/*modified to do new min/directinal hbonds*/
+/*modified to do new min/directional hbonds*/
 
 #include <sys/types.h>
 #include <sys/times.h>
@@ -31,14 +31,14 @@ int main( int argc,  char **argv )
 /*              Disordered hydroxyls                                 cos**4   */
 /*            Distance dependent dielectric after Mehler and Solmajer.        */
 /*            Solvation term of Stouten et al 1993                            */
-/* Copyright: (C) 2000, TSRI                                                  */
+/* Copyright: (C) 2003, TSRI                                                  */
 /*                                                                            */
 /*   Authors: Garrett Matthew Morris, David S. Goodsell                       */
 /*                                                                            */
 /*            The Scripps Research Institute                                  */
 /*            Department of Molecular Biology, MB5                            */
-/*            10666 North Torrey Pines Road                                   */
-/*            La Jolla, CA 92037.                                             */
+/*            10550 North Torrey Pines Road                                   */
+/*            La Jolla, CA 92037-1000.                                             */
 /*                                                                            */
 /*            e-mail: garrett@scripps.edu                                     */
 /*                    goodsell@scripps.edu                                    */
@@ -46,10 +46,11 @@ int main( int argc,  char **argv )
 /*            Helpful suggestions and advice:                                 */
 /*            Arthur J. Olson                                                 */
 /*            Bruce Duncan, Yng Chen, Michael Pique, Victoria Roberts         */
+/*            Lindy Lindstrom, Ruth Huey                                      */
 /*                                                                            */
-/*      Date: 05/02/00                                                        */
+/*      Date: 01/06/04                                                        */
 /*                                                                            */
-/*    Inputs: Control file, macromolecular PDB file                           */
+/*    Inputs: Control file, receptor PDB file                                 */
 /*            Note: atomic charge, volume, and solvation parameter must be    */
 /*                  included in each atomic record                            */
 /*   Returns: Atomic affinity and electrostatic grid maps.                    */
@@ -63,7 +64,7 @@ int main( int argc,  char **argv )
 /* 10/07/92 GMM     ASCII grid display of extrema and midpoint                */
 /* 13/07/92 GMM     Barycentre calculation of centre of mass                  */
 /* 14/07/92 GMM     AVS field format for displaying grids                     */
-/* 27/07/92 GMM     Introduced 'atom_maps' -> variable number of maps         */
+/* 27/07/92 GMM     Introduced 'num_atom_maps' -> variable number of maps         */
 /* 16/10/92 GMM     H-bonding allowed in any map                              */
 /* 17/11/92 GMM     Header information included in grid maps, for checking.   */
 /* 06/11/92 GMM     Command line parsing, using Bruce S. Duncan's "setflags". */
@@ -76,124 +77,168 @@ int main( int argc,  char **argv )
 /* 29/08/95 DSG     Directional H-Bonds on oxygen atoms                       */
 /*                  Disordered hydroxyls (automatically found 29/04/96)       */
 /* 20/09/95 DSG     Solvation Term of Stouten et al 1993                      */
+/* 21/03/03 GMM     Dynamically allocated arrays removing atom type limits.   */
 /******************************************************************************/
 
+/* Note: 21/03/03 GMM note: ATOM_MAPS is no longer used here; was used for
+ * is_covalent and is_hbonder, but these are now folded into the MapObject 
+ * and arrayed up to MAX_MAPS (currently). MAX_MAPS is always larger than 
+ * ATOM_MAPS, so this is safe. */
+
 {
-char atomname[6];
-char atmtypstr[MAX_MAPS];
-char AVSmaps_fn[MAX_CHARS];
-char chtype[MAX_TYPES];
-char message[LINE_LEN];
-/*char extension[5];*/
-char filename[MAX_MAPS][MAX_CHARS];
-char fname[MAX_CHARS];
-char hostnm[MAX_CHARS];
-char line[LINE_LEN];
-char gpfline[LINE_LEN];
-char macromol_fn[MAX_CHARS];
-/* char q_str[7]; */
-char record[6];
-char tempchar = ' ';
-char token[5];
-char warned = 'F';
-char xyz[5];
-char xyzfilename[MAX_CHARS];
 
-FILE *macromolFile,
-     *AVSmapsFLD,
-     *xyzFile,
-     *mapFile[MAX_MAPS],
-     *disFile;
+/* MAX_MAPS */
+char ligand_atom_type_string[MAX_MAPS];
 
-double A, epsilon0, rk, lambda, B, lambda_B;
-double coord[MAX_ATOMS][XYZ], charge[MAX_ATOMS], q_tot = 0.0;
-double vol[MAX_ATOMS], solpar[MAX_ATOMS];
+#define NUM_RECEPTOR_TYPES  NUM_ALL_TYPES
+static double energy_lookup[NUM_RECEPTOR_TYPES][MAX_DIST][MAX_MAPS];
+
+typedef struct mapObject {
+    char   atom_type;
+    int    is_covalent;
+    int    is_hbonder;
+    FILE   *map_fileptr;
+    char   map_filename[MAX_CHARS];
+    double constant;
+    double energy_max;
+    double energy_min;
+    double energy;
+    double vol_probe;
+    double solpar_probe;
+} MapObject;
+
+MapObject *gridmap; /* was statically assigned  MapObject gridmap[MAX_MAPS]; */
+
+FloatOrDouble *dummy_map;
+
+    
+/* NUM_RECEPTOR_TYPES */
+char receptor_atom_types_string[NUM_RECEPTOR_TYPES];
+int receptor_atom_type_count[NUM_RECEPTOR_TYPES];
+
+/* MAX_ATOMS */
+double charge[MAX_ATOMS];
+double vol[MAX_ATOMS];
+double solpar[MAX_ATOMS];
+int atom_type[MAX_ATOMS];
+int disorder[MAX_ATOMS];
+int rexp[MAX_ATOMS];
+double coord[MAX_ATOMS][XYZ];
+double rvector[MAX_ATOMS][XYZ];
+double rvector2[MAX_ATOMS][XYZ];
+
+/* XYZ */
+double cross[XYZ];
 double c[XYZ];
 double cext[XYZ];
 double cgridmax[XYZ];
 double cgridmin[XYZ];
-double cmax[XYZ], cmin[XYZ];
-double csum[XYZ], cmean[XYZ];
+double cmax[XYZ];
+double cmin[XYZ];
+double csum[XYZ];
+double cmean[XYZ];
 double center[XYZ];
-double constant[MAX_MAPS];
-/* Cartesian-coordinate of covalent affinity well. */
-double covpos[XYZ];
+double covpos[XYZ]; /* Cartesian-coordinate of covalent affinity well. */
 double d[XYZ];
 double dc[XYZ];
+int icoord[XYZ]; /* int icenter; */
+int ne[XYZ];
+int n1[XYZ];
+int nelements[XYZ];
+
+/* MAX_CHARS */
+char AVS_fld_filename[MAX_CHARS];
+char floating_grid_filename[MAX_CHARS];
+char host_name[MAX_CHARS];
+char receptor_filename[MAX_CHARS];
+char xyz_filename[MAX_CHARS];
+
+/* LINE_LEN */
+char message[LINE_LEN];
+char line[LINE_LEN];
+char GPF_line[LINE_LEN];
+int length = LINE_LEN;
+
+/* MAX_DIST */
+double epsilon[MAX_DIST];
+int MD_1 = MAX_DIST - 1;
+static double sol_fn[MAX_DIST];
+double energy_smooth[MAX_DIST];
+
+char atom_name[6];
+/*char extension[5];*/
+/* char q_str[7]; */
+char record[6];
+char temp_char = ' ';
+char token[5];
+char warned = 'F';
+char xyz[5];
+
+
+FILE *receptor_fileptr,
+     *AVS_fld_fileptr,
+     *xyz_fileptr,
+     *floating_grid_fileptr;
+
+double A, epsilon0, rk, lambda, B, lambda_B;
+double q_tot = 0.0;
 double diel, invdielcal;
 double dxA;
 double dxB;
-double emax[MAX_MAPS], emin[MAX_MAPS];
-double enrg[MAX_MAPS], cA, cB, tmpconst;
-double epsilon[MAX_DIST];
 double minus_inv_two_sigma_sqd;
 double percentdone;
 double PI_halved;
 double q_max = -BIG,  q_min = BIG;
 double rA;
 double rB; /* double e; */
-/* Distance from current grid point to the covalent attachment point */
-double rcov = 0.0;
+double rcov = 0.0; /* Distance from current grid point to the covalent attachment point */
 double ri, inv_rd, rd2, r; /* re, r2, rd, */
 double r_min, inv_r, racc, rdon, rsph, cos_theta, theta, tmp;
-double rvector[MAX_ATOMS][XYZ], rvector2[MAX_ATOMS][XYZ], cross[XYZ];
 double r_smooth = 0.;
 double rdot;
 double Rij, epsij;
 double spacing = 0.375; /* One quarter of a C-C bond length. */
 double t0, ti;
-double vol_probe[MAX_MAPS], solpar_probe[MAX_MAPS], sigma;
 double ln_half = 0.0;
 double covhalfwidth = 1.0;
 double covbarrier = 1000.0;
+double cA, cB, tmpconst;
+double sigma;
+double version_num = 3.06;
 double hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
 double rmin, Hramp;
 
-
-
-double version_num = 3.06;
-
 float timeRemaining = 0.;
 
-int atom_maps_1 = 1;
-int atom_maps = 0;
+int num_maps = 0;
+int num_atom_maps = 0;
 int Ais2B = FALSE;
 int Bis2A = FALSE;
-int atomtype[MAX_ATOMS], disGrid = FALSE, dddiel = FALSE, disorder_h = FALSE;
-int disorder[MAX_ATOMS];
-int elecPE;
+int floating_grid = FALSE, dddiel = FALSE, disorder_h = FALSE;
+int donecovalent = FALSE;
+int elecPE = 0;
 /* int covmap; */
 int from, to;
 int fprintf_retval = 0;
-int gpfkeyword = -1;
-int iscovalent[ATOM_MAPS];
-int hbond[ATOM_MAPS];
-int icoord[XYZ]; /* int icenter; */
+int GPF_keyword = -1;
 int indcom = 0;
 int infld;
-int length = LINE_LEN;
-int MD_1 = MAX_DIST - 1;
 int nbond;
-int ne[XYZ], n1[XYZ], nelements[XYZ];
 int nDone = 0;
 int problem_wrt = FALSE;
-int rexp[MAX_ATOMS], veclen = 0;
-int tycount[MAX_TYPES];
 int xA, xB;
 int hbondflag[MAX_MAPS];
 
-
-
+#define INIT_NUM_GRID_PTS -1
+int num_grid_points_per_map = INIT_NUM_GRID_PTS;
 register int i = 0, ii = 0, j = 0, k = 0, indx_r = 0, i_smooth = 0;
 /* register int i = 0, ii = 0, j = 0, jj = 0, k = 0, indx_r = 0, i_smooth = 0;
  */
-register int ia = 0, ib = 0, ic = 0, probe = -1, iat = 0, i1 = 0, i2 = 0, i3 = 0;
+register int ia = 0, ib = 0, ic = 0, map_number = -1, iat = 0, i1 = 0, i2 = 0, i3 = 0;
 register int closestH = 0;
 
 
-static int natom;
-static double energy[MAX_TYPES][MAX_DIST][MAX_MAPS];
-static double sol_fn[MAX_DIST], energy_smooth[MAX_DIST];
+static int num_receptor_atoms;
 static long clktck = 0;
 
 Clock     job_start;
@@ -214,7 +259,7 @@ if (clktck == 0) {
     if ( (clktck = sysconf(_SC_CLK_TCK)) < 0) {
         (void) fprintf( stderr, "\"sysconf(_SC_CLK_TCK)\" command failed in \"main.c\"\n" );
         (void) fprintf( logFile, "\"sysconf(_SC_CLK_TCK)\" command failed in \"main.c\"\n" );
-        exit(911);
+        exit(-1);
     } else {
         idct = 1. / (float)clktck;
     }
@@ -238,7 +283,7 @@ job_start = times( &tms_job_start );
  * Initialize the atom type array,
  */
 
-(void) strcpy( chtype, ATOMTYPE );
+(void) strcpy( receptor_atom_types_string, ALL_TYPES );
 
 (void) strcpy( xyz, "xyz" );
 
@@ -256,10 +301,10 @@ for (i = 0;  i < XYZ;  i++) {
 PI_halved = PI/2.;
 
 /*
- * Initialize int tycount[MAX_TYPES] array to 0
+ * Initialize int receptor_atom_type_count[] array to 0
  */
-for (i=0; i<MAX_TYPES; i++) {
-    tycount[i] = 0;
+for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
+    receptor_atom_type_count[i] = 0;
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
@@ -283,48 +328,51 @@ banner( version_num );
 (void) fprintf( logFile, "This file was created at:\t\t\t" );
 printdate( logFile, 1 );
 
-if (gethostname( hostnm, MAX_CHARS ) == 0) {
-    (void) fprintf( logFile, "                   using:\t\t\t\"%s\"\n", hostnm );
+if (gethostname( host_name, MAX_CHARS ) == 0) {
+    (void) fprintf( logFile, "                   using:\t\t\t\"%s\"\n", host_name );
 }
-/*
- * Read in the GPF...
- */
 
-while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
-    /* Read in a new line of the GPF */
+/******************************************************************************/
 
-    gpfkeyword = gpfparser( gpfline );
+/* Read in the grid parameter file...  */
 
-    /* First switch figures out how to echo the currently inputted GPF line. */
+while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 
-    switch( gpfkeyword ) {
-        case -1:
-            (void) fprintf( logFile, "GPF> %s", gpfline );
-            (void) sprintf( message, "%s: WARNING: Unrecognized keyword in grid parameter file.\n", programname );
-            (void) fprintf( logFile, "%s", message );
-            (void) fprintf( stderr,  "%s", message );
-            continue;  /* while fgets gpfline... */
+/******************************************************************************/
 
-        case GPF_NULL:
-        case GPF_COMMENT:
-            (void) fprintf( logFile, "GPF> %s", gpfline );
-            break;
+    GPF_keyword = gpfparser( GPF_line );
 
-        default:
-            (void) fprintf( logFile, "GPF> %s", gpfline );
-            indcom = strindex( gpfline, "#" );
-            if (indcom != -1) {
-                gpfline[ indcom ] = '\0'; /* Truncate str. at the comment */
-            }
-            break;
+    /* This first "switch" figures out how to echo the current GPF line. */
+
+    switch( GPF_keyword ) {
+
+    case -1:
+        (void) fprintf( logFile, "GPF> %s", GPF_line );
+        (void) sprintf( message, "%s: WARNING: Unrecognized keyword in grid parameter file.\n", programname );
+        (void) fprintf( logFile, "%s", message );
+        (void) fprintf( stderr,  "%s", message );
+        continue;  /* while fgets GPF_line... */
+
+    case GPF_NULL:
+    case GPF_COMMENT:
+        (void) fprintf( logFile, "GPF> %s", GPF_line );
+        break;
+
+    default:
+        (void) fprintf( logFile, "GPF> %s", GPF_line );
+        indcom = strindex( GPF_line, "#" );
+        if (indcom != -1) {
+            GPF_line[ indcom ] = '\0'; /* Truncate str. at the comment */
+        }
+        break;
 
     } /* switch */
 
 /******************************************************************************/
 
-    /* Second switch interprets the current GPF line. */
+    /* This second switch interprets the current GPF line. */
 
-    switch( gpfkeyword ) {
+    switch( GPF_keyword ) {
 
 /******************************************************************************/
 
@@ -335,38 +383,35 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
 /******************************************************************************/
 
         case GPF_RECEPTOR:
-            (void) sscanf( gpfline, "%*s %s", macromol_fn);
-            (void) fprintf( logFile, "Macromolecular Input File :\t%s\n\nAtom Type Assignments:\n\n", macromol_fn);
-            if ( (macromolFile = fopen(macromol_fn, "r")) == NULL ) {
-                (void) fprintf( stderr, "\n%s: can't find or open macromolecule-file %s\n", programname, macromol_fn);
+            (void) sscanf( GPF_line, "%*s %s", receptor_filename);
+            (void) fprintf( logFile, "Receptor Input File :\t%s\n\nAtom Type Assignments:\n\n", receptor_filename);
+            if ( (receptor_fileptr = fopen(receptor_filename, "r")) == NULL ) {
+                (void) fprintf( stderr, "\n%s: can't find or open receptor-file %s\n", programname, receptor_filename);
                 (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
-                (void) fprintf( logFile, "\n%s: can't find or open macromolecule-file %s\n", programname, macromol_fn);
+                (void) fprintf( logFile, "\n%s: can't find or open receptor-file %s\n", programname, receptor_filename);
                 (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-                exit(911);
+                exit(-1);
             }
             ia = 0;
-            while ( (fgets(line, length, macromolFile)) != NULL ) {
+            while ( (fgets(line, length, receptor_fileptr)) != NULL ) {
                 (void) sscanf(line, "%6s", record);
-                if (equal(record, "ATOM", 4) || /* Protein atoms */
+                if (equal(record, "ATOM", 4) || /* AminoAcid or DNA/RNA atoms */
                     equal(record, "HETA", 4) || /* Non-standard heteroatoms */
-                    equal(record, "CHAR", 4)) { /* Partial Atomic Charge -
-                                                 not a PDB record */
+                    equal(record, "CHAR", 4)) { /* Partial Atomic Charge - not a PDB record */
 
-                    /* (void) sscanf(&line[12], "%4s", atomname); */
 
-                    (void) strncpy( atomname, &line[12], 4);
-                    /* atomname is declared as an array of 6 characters,
-                     * the PDB atom name is 4 characters (C elements 0, 1, 2 and 3)
-                     * but let's ensure that the fifth character (C element 4)
+                    (void) strncpy( atom_name, &line[12], 4);
+                    /* atom_name is declared as an array of 6 characters,
+                     * the PDB atom name is 4 characters (C indices 0, 1, 2 and 3)
+                     * but let's ensure that the fifth character (C index 4)
                      * is a null character, which terminates the string. */
-                    atomname[4] = '\0';
+                    atom_name[4] = '\0';
 
-                    /* Output the number of this atom... */
-                    (void) fprintf( logFile, "Atom no. %d,  \"%s\" ", ia+1, atomname);
+                    /* Output the serial number of this atom... */
+                    (void) fprintf( logFile, "Atom no. %d,  \"%s\" ", ia+1, atom_name);
                     (void) fflush( logFile );
 
-                    /* Read in this macromolecule atom's coordinates,
-                     * partial charges, and
+                    /* Read in this macromolecule atom's coordinates, partial charges, and
                      * solvation parameters in PDBQS format... */
 
                     (void) sscanf(&line[30], "%lf", &coord[ia][X]);
@@ -392,23 +437,23 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                     q_max = max( q_max, charge[ia] );
                     q_min = min( q_min, charge[ia] );
 
-                    if (atomname[0] == ' ') {
+                    if (atom_name[0] == ' ') {
                         /* truncate the first character... */
-                        atomname[0] = atomname[1];
-                        atomname[1] = atomname[2];
-                        atomname[2] = atomname[3];
-                        atomname[3] = '\0';
-                    } else if (atomname[0] == '0' ||
-                        atomname[0] == '1' ||
-                        atomname[0] == '2' ||
-                        atomname[0] == '3' ||
-                        atomname[0] == '4' ||
-                        atomname[0] == '5' ||
-                        atomname[0] == '6' ||
-                        atomname[0] == '7' ||
-                        atomname[0] == '8' ||
-                        atomname[0] == '9') {
-                        if (atomname[1] == 'H') {
+                        atom_name[0] = atom_name[1];
+                        atom_name[1] = atom_name[2];
+                        atom_name[2] = atom_name[3];
+                        atom_name[3] = '\0';
+                    } else if (atom_name[0] == '0' ||
+                        atom_name[0] == '1' ||
+                        atom_name[0] == '2' ||
+                        atom_name[0] == '3' ||
+                        atom_name[0] == '4' ||
+                        atom_name[0] == '5' ||
+                        atom_name[0] == '6' ||
+                        atom_name[0] == '7' ||
+                        atom_name[0] == '8' ||
+                        atom_name[0] == '9') {
+                        if (atom_name[1] == 'H') {
                             /* Assume this is the 'mangled' name of a hydrogen atom,
                              * after the atom name has been changed from 'HD21' to '1HD2'
                              * for example.
@@ -426,30 +471,32 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                              *      V  V    V   V
                              *      H\(.\)\(.\)[0-9]
                              */
-                            tempchar    = atomname[0];
-                            atomname[0] = atomname[1];
-                            atomname[1] = atomname[2];
-                            atomname[2] = atomname[3];
-                            atomname[3] = tempchar;
+                            temp_char    = atom_name[0];
+                            atom_name[0] = atom_name[1];
+                            atom_name[1] = atom_name[2];
+                            atom_name[2] = atom_name[3];
+                            atom_name[3] = temp_char;
                         }
                     }
-                    if (atomname[0] == 'L') {
-                        (void) fprintf( logFile, "\tWARNING: lone pair atom type found; will be treated as atom type %d, \"%c\"\n", METAL+1, chtype[METAL]);
+                    if (atom_name[0] == 'L') {
+                        (void) fprintf( logFile, "\tWARNING: lone pair atom type found; will be treated as atom type %d, \"%c\"\n", METAL+1, receptor_atom_types_string[METAL]);
                         /* Treat Lone Pair centres as if they were a Metal...  */
-                        atomtype[ia] = METAL;
+                        atom_type[ia] = METAL;
                     } else {
                         /*
                          * The default atom type is 'X',
-                         * atomtype[ia] = UNKNOWN;
+                         * atom_type[ia] = UNKNOWN;
                          */
-                        atomtype[ia] = get_atom_type(atomname, chtype);
+                        atom_type[ia] = get_atom_type(atom_name, receptor_atom_types_string);
                     }
                     /* Tell the user what you thought this atom was... */
-                    (void) fprintf( logFile, "  was assigned atom type %d, \"%c\".\n", atomtype[ia]+1, chtype[atomtype[ia]]);
+                    (void) fprintf( logFile, "  was assigned atom type %d, \"%c\".\n", atom_type[ia]+1, receptor_atom_types_string[atom_type[ia]]);
                     (void) fflush( logFile );
+
                     /* Count the number of each atom type */
-                    tycount[atomtype[ia]]++;
-                    /* Keep track of the extents of the macromolecule */
+                    ++receptor_atom_type_count[atom_type[ia]];
+
+                    /* Keep track of the extents of the receptor */
                     for (i = 0;  i < XYZ;  i++) {
                         cmax[i] = max( cmax[i], coord[ia][i] );
                         cmin[i] = min( cmin[i], coord[ia][i] );
@@ -457,25 +504,25 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                     }
                     /* Total up the partial charges as we go... */
                     q_tot += charge[ia];
-                    /*
-                     * Increment the atom counter
-                     */
+
+                    /* Increment the atom counter */
                     ia++;
+
                     /* Check that there aren't too many atoms... */
                     if (ia > MAX_ATOMS) {
                         (void) fprintf( logFile, "Error      : Sorry, AutoGrid cannot continue.\n");
-                        (void) fprintf( logFile, "           : Too many atoms in macromolecule input file %s;\n", macromol_fn);
+                        (void) fprintf( logFile, "           : Too many atoms in receptor input file %s;\n", receptor_filename);
                         (void) fprintf( logFile, "           : -- the maximum number of atoms, MAX_ATOMS, allowed is %d.\n", MAX_ATOMS);
                         (void) fprintf( logFile, "Suggestion : Increase the value in the \"#define MAX_ATOMS %d\" line", MAX_ATOMS);
                         (void) fprintf( logFile, "           : in the source file \"autogrid.h\", and re-compile AutoGrid.\n" );
                         (void) fflush( logFile );
-                        exit(911);
+                        exit(-1);
                     } /* endif */
                 } /* endif */
             } /* endwhile */
-            (void) fclose( macromolFile );
-            /* Update the total number of atoms in the macromolecule */
-            natom = ia;
+            (void) fclose( receptor_fileptr );
+            /* Update the total number of atoms in the receptor */
+            num_receptor_atoms = ia;
             (void) fprintf( logFile, "\nMaximum partial atomic charge found = %+.3lf e\n", q_max );
             (void) fprintf( logFile, "Minimum partial atomic charge found = %+.3lf e\n\n", q_min );
             (void) fflush( logFile );
@@ -488,17 +535,17 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                 (void) fflush( logFile );
                 ia = 0;
                 q_tot = 0.0;
-                if ( (macromolFile = fopen(macromol_fn, "r")) == NULL ) {
-                    (void) fprintf( stderr, "\n%s: For some reason, I can't re-open the macromolecule file %s\n", programname, macromol_fn);
-                    (void) fprintf( stderr, "\n%s: For some reason, I can't re-open the macromolecule file %s\n", programname, macromol_fn);
+                if ( (receptor_fileptr = fopen(receptor_filename, "r")) == NULL ) {
+                    (void) fprintf( stderr, "\n%s: For some reason, I can't re-open the receptor file %s\n", programname, receptor_filename);
+                    (void) fprintf( stderr, "\n%s: For some reason, I can't re-open the receptor file %s\n", programname, receptor_filename);
                     (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
                     (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-                    exit(911);
+                    exit(-1);
                 }
-                while ( (fgets(line, length, macromolFile)) != NULL ) {
+                while ( (fgets(line, length, receptor_fileptr)) != NULL ) {
                     (void) sscanf(line, "%6s", record);
-                    if (equal(record, "ATOM", 4) ||         /* Atom - protein atoms */
-                        equal(record, "HETA", 4) ||        /* Heteroatom - non-protein atoms */
+                    if (equal(record, "ATOM", 4) ||         /* Amino acids or DNA/RNA atoms */
+                        equal(record, "HETA", 4) ||        /* Heteroatom - non-standard atoms */
                         equal(record, "CHAR", 4)) {        /* Charge - non-PDB-standard record */
                         (void) sscanf(&line[54], "%lf", &charge[ia] );
                         q_max = max( q_max, charge[ia] );
@@ -507,26 +554,26 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                         ia++;
                     } /* fi */
                 } /* while */
-                (void) fclose( macromolFile );
+                (void) fclose( receptor_fileptr );
                 (void) fprintf( logFile, "Maximum partial atomic charge found = %+.3lf e\n", q_max );
                 (void) fprintf( logFile, "Minimum partial atomic charge found = %+.3lf e\n\n", q_min );
                 (void) fflush( logFile );
             } /* if */
-            for (ia = 0;  ia < natom;  ia++) {
+            for (ia = 0;  ia < num_receptor_atoms;  ia++) {
                 rexp[ia] = 0;
             }
             (void) fprintf( logFile, "Atom\tAtom\tNumber of this Type\n");
-            (void) fprintf( logFile, "Type\t ID \t in Macromolecule\n");
+            (void) fprintf( logFile, "Type\t ID \t in Receptor\n");
             (void) fprintf( logFile, "____\t____\t___________________\n");
             (void) fflush( logFile );
             for (i = 0;  i < NATOMTYPES;  i++) {
-                (void) fprintf( logFile, " %d\t %c\t\t%6d\n", (i+1), chtype[i], tycount[i]);
+                (void) fprintf( logFile, " %d\t %c\t\t%6d\n", (i+1), receptor_atom_types_string[i], receptor_atom_type_count[i]);
             }
-            (void) fprintf( logFile, "\nTotal number of atoms :\t\t%d atoms \n", natom);
+            (void) fprintf( logFile, "\nTotal number of atoms :\t\t%d atoms \n", num_receptor_atoms);
             (void) fflush( logFile );
             (void) fprintf( logFile, "Total charge :\t\t\t%.2lf e\n", q_tot);
             (void) fflush( logFile );
-            (void) fprintf( logFile, "\n\nMacromolecule coordinates fit within the following volume:\n\n");
+            (void) fprintf( logFile, "\n\nReceptor coordinates fit within the following volume:\n\n");
             (void) fflush( logFile );
             (void) fprintf( logFile, "                   _______(%.1lf, %.1lf, %.1lf)\n", cmax[X], cmax[Y], cmax[Z]);
             (void) fprintf( logFile, "                  /|     /|\n");
@@ -541,7 +588,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
             (void) fprintf( logFile, "Minimum coordinates :\t\t(%.3lf, %.3lf, %.3lf)\n\n", cmin[X], cmin[Y], cmin[Z]);
             (void) fprintf( logFile, "\n");
             for (i = 0;  i < XYZ;  i++) {
-                cmean[i] = csum[i] / (double)natom;
+                cmean[i] = csum[i] / (double)num_receptor_atoms;
             }
             (void) fflush( logFile );
             break;
@@ -549,45 +596,45 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
 /******************************************************************************/
 
         case GPF_GRIDFLD:
-            (void) sscanf( gpfline, "%*s %s", AVSmaps_fn);
-            infld = strindex( AVSmaps_fn, ".fld" );
+            (void) sscanf( GPF_line, "%*s %s", AVS_fld_filename);
+            infld = strindex( AVS_fld_filename, ".fld" );
             if (infld == -1) {
                 (void) fprintf( stderr, "\n\n%s: WARNING:  Grid data file needs the extension \".fld\" for AVS input\n\n", programname);
                 (void) fprintf( logFile, "\n\n%s: WARNING:  Grid data file needs the extension \".fld\" for AVS input\n\n", programname);
-                exit(911);
+                exit(-1);
             } else {
-                infld = strindex( AVSmaps_fn, "fld" );
-                (void) strcpy(xyzfilename, AVSmaps_fn);
-                xyzfilename[infld] = 'x';
-                xyzfilename[infld + 1] = 'y';
-                xyzfilename[infld + 2] = 'z';
+                infld = strindex( AVS_fld_filename, "fld" );
+                (void) strcpy(xyz_filename, AVS_fld_filename);
+                xyz_filename[infld] = 'x';
+                xyz_filename[infld + 1] = 'y';
+                xyz_filename[infld + 2] = 'z';
             }
-            if ( (AVSmapsFLD = fopen(AVSmaps_fn, "w")) == NULL ) {
-                (void) fprintf( stderr, "\n%s: can't create grid dimensions data file %s\n", programname, AVSmaps_fn);
+            if ( (AVS_fld_fileptr = fopen(AVS_fld_filename, "w")) == NULL ) {
+                (void) fprintf( stderr, "\n%s: can't create grid dimensions data file %s\n", programname, AVS_fld_filename);
                 (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
-                (void) fprintf( logFile, "\n%s: can't create grid dimensions data file %s\n", programname, AVSmaps_fn);
+                (void) fprintf( logFile, "\n%s: can't create grid dimensions data file %s\n", programname, AVS_fld_filename);
                 (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-                exit(911);
+                exit(-1);
             } else {
-                (void) fprintf( logFile, "\nCreating (AVS-readable) grid maps file : %s\n", AVSmaps_fn);
+                (void) fprintf( logFile, "\nCreating (AVS-readable) grid maps file : %s\n", AVS_fld_filename);
             }
-            if ( (xyzFile = fopen(xyzfilename, "w")) == NULL ) {
-                (void) fprintf( stderr, "\n%s: can't create grid extrema data file %s\n", programname, xyzfilename);
+            if ( (xyz_fileptr = fopen(xyz_filename, "w")) == NULL ) {
+                (void) fprintf( stderr, "\n%s: can't create grid extrema data file %s\n", programname, xyz_filename);
                 (void) fprintf( stderr, "%s: SORRY!    unable to create the \".xyz\" file.\n\n", programname);
                 (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
-                (void) fprintf( logFile, "\n%s: can't create grid extrema data file %s\n", programname, xyzfilename);
+                (void) fprintf( logFile, "\n%s: can't create grid extrema data file %s\n", programname, xyz_filename);
                 (void) fprintf( logFile, "%s: SORRY!    unable to create the \".xyz\" file.\n\n", programname);
                 (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-                exit(911);
+                exit(-1);
             } else {
-                (void) fprintf( logFile, "\nCreating (AVS-readable) grid-coordinates extrema file : %s\n\n", xyzfilename);
+                (void) fprintf( logFile, "\nCreating (AVS-readable) grid-coordinates extrema file : %s\n\n", xyz_filename);
             }
             break;
 
 /******************************************************************************/
 
         case GPF_NPTS:
-            (void) sscanf( gpfline, "%*s %d %d %d", &nelements[X], &nelements[Y], &nelements[Z] );
+            (void) sscanf( GPF_line, "%*s %d %d %d", &nelements[X], &nelements[Y], &nelements[Z] );
             for (i = 0;  i < XYZ;  i++) {
                 nelements[i] = check_size(nelements[i], xyz[i]);
                 ne[i] = nelements[i] / 2;
@@ -598,13 +645,14 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
             (void) fprintf( logFile, "Number of grid points in y-direction:\t%d\n", n1[Y]);
             (void) fprintf( logFile, "Number of grid points in z-direction:\t%d\n", n1[Z]);
             (void) fprintf( logFile, "\n");
+            num_grid_points_per_map = n1[X] * n1[Y] * n1[Z];
             percentdone = 100. / (double) n1[Z];
             break;
 
 /******************************************************************************/
 
         case GPF_SPACING:
-            (void) sscanf( gpfline, "%*s %lf", &spacing );
+            (void) sscanf( GPF_line, "%*s %lf", &spacing );
             (void) fprintf( logFile, "Grid Spacing :\t\t\t%.3lf Angstrom\n", spacing);
             (void) fprintf( logFile, "\n");
             break;
@@ -612,7 +660,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
 /******************************************************************************/
 
         case GPF_GRIDCENTER:
-            (void) sscanf( gpfline, "%*s %s", token);
+            (void) sscanf( GPF_line, "%*s %s", token);
             if (equal( token, "auto", 4)) {
                 for (i = 0;  i < XYZ;  i++) {
                     center[i] = cmean[i];
@@ -620,11 +668,11 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                 (void) fprintf( logFile, "Grid maps will be centered on the center of mass.\n");
                 (void) fprintf( logFile, "Coordinates of center of mass : (%.3lf, %.3lf, %.3lf)\n", center[X], center[Y], center[Z]);
             } else {
-                (void) sscanf( gpfline, "%*s %lf %lf %lf", &center[X], &center[Y], &center[Z]);
+                (void) sscanf( GPF_line, "%*s %lf %lf %lf", &center[X], &center[Y], &center[Z]);
                 (void) fprintf( logFile, "\nGrid maps will be centered on user-defined coordinates:\n\n\t\t(%.3lf, %.3lf, %.3lf)\n",  center[X], center[Y], center[Z]);
             }
             /* centering stuff... */
-            for (ia = 0;  ia < natom;  ia++) {
+            for (ia = 0;  ia < num_receptor_atoms;  ia++) {
                 for (i = 0;  i < XYZ;  i++) {
                     coord[ia][i] -= center[i];        /* transform to center of gridmaps */
 
@@ -651,43 +699,86 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
             (void) fprintf( logFile, "\nMaximum coordinates :\t\t(%.3lf, %.3lf, %.3lf)\n", cgridmax[X], cgridmax[Y], cgridmax[Z] );
             (void) fprintf( logFile, "Minimum coordinates :\t\t(%.3lf, %.3lf, %.3lf)\n\n", cgridmin[X], cgridmin[Y], cgridmin[Z] );
             for (i = 0;  i < XYZ;  i++) {
-                (void) fprintf(xyzFile, "%.3lf %.3lf\n", cgridmin[i], cgridmax[i]);
+                (void) fprintf(xyz_fileptr, "%.3lf %.3lf\n", cgridmin[i], cgridmax[i]);
             }
-            (void) fclose(xyzFile);
+            (void) fclose(xyz_fileptr);
             break;
 
 /******************************************************************************/
 
         case GPF_TYPES:
-            (void) sscanf( gpfline, "%*s %s", atmtypstr);
-            elecPE = atom_maps = strlen(atmtypstr);
-            /* veclen is the number of maps to be created:
-             * the number of atom types, plus 1 for the electrostatic map;
+            /* Read in the ligand atom types */
+            (void) sscanf( GPF_line, "%*s %s", ligand_atom_type_string);
+
+            num_atom_maps = strlen(ligand_atom_type_string);
+
+            elecPE = num_atom_maps;
+
+            /* num_maps is the number of maps to be created:
+             * the number of ligand atom types, plus 1 for the electrostatic map.
              * AutoDock can only read in MAX_MAPS maps, which must include
-             * the atom maps and electrostatic map */
-            atom_maps_1 = atom_maps + 1;
-            veclen = atom_maps_1;
-            /* Check number of atom maps requested */
-            if (veclen > MAX_MAPS) {
+             * the ligand atom maps and electrostatic map */
+            num_maps = num_atom_maps + 1;
+            
+        /* Check to see if there is enough memory to store these map objects */
+        gridmap = (MapObject *)malloc(sizeof(MapObject) * num_maps);
+
+        /* Check to see if the number of grid points requested will be
+         * feasible; give warning if not enough memory. */
+        if (num_grid_points_per_map != INIT_NUM_GRID_PTS) {
+            dummy_map = (FloatOrDouble *)malloc(sizeof(FloatOrDouble) * (num_maps * num_grid_points_per_map));
+            if (!dummy_map) {
                 /* Too many maps requested */
-                (void) sprintf(message, "\n%s: ERROR:  The number of atom maps requested (%d) plus 1 for the electrostatics map, is too many;  this program can only calculate %d maps.  Change the definition of \"MAX_MAPS\" in \"autocomm.h\".\n", programname, atom_maps, MAX_MAPS);
+                (void) sprintf(message, "\n%s: WARNING:  There will not be enough memory to store these grid maps in AutoDock; \ntry reducing the number of ligand atom types (you have %d including electrostatics) \nor reducing the size of the grid maps (you asked for %d x %d x %d grid points); \n or try running AutoDock on a machine with more RAM than this one.\n", programname, num_maps, n1[X], n1[Y], n1[Z]);
                 (void) fprintf(stderr, "%s\n", message);
                 (void) fprintf(logFile, "%s\n", message);
-                (void) sprintf(message, "\n%s:  Unsuccessful completion.\n\n", programname);
-                (void) fprintf(stderr, "%s\n", message);
-                (void) fprintf(logFile, "%s\n", message);
-                exit(-1);
+            } else {
+                /* free up this memory right away; we were just testing to
+                 * see if we had enough when we try to run AutoDock */
+                free(dummy_map);
             }
-            for (i = 0;  i < atom_maps;  i++) {
-                iscovalent[i] = FALSE;
-                hbond[i] = FALSE;
-            }
-            (void) fprintf( logFile, "\nAtom names for types 1-%d and for ligand-atom affinity grid maps :\t", atom_maps);
-            for (i = 0;  i < atom_maps;  i++) {
-                (void) fprintf( logFile, "%c ", atmtypstr[i]);
-                if (atmtypstr[i] == COVALENTTYPE) {
-                  iscovalent[i] = TRUE;
-                  (void) fprintf( logFile, "\nAtom type number %d will be used to calculate a covalent affinity grid map\n\n", i+1);
+        } else {
+            (void) sprintf(message, "\n%s: ERROR:  You need to set the number of grid points using \"npts\" before setting the ligand atom types, using \"types\".\n", programname);
+            (void) fprintf(stderr, "%s\n", message);
+            (void) fprintf(logFile, "%s\n", message);
+            (void) sprintf(message, "\n%s:  Unsuccessful completion.\n\n", programname);
+            (void) fprintf(stderr, "%s\n", message);
+            (void) fprintf(logFile, "%s\n", message);
+            exit(-1);
+        } /* ZZZZZZZZZZZZZZZZZ*/
+        if (!gridmap) {
+            (void) sprintf(message, "\n%s: ERROR:  Too many ligand atom types; there is not enough memory to create these maps.  Try using fewer atom types than %d.\n", programname, num_atom_maps);
+            (void) fprintf(stderr, "%s\n", message);
+            (void) fprintf(logFile, "%s\n", message);
+            (void) sprintf(message, "\n%s:  Unsuccessful completion.\n\n", programname);
+            (void) fprintf(stderr, "%s\n", message);
+            (void) fprintf(logFile, "%s\n", message);
+            exit(-1);
+        }
+        /* Check number of ligand atom maps requested * /
+        if (num_maps > MAX_MAPS) {
+            / * Too many maps requested * /
+            (void) sprintf(message, "\n%s: ERROR:  The number of ligand atom maps requested (%d) plus 1 for the electrostatics map, is too many;  this program can only calculate %d maps.  Change the definition of \"MAX_MAPS\" in \"autocomm.h\".\n", programname, num_atom_maps, MAX_MAPS);
+            (void) fprintf(stderr, "%s\n", message);
+            (void) fprintf(logFile, "%s\n", message);
+            (void) sprintf(message, "\n%s:  Unsuccessful completion.\n\n", programname);
+            (void) fprintf(stderr, "%s\n", message);
+            (void) fprintf(logFile, "%s\n", message);
+            exit(-1);
+        }
+        */
+        for (i = 0;  i < num_atom_maps;  i++) {
+            gridmap[i].atom_type = ligand_atom_type_string[i];
+            gridmap[i].is_covalent = FALSE;
+            gridmap[i].is_hbonder = FALSE;
+        }
+
+        (void) fprintf( logFile, "\nAtom names for types 1-%d and for ligand-atom affinity grid maps :\t", num_atom_maps);
+        for (i = 0;  i < num_atom_maps;  i++) {
+            (void) fprintf( logFile, "%c ", gridmap[i].atom_type);
+            if (gridmap[i].atom_type == COVALENTTYPE) {
+                gridmap[i].is_covalent = TRUE;
+                (void) fprintf( logFile, "\nAtom type number %d will be used to calculate a covalent affinity grid map\n\n", i+1);
                 }
             }
             (void) fprintf( logFile, " respectively.\n");
@@ -695,18 +786,24 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
 
 /******************************************************************************/
 
+    case GPF_RECEPTOR_TYPES:
+        /* Read in the receptor atom types */
+        break;
+
+/******************************************************************************/
+
         case GPF_SOL_PAR:
             /*
             ** read volume and solvation parameter for probe *****************
             */
-            if (probe == -1) {
+            if (map_number == -1) {
                 (void) fprintf( logFile, "ERROR!  You must specify the \"map filename\" and all the \"nbp_r_eps\" parameters before using this command.\n\n" );
                 exit(-1);
             }
-            (void) sscanf( gpfline, "%*s %lf %lf", &vol_probe[probe], &solpar_probe[probe]);
-            (void) fprintf( logFile, "\nProbe solvation parameters: \n\n\tatomic fragmental volume: %.2f A^3\n\tatomic solvation parameter: %.4f cal/mol A^3\n\n", vol_probe[probe], solpar_probe[probe]);
+            (void) sscanf( GPF_line, "%*s %lf %lf", &(gridmap[map_number].vol_probe), &(gridmap[map_number].solpar_probe));
+            (void) fprintf( logFile, "\nProbe solvation parameters: \n\n\tatomic fragmental volume: %.2f A^3\n\tatomic solvation parameter: %.4f cal/mol A^3\n\n", gridmap[map_number].vol_probe, gridmap[map_number].solpar_probe);
             (void) fflush( logFile );
-            solpar_probe[probe] *= 0.001; /*convert cal/molA^3 to kcal/molA^3 */
+            gridmap[map_number].solpar_probe *= 0.001; /*convert cal/molA^3 to kcal/molA^3 */
             break; /* end solvation parameter */
 
 /******************************************************************************/
@@ -715,30 +812,31 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
             /*
             ** read constant term for probe **********************************
             */
-            if (probe == -1) {
+            if (map_number == -1) {
                 (void) fprintf( logFile, "ERROR!  You must specify the \"map filename\" and all the \"nbp_r_eps\" parameters before using this command.\n\n" );
                 exit(-1);
             }
-            (void) sscanf( gpfline, "%*s %lf", &constant[probe]);
-            (void) fprintf( logFile, "\n\nConstant added to map: %.3f\n\n", constant[probe]);
+            (void) sscanf( GPF_line, "%*s %lf", &(gridmap[map_number].constant));
+            (void) fprintf( logFile, "\n\nConstant added to map: %.3f\n\n", gridmap[map_number].constant);
             (void) fflush( logFile );
             break;
 
 /******************************************************************************/
 
         case GPF_MAP:
-            /* The variable "probe" is the 0-based index of the atom type
+            /* The variable "map_number" is the 0-based index of the ligand atom type
              * we are calculating a map for. 
-             * If the "types" line was CNOSH, there would be 5 atom maps to calculate,
-             * and since "probe" is initialized to -1, probe will increment
+             * If the "types" line was CNOSH, there would be 5 ligand atom maps to calculate,
+             * and since "map_number" is initialized to -1, map_number will increment
              * each time there is a "map" keyword in the GPF.  The value of
-             * probe should therefore go from 0 to 4 for each "map" keyword.  
-             * In this example, atom_maps would be 5, and atom_maps-1 would be 
-             * 4, so if probe is > 4, there is something wrong in the number of
+             * map_number should therefore go from 0 to 4 for each "map" keyword.  
+             * In this example, num_atom_maps would be 5, and num_atom_maps-1 would be 
+             * 4, so if map_number is > 4, there is something wrong in the number of
              * "map" keywords. */
-            ++probe;
-            if (probe > atom_maps-1) {
-                 (void) sprintf(message, "\n%s: ERROR:  Too many \"map\" keywords (%d);  this program can only calculate %d maps.\nRemove a \"map\" keyword from the GPF, or change the definition of \"MAX_MAPS\" in \"autocomm.h\".\n", programname, probe+1, MAX_MAPS);
+            ++map_number;
+            if (map_number > num_atom_maps-1) {
+                 (void) sprintf(message, "\n%s: ERROR:  Too many \"map\" keywords (%d);  the \"types\" command declares only %d maps.\nRemove a \"map\" keyword from the GPF.\n", programname, map_number + 1, num_atom_maps);
+
                 (void) fprintf(stderr, "%s\n", message);
                 (void) fprintf(logFile, "%s\n", message);
                 (void) sprintf(message, "\n%s:  Unsuccessful completion.\n\n", programname);
@@ -746,26 +844,26 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                 (void) fprintf(logFile, "%s\n", message);
                 exit(-1);
             }
-            /* Read in the filename for this grid map */
-            (void) sscanf( gpfline, "%*s %s", filename[ probe ] );
-            if ( (mapFile[ probe ] = fopen( filename[ probe ], "w")) == NULL ) {
-                (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, filename[probe] );
+            /* Read in the filename for this grid map */  /* GPF_MAP */
+            (void) sscanf( GPF_line, "%*s %s", gridmap[map_number].map_filename );
+            if ( (gridmap[ map_number ].map_fileptr = fopen( gridmap[map_number].map_filename, "w")) == NULL ) {
+                (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[map_number].map_filename);
                 (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
-                (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, filename[probe] );
+                (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[map_number].map_filename);
                 (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-                exit(911);
+                exit(-1);
             }
-            (void) fprintf( logFile, "\n\nOutput File %d   %s\n\n", (probe+1), filename[probe] );
+            (void) fprintf( logFile, "\n\nOutput File %d   %s\n\n", (map_number+1), gridmap[map_number].map_filename );
             (void) fflush( logFile );
 
-            if (iscovalent[probe] == FALSE) {
-                /* Parsing for internal non-bonded parameters is
-                 * not needed for covalent maps */
+            if (gridmap[map_number].is_covalent == FALSE) {
+                /* Parsing for internal non-bonded parameters is not
+                 * needed for covalent maps */ /* GPF_MAP */
 
-                /* Loop over i, the index of the protein atom type, 
-                 * that the ligand probe will interact with. */
+                /* i is the index of the receptor atom type, that
+                 * the ligand probe will interact with. */ /* GPF_MAP */
                 for (i = 0;  i < NATOMTYPES;  i++) {
-                    if ( fgets( line, LINE_LEN, GPF) != NULL ) {
+                    if ( fgets( line, LINE_LEN, GPF_fileptr) != NULL ) {
                         /* Read in a new line of the GPF */
                         (void) fprintf( logFile, "GPF> %s", line );
                         switch( gpfparser( line ) ) {
@@ -782,7 +880,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                             cA = (tmpconst = epsij / (double)(xA - xB)) * pow( Rij, (double)xA ) * (double)xB;
                             cB = tmpconst * pow( Rij, (double)xB ) * (double)xA;
                             break;
-                        } /* switch */
+                        } /* switch */ /* GPF_MAP */
                         dxA = (double) xA;
                         dxB = (double) xB;
                         if (xB == (2*xA)) {
@@ -796,13 +894,13 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                             Bis2A = FALSE;
                         }
                         if ( (xA != 12) || (xB != 6) ) {
-                            hbond[probe] = TRUE;
+                            gridmap[map_number].is_hbonder = TRUE;
                         }
                         (void) fprintf( logFile, "\n             %9.1lf       %9.1lf \n", cA, cB);
                         (void) fprintf( logFile, "    E    =  -----------  -  -----------\n");
-                        (void) fprintf( logFile, "     %c, %c         %2d              %2d\n", atmtypstr[probe], chtype[i], xA, xB);
+                        (void) fprintf( logFile, "     %c, %c         %2d              %2d\n", gridmap[map_number].atom_type, receptor_atom_types_string[i], xA, xB);
                         (void) fprintf( logFile, "                r               r \n\n");
-                        /* loop over distance index, indx_r, from 0 to MAX_DIST */
+                        /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
                         for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
                             r  = angstrom(indx_r);
                             if (Bis2A) {
@@ -814,45 +912,43 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                             } else {
                                 rA = pow( r, dxA );
                                 rB = pow( r, dxB );
-                            } /* if */
+                            } /* if */ /* GPF_MAP */
                             /* calculate the dispersion-repulsion or hydrogen bonding energy
-                             * between protein atom type i and ligand atom type
-                             * probe, and store it for this distance, indx_r. */
-                            energy[i][indx_r][probe] = min( EINTCLAMP, (cA/rA - cB/rB) );
-                        } /* indx_r */
-                        energy[i][0][probe]    = EINTCLAMP;
-                        energy[i][MD_1][probe] = 0.;
+                               between receptor atom type i and ligand atom type
+                               map_number, and store it for this distance, indx_r. */
+                            energy_lookup[i][indx_r][map_number] = min( EINTCLAMP, (cA/rA - cB/rB) );
+                        } /* indx_r */ /* GPF_MAP */
+                        energy_lookup[i][0][map_number]    = EINTCLAMP;
+                        energy_lookup[i][MD_1][map_number] = 0.;
 
-                        /* smooth with min function */
+                        /* smooth with min function */ /* GPF_MAP */
                         if (i_smooth > 0) {
                             /* loop over distance index, indx_r, from 0 to MAX_DIST */
                             for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
-                                /* set energy_smooth at this distance, indx_r, to
-                                 * 100000 -- effectively clamping the maximum
-                                 * energy. */
+                                /* set energy_smooth at this distance, indx_r, to */
+                                /* 100, 000 -- effectively clamping the maximum */
+                                /* energy. */
                                 energy_smooth[indx_r] = 100000.;
-                                /* loop over j, from either 0 or indx_r - i_smooth, 
-                                 * whichever is larger,
-                                 * to either MAX_DIST or indx_r + i_smooth, 
-                                 * whichever is smaller.
-                                 * This effectively goes over all distances from
-                                 * indx_r, plus or minus i_smooth. */
+                                /* loop over j, from either 0 or indx_r - i_smooth,  whichever is larger,*/
+                                /* to either MAX_DIST or indx_r + i_smooth,  whichever is smaller.*/
+                                /* This effectively goes over all distances from*/
+                                /* indx_r, plus or minus i_smooth. */
                                 for (j = max(0, indx_r-i_smooth);  j < min(MAX_DIST, indx_r+i_smooth);  j++) {
                                   /* store the minimum energy within the this
                                    * range, of this distance, indx_r, plus or 
                                    * minus the smoothing radius, i_smooth */
-                                  energy_smooth[indx_r] = min(energy_smooth[indx_r], energy[i][j][probe]);
+                                  energy_smooth[indx_r] = min(energy_smooth[indx_r], energy_lookup[i][j][map_number]);
                                 }
                             }
-                            /* loop over distance index, indx_r, from 0 to MAX_DIST */
+                            /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP*/
                             for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
                                 /* update the interatomic energy table with the
                                  * smoothed value at this distance, indx_r. */
-                                energy[i][indx_r][probe] = energy_smooth[indx_r];
+                                energy_lookup[i][indx_r][map_number] = energy_smooth[indx_r];
                             }
                         } /* end smoothing */
-                    } /* if */
-                } /*  i, index of protein atom types  */
+                    } /* if */ /* GPF_MAP */
+                } /*  i */ /* GPF_MAP*/
 
                /* exponential function for protein and ligand desolvation
                 * note: the solvation term will not be smoothed */
@@ -868,8 +964,8 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                 */
                 (void) fprintf( logFile, "\n  r ");
                 for (iat = 0;  iat < NATOMTYPES;  iat++) {
-                    (void) fprintf( logFile, "    %c    ", chtype[iat]);
-                } /* iat */
+                    (void) fprintf( logFile, "    %c    ", receptor_atom_types_string[iat]);
+                } /* iat */  /* GPF_MAP*/
                 (void) fprintf( logFile, "\n ___");
                 for (iat = 0;  iat < NATOMTYPES;  iat++) {
                     (void) fprintf( logFile, " ________");
@@ -878,7 +974,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
                 for (i = 0;  i <= 500;  i += 10) {
                     (void) fprintf( logFile, "%4.1lf", angstrom(i) );
                     for (iat = 0;  iat < NATOMTYPES;  iat++) {
-                        (void) fprintf( logFile, (energy[iat][i][probe]<100000.)?"%9.2lf":"%9.2lg", energy[iat][i][probe]);
+                        (void) fprintf( logFile, (energy_lookup[iat][i][map_number]<100000.)?"%9.2lf":"%9.2lg", energy_lookup[iat][i][map_number]);
                     } /* iat */
                     (void) fprintf( logFile, "\n");
                 } /* i */
@@ -892,15 +988,15 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
 /******************************************************************************/
 
         case GPF_ELECMAP:
-            (void) sscanf( gpfline, "%*s %s", filename[ elecPE ] );
-            if ( (mapFile[ elecPE ] = fopen( filename[ elecPE ], "w" )) == NULL){
-                (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, filename[elecPE] );
+            (void) sscanf( GPF_line, "%*s %s", gridmap[elecPE].map_filename );
+            if ( (gridmap[ elecPE ].map_fileptr = fopen( gridmap[ elecPE ].map_filename, "w" )) == NULL){
+                (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[elecPE].map_filename );
                 (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
-                (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, filename[elecPE] );
+                (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[elecPE].map_filename );
                 (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-                exit(911);
+                exit(-1);
             }
-            (void) fprintf( logFile, "\nElectrostatics File: %s\n\n", filename[ elecPE ]);
+            (void) fprintf( logFile, "\nElectrostatics File: %s\n\n", gridmap[ elecPE ].map_filename);
             break;
 
 /******************************************************************************/
@@ -916,7 +1012,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
              * Note: there would normally be "nbp_r_eps" lines after "map"
              * and before "sol_par" if this were an atomic affinity map.
              */
-            (void) sscanf( gpfline, "%*s %lf %lf %lf %lf %lf", &covhalfwidth, &covbarrier, &(covpos[X]), &(covpos[Y]), &(covpos[Z]) );
+            (void) sscanf( GPF_line, "%*s %lf %lf %lf %lf %lf", &covhalfwidth, &covbarrier, &(covpos[X]), &(covpos[Y]), &(covpos[Z]) );
             (void) fprintf( logFile, "\ncovalentmap <half-width in Angstroms> <barrier> <x> <y> <z>\n");
             (void) fprintf( logFile, "\nCovalent well's half-width in Angstroms:         %8.3f\n", covhalfwidth);
             (void) fprintf( logFile, "\nCovalent barrier energy in kcal/mol:             %8.3f\n", covbarrier);
@@ -937,8 +1033,8 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
 /******************************************************************************/
 
         case GPF_SMOOTH:
-            (void) sscanf( gpfline, "%*s %lf", &r_smooth );
-            (void) fprintf( logFile, "\nPotentials will be smoothed by: %lf\n\n", r_smooth);
+            (void) sscanf( GPF_line, "%*s %lf", &r_smooth );
+            (void) fprintf( logFile, "\nPotentials will be smoothed by: %.3lf\n\n", r_smooth);
             /* Angstrom is divided by A_DIVISOR in look-up table. */
             /* Typical value of r_smooth is 0.5 Angstroms */
             /* so i_smooth = 0.5 * 100. / 2 = 25 */
@@ -948,7 +1044,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
 /******************************************************************************/
 
         case GPF_DIEL:
-            (void) sscanf( gpfline, "%*s %lf", &diel );
+            (void) sscanf( GPF_line, "%*s %lf", &diel );
             if (diel < 0.) {
                 /* negative... */
                 (void) fprintf( logFile, "\nUsing *distance-dependent* dielectric function of Mehler and Solmajer, Prot.Eng.4, 903-910.\n\n");
@@ -994,17 +1090,17 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
 /******************************************************************************/
 
         case GPF_FMAP:
-            (void) sscanf( gpfline, "%*s %s", fname );
-            if ( (disFile = fopen( fname, "w" )) == NULL) {
-                (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, fname );
+            (void) sscanf( GPF_line, "%*s %s", floating_grid_filename );
+            if ( (floating_grid_fileptr = fopen( floating_grid_filename, "w" )) == NULL) {
+                (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, floating_grid_filename );
                 (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
-                (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, fname );
+                (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, floating_grid_filename );
                 (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-                exit(911);
+                exit(-1);
             }
-            (void) fprintf( logFile, "\nFloating Grid file name = %s\n", fname );
-            ++veclen;
-            disGrid = TRUE;
+            (void) fprintf( logFile, "\nFloating Grid file name = %s\n", floating_grid_filename );
+            ++num_maps;
+            floating_grid = TRUE;
             break;
 
 /******************************************************************************/
@@ -1019,77 +1115,77 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
 
 (void) fprintf( logFile, "\n>>> Closing the grid parameter file (GPF)... <<<\n\n" );
 (void) fprintf( logFile, UnderLine );
-(void) fclose( GPF );
+(void) fclose( GPF_fileptr );
 
-if ( ! disGrid ) {
+if ( ! floating_grid ) {
     (void) fprintf( logFile, "\n\nNo Floating Grid was requested.\n" );
 }
 
-(void) fprintf( AVSmapsFLD, "# AVS field file\n#\n");
-(void) fprintf( AVSmapsFLD, "# AutoDock Atomic Affinity and Electrostatic Grids\n#\n");
-(void) fprintf( AVSmapsFLD, "# Created by %s.\n#\n", programname);
-(void) fprintf( AVSmapsFLD, "#SPACING %.3f\n", (float) spacing);
-(void) fprintf( AVSmapsFLD, "#NELEMENTS %d %d %d\n", nelements[X], nelements[Y], nelements[Z]);
-(void) fprintf( AVSmapsFLD, "#CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
-(void) fprintf( AVSmapsFLD, "#MACROMOLECULE %s\n", macromol_fn);
-(void) fprintf( AVSmapsFLD, "#GRID_PARAMETER_FILE %s\n#\n", grid_param_fn);
-(void) fprintf( AVSmapsFLD, "ndim=3\t\t\t# number of dimensions in the field\n");
-(void) fprintf( AVSmapsFLD, "dim1=%d\t\t\t# number of x-elements\n", n1[X]);
-(void) fprintf( AVSmapsFLD, "dim2=%d\t\t\t# number of y-elements\n", n1[Y]);
-(void) fprintf( AVSmapsFLD, "dim3=%d\t\t\t# number of z-elements\n", n1[Z]);
-(void) fprintf( AVSmapsFLD, "nspace=3\t\t# number of physical coordinates per point\n");
-(void) fprintf( AVSmapsFLD, "veclen=%d\t\t# number of affinity values at each point\n", veclen );
-(void) fprintf( AVSmapsFLD, "data=float\t\t# data type (byte, integer, float, double)\n");
-(void) fprintf( AVSmapsFLD, "field=uniform\t\t# field type (uniform, rectilinear, irregular)\n");
+(void) fprintf( AVS_fld_fileptr, "# AVS field file\n#\n");
+(void) fprintf( AVS_fld_fileptr, "# AutoDock Atomic Affinity and Electrostatic Grids\n#\n");
+(void) fprintf( AVS_fld_fileptr, "# Created by %s.\n#\n", programname);
+(void) fprintf( AVS_fld_fileptr, "#SPACING %.3f\n", (float) spacing);
+(void) fprintf( AVS_fld_fileptr, "#NELEMENTS %d %d %d\n", nelements[X], nelements[Y], nelements[Z]);
+(void) fprintf( AVS_fld_fileptr, "#CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
+(void) fprintf( AVS_fld_fileptr, "#MACROMOLECULE %s\n", receptor_filename);
+(void) fprintf( AVS_fld_fileptr, "#GRID_PARAMETER_FILE %s\n#\n", GPF_filename);
+(void) fprintf( AVS_fld_fileptr, "ndim=3\t\t\t# number of dimensions in the field\n");
+(void) fprintf( AVS_fld_fileptr, "dim1=%d\t\t\t# number of x-elements\n", n1[X]);
+(void) fprintf( AVS_fld_fileptr, "dim2=%d\t\t\t# number of y-elements\n", n1[Y]);
+(void) fprintf( AVS_fld_fileptr, "dim3=%d\t\t\t# number of z-elements\n", n1[Z]);
+(void) fprintf( AVS_fld_fileptr, "nspace=3\t\t# number of physical coordinates per point\n");
+(void) fprintf( AVS_fld_fileptr, "veclen=%d\t\t# number of affinity values at each point\n", num_maps );
+(void) fprintf( AVS_fld_fileptr, "data=float\t\t# data type (byte, integer, float, double)\n");
+(void) fprintf( AVS_fld_fileptr, "field=uniform\t\t# field type (uniform, rectilinear, irregular)\n");
 for (i = 0;  i < XYZ;  i++) {
-    (void) fprintf( AVSmapsFLD, "coord %d file=%s filetype=ascii offset=%d\n", (i+1), xyzfilename, (i*2) );
+    (void) fprintf( AVS_fld_fileptr, "coord %d file=%s filetype=ascii offset=%d\n", (i+1), xyz_filename, (i*2) );
 }
-for (i = 0;  i < atom_maps;  i++) {
-    (void) fprintf( AVSmapsFLD, "label=%c-affinity\t# component label for variable %d\n", atmtypstr[i], (i+1));
+for (i = 0;  i < num_atom_maps;  i++) {
+    (void) fprintf( AVS_fld_fileptr, "label=%c-affinity\t# component label for variable %d\n", gridmap[i].atom_type, (i+1));
 } /* i */
-(void) fprintf( AVSmapsFLD, "label=Electrostatics\t# component label for variable %d\n", veclen-1 );
-if (disGrid) {
-    (void) fprintf( AVSmapsFLD, "label=Floating_Grid\t# component label for variable %d\n", veclen );
+(void) fprintf( AVS_fld_fileptr, "label=Electrostatics\t# component label for variable %d\n", num_maps-1 );
+if (floating_grid) {
+    (void) fprintf( AVS_fld_fileptr, "label=Floating_Grid\t# component label for variable %d\n", num_maps );
 }
-(void) fprintf( AVSmapsFLD, "#\n# location of affinity grid files and how to read them\n#\n");
-for (i = 0;  i < atom_maps;  i++) {
-    (void) fprintf( AVSmapsFLD, "variable %d file=%s filetype=ascii skip=6\n", (i+1), filename[i] );
+(void) fprintf( AVS_fld_fileptr, "#\n# location of affinity grid files and how to read them\n#\n");
+for (i = 0;  i < num_atom_maps;  i++) {
+    (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", (i+1), gridmap[i].map_filename );
 }
-(void) fprintf( AVSmapsFLD, "variable %d file=%s filetype=ascii skip=6\n", atom_maps_1, filename[ elecPE ]);
-if (disGrid) {
-    (void) fprintf( AVSmapsFLD, "variable %d file=%s filetype=ascii skip=6\n", veclen, fname);
+(void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_atom_maps + 1, gridmap[ elecPE ].map_filename);
+if (floating_grid) {
+    (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_maps, floating_grid_filename);
 }
-(void) fclose( AVSmapsFLD );
+(void) fclose( AVS_fld_fileptr );
 
 
 /**************************************************
- * Loop over all MACROMOLECULE atoms to
+ * Loop over all RECEPTOR atoms to
  * calculate bond vectors for directional H-bonds
  **************************************************/
 
-for (ia = 0;  ia < natom;  ia++) {
+for (ia = 0;  ia < num_receptor_atoms;  ia++) {
 
-disorder[ia] = FALSE;  /*initialize disorder flag*/
+disorder[ia] = FALSE;  /* initialize disorder flag. */
 warned = 'F';
 
 /*
  * Set scan limits looking for bonded atoms
  */
     from = max(ia-20, 0);
-    to   = min(ia+20, natom-1);
+    to   = min(ia+20, num_receptor_atoms-1);
 
 /*
  * If 'ia' is a hydrogen atom, it could be a
- * MACROMOLECULE HYDROGEN-BOND DONOR,
+ * RECEPTOR HYDROGEN-BOND DONOR,
  */
-    if (atomtype[ia] == HYDROGEN) {
+    if (atom_type[ia] == HYDROGEN) {
 
         for ( ib = from; ib <= to; ib++) {
 /*
  * =>  NH-> or OH->
  */
-           /* if ((atomtype[ib] == NITROGEN) || (atomtype[ib] == OXYGEN)) {*/
-           if (atomtype[ib] != CARBON ) { /*7/22*/
+           /* if ((atom_type[ib] == NITROGEN) || (atom_type[ib] == OXYGEN)) {*/
+           if (atom_type[ib] != CARBON ) { /*7/22*/
 /*
  * Calculate the square of the N-H or O-H bond distance, rd2,
  *                            ib-ia  ib-ia
@@ -1113,12 +1209,12 @@ warned = 'F';
 /*
  * N-H: Set exponent rexp to 2 for m/m H-atom,
  */
-                    if (atomtype[ib] == NITROGEN) rexp[ia] = 2;
+                    if (atom_type[ib] == NITROGEN) rexp[ia] = 2;
 /*
  * O-H: Set exponent rexp to 4 for m/m H-atom,
  * and flag disordered hydroxyls
  */
-                    if (atomtype[ib] == OXYGEN) {
+                    if (atom_type[ib] == OXYGEN) {
                         rexp[ia] = 4;
                         if (disorder_h == TRUE) disorder[ia] = TRUE;
                     }
@@ -1133,15 +1229,15 @@ warned = 'F';
  */
                     break;
                 } /* Found covalent bond.                                 */
-            } /* Found NH or OH in macromolecule.                         */
-        } /* Finished scanning for the NH or OH in macromolecule.         */
+            } /* Found NH or OH in receptor.                         */
+        } /* Finished scanning for the NH or OH in receptor.         */
 
 /*
  * If 'ia' is an Oxygen atom, it could be a
- * MACROMOLECULE H_BOND ACCEPTOR,
+ * RECEPTOR H_BOND ACCEPTOR,
  */
 
-    } else if (atomtype[ia] == OXYGEN) {
+    } else if (atom_type[ia] == OXYGEN) {
 /*
  * Scan from at most, (ia-20)th m/m atom, or ia-th (if ia<20)
  *        to (ia+5)th m/m-atom
@@ -1162,8 +1258,8 @@ warned = 'F';
                         rd2 += sq(coord[ia][i] - coord[ib][i]);
                     }
                 */
-                if (((rd2 < 2.89) && (atomtype[ib] == CARBON)) ||
-                    ((rd2 < 1.69) && (atomtype[ib] == HYDROGEN))) {
+                if (((rd2 < 2.89) && (atom_type[ib] == CARBON)) ||
+                    ((rd2 < 1.69) && (atom_type[ib] == HYDROGEN))) {
                     if (nbond == 2) {
                         (void) fprintf( logFile, "WARNING! oxygen with three bonded atoms, atom serial number %d\n", ia+1);
                     }
@@ -1217,8 +1313,8 @@ warned = 'F';
                         dc[i] = coord[i1][i] - coord[i2][i]; /*NEW*/
                         rd2 += sq( dc[i] );
                     }
-                    if (((rd2 < 2.89) && (atomtype[i2] != HYDROGEN)) ||
-                        ((rd2 < 1.69) && (atomtype[i2] == HYDROGEN))) {
+                    if (((rd2 < 2.89) && (atom_type[i2] != HYDROGEN)) ||
+                        ((rd2 < 1.69) && (atom_type[i2] == HYDROGEN))) {
 
                         /* found one */
                         /* d[i] vector from carbon to second atom */
@@ -1270,11 +1366,11 @@ warned = 'F';
 
             /* disordered hydroxyl */
 
-            if ( ((atomtype[i1] == HYDROGEN) || (atomtype[i2] == HYDROGEN))
-                && (atomtype[i1] != atomtype[i2]) && (disorder_h == TRUE) )  {
+            if ( ((atom_type[i1] == HYDROGEN) || (atom_type[i2] == HYDROGEN))
+                && (atom_type[i1] != atom_type[i2]) && (disorder_h == TRUE) )  {
 
-                if (atomtype[i1] == CARBON) ib = i1;
-                if (atomtype[i2] == CARBON) ib = i2;
+                if (atom_type[i1] == CARBON) ib = i1;
+                if (atom_type[i2] == CARBON) ib = i2;
                 disorder[ia] = TRUE;
                 rd2 = 0.;
                 for (i = 0;  i < XYZ;  i++) {
@@ -1325,7 +1421,7 @@ warned = 'F';
                 */
                 rdot = 0;
                 for (i = 0;  i < XYZ;  i++) {
-                    rdot+= (coord[ia][i]-coord[i1][i]) * rvector2[ia][i] ;
+                    rdot += (coord[ia][i] - coord[i1][i]) * rvector2[ia][i] ;
                 }
                 rd2 = 0.;
                 for (i = 0;  i < XYZ;  i++) {
@@ -1349,7 +1445,7 @@ warned = 'F';
 
         }  /* end two bonds to Oxygen */
         /* NEW Directional N Acceptor */
-    } else if (atomtype[ia] == NITROGEN) {
+    } else if (atom_type[ia] == NITROGEN) {
 /*
 ** Scan from at most, (ia-20)th m/m atom, or ia-th (if ia<20)
 **        to (ia+5)th m/m-atom
@@ -1370,8 +1466,8 @@ warned = 'F';
 			rd2 += sq(coord[ia][i] - coord[ib][i]);
 		    }
 		*/
-		if (((rd2 < 2.89) && (atomtype[ib] == CARBON)) || 
-		    ((rd2 < 1.69) && (atomtype[ib] == HYDROGEN))) {
+		if (((rd2 < 2.89) && (atom_type[ib] == CARBON)) || 
+		    ((rd2 < 1.69) && (atom_type[ib] == HYDROGEN))) {
 	            if (nbond == 2) {
 			nbond = 3;
 			i3 = ib;
@@ -1471,19 +1567,19 @@ warned = 'F';
 
     } /* end test for atom type */
 
-} /* Do Next macromolecular atom... */
+} /* Do Next receptor  atom... */
 
 /********************************************
  * End bond vector loop
  ********************************************/
 
-for (k = 0;  k < atom_maps_1;  k++) {
-    emax[k] = (double)-BIG;
-    emin[k] = (double)BIG;
+for (k = 0;  k < num_atom_maps + 1;  k++) {
+    gridmap[k].energy_max = (double)-BIG;
+    gridmap[k].energy_min = (double)BIG;
 }
 
 (void) fprintf( logFile, "Beginning grid calculations.\n");
-(void) fprintf( logFile, "\nCalculating %d grids over %d elements, around %d macromolecule atoms.\n\n", veclen, (n1[X]*n1[Y]*n1[Z]), natom );
+(void) fprintf( logFile, "\nCalculating %d grids over %d elements, around %d receptor atoms.\n\n", num_maps, (n1[X]*n1[Y]*n1[Z]), num_receptor_atoms );
 (void) fflush( logFile);
 
 /*____________________________________________________________________________
@@ -1493,21 +1589,21 @@ for (k = 0;  k < atom_maps_1;  k++) {
  * specified in its parameter file...
  *____________________________________________________________________________*/
 
-for (k = 0;  k < atom_maps_1;  k++) {
-    (void) fprintf( mapFile[k], "GRID_PARAMETER_FILE %s\n", grid_param_fn);
-    (void) fprintf( mapFile[k], "GRID_DATA_FILE %s\n", AVSmaps_fn);
-    (void) fprintf( mapFile[k], "MACROMOLECULE %s\n", macromol_fn);
-    (void) fprintf( mapFile[k], "SPACING %.3lf\n", spacing);
-    (void) fprintf( mapFile[k], "NELEMENTS %d %d %d\n", nelements[X], nelements[Y], nelements[Z]);
-    (void) fprintf( mapFile[k], "CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
+for (k = 0;  k < num_atom_maps + 1;  k++) {
+    (void) fprintf( gridmap[k].map_fileptr, "GRID_PARAMETER_FILE %s\n", GPF_filename);
+    (void) fprintf( gridmap[k].map_fileptr, "GRID_DATA_FILE %s\n", AVS_fld_filename);
+    (void) fprintf( gridmap[k].map_fileptr, "MACROMOLECULE %s\n", receptor_filename);
+    (void) fprintf( gridmap[k].map_fileptr, "SPACING %.3lf\n", spacing);
+    (void) fprintf( gridmap[k].map_fileptr, "NELEMENTS %d %d %d\n", nelements[X], nelements[Y], nelements[Z]);
+    (void) fprintf( gridmap[k].map_fileptr, "CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
 }
-if (disGrid) {
-    (void) fprintf( disFile, "GRID_PARAMETER_FILE %s\n", grid_param_fn);
-    (void) fprintf( disFile, "GRID_DATA_FILE %s\n", AVSmaps_fn);
-    (void) fprintf( disFile, "MACROMOLECULE %s\n", macromol_fn);
-    (void) fprintf( disFile, "SPACING %.3lf\n", spacing);
-    (void) fprintf( disFile, "NELEMENTS %d %d %d\n", nelements[X], nelements[Y], nelements[Z]);
-    (void) fprintf( disFile, "CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
+if (floating_grid) {
+    (void) fprintf( floating_grid_fileptr, "GRID_PARAMETER_FILE %s\n", GPF_filename);
+    (void) fprintf( floating_grid_fileptr, "GRID_DATA_FILE %s\n", AVS_fld_filename);
+    (void) fprintf( floating_grid_fileptr, "MACROMOLECULE %s\n", receptor_filename);
+    (void) fprintf( floating_grid_fileptr, "SPACING %.3lf\n", spacing);
+    (void) fprintf( floating_grid_fileptr, "NELEMENTS %d %d %d\n", nelements[X], nelements[Y], nelements[Z]);
+    (void) fprintf( floating_grid_fileptr, "CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
 }
 
 (void) fprintf( logFile, "                    Percent   Estimated Time  Time/this plane\n");
@@ -1534,8 +1630,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
         for (icoord[X] = -ne[X]; icoord[X] <= ne[X]; icoord[X]++) {
             c[X] = ((double)icoord[X]) * spacing;
 
-            for (j = 0;  j < atom_maps_1;  j++) {
-                if (iscovalent[j] == TRUE) {
+            for (j = 0;  j < num_atom_maps + 1;  j++) {
+                if (gridmap[j].is_covalent == TRUE) {
                     /* Calculate the distance from the current
                      * grid point, c, to the covalent attachment point, covpos */
                     for (ii = 0;  ii < XYZ;  ii++) {
@@ -1546,25 +1642,25 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     if (rcov < APPROX_ZERO) {
                         rcov = APPROX_ZERO;
                     }
-                    enrg[j] = covbarrier * (1. - exp(ln_half * rcov * rcov)) + constant[j];
+                    gridmap[j].energy = covbarrier * (1. - exp(ln_half * rcov * rcov)) + gridmap[j].constant;
                 } else {
-                    enrg[j] = constant[j];
+                    gridmap[j].energy = gridmap[j].constant;
                 } /* is not covalent */
             }
-            if (disGrid) {
+            if (floating_grid) {
                 r_min = BIG;
             }
             /* Initialize Min Hbond variables  for each new point*/
-            for (probe = 0; probe < atom_maps; probe++){	
-                hbondmin[probe] = 999999.;
-                hbondmax[probe] = -999999.;
-                hbondflag[probe] = FALSE;
+            for (map_number = 0; map_number < num_atom_maps; map_number++){	
+                hbondmin[map_number] = 999999.;
+                hbondmax[map_number] = -999999.;
+                hbondflag[map_number] = FALSE;
             }
             /* NEW2: Find Closest Hbond to this point*/
             rmin=999999.;
             closestH=0;
-            for (ia = 0;  ia < natom;  ia++) {
-                if (atomtype[ia] == HYDROGEN) {
+            for (ia = 0;  ia < num_receptor_atoms;  ia++) {
+                if (atom_type[ia] == HYDROGEN) {
                     for (i = 0;  i < XYZ;  i++) { 
                         d[i]  = coord[ia][i] - c[i]; 
                     }
@@ -1580,12 +1676,11 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
 
             /*
-             *  Loop over all Macromolecule (protein, DNA, etc.) atoms...
+             *  Do all Receptor (protein, DNA, etc.) atoms...
              */
-            for (ia = 0;  ia < natom;  ia++) {
+            for (ia = 0;  ia < num_receptor_atoms;  ia++) {
                 /*
-                 *  Get distance, r, from current grid point, c, 
-                 *  to this macromolecule atom, coord,
+                 *  Get distance, r, from current grid point, c, to this receptor atom, coord,
                  */
                 for (i = 0;  i < XYZ;  i++) {
                     d[i] = coord[ia][i] - c[i];
@@ -1601,19 +1696,19 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 }
                 indx_r = min( lookup(r), MD_1 );
 
-                if (disGrid) {
+                if (floating_grid) {
                     /* Calculate the so-called "Floating Grid"... */
                     r_min = min( r, r_min );
                 }
 
                 if (dddiel) {
                     /* Distance-dependent dielectric... */
-                    enrg[elecPE] += charge[ia] * inv_r * epsilon[indx_r];
+                    gridmap[elecPE].energy += charge[ia] * inv_r * epsilon[indx_r];
 
                     /* elecPE is the last grid map, i.e. electrostatics */
                 } else {
                     /* Constant dielectric... */
-                    enrg[elecPE] += charge[ia] * inv_r * invdielcal;
+                    gridmap[elecPE].energy += charge[ia] * inv_r * invdielcal;
                 }
 
                 /*
@@ -1625,7 +1720,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 if ( r > NBCUTOFF ) {
                     continue; /* onto the next atom... */
                 }
-                if ((atomtype[ia] == HYDROGEN) && (disorder[ia] == TRUE)) {
+                if ((atom_type[ia] == HYDROGEN) && (disorder[ia] == TRUE)) {
                     continue; /* onto the next atom... */
                 }
 
@@ -1637,10 +1732,10 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 /* END NEW2 Hramp ramps in Hbond acceptor probes */
 
 
-                if (atomtype[ia] == HYDROGEN) {
+                if (atom_type[ia] == HYDROGEN) {
                     /*
-                     *  ia-th macromolecule atom = Hydrogen ( 4 = H )
-                     *  => Protein H-bond donor, OH or NH.
+                     *  ia-th receptor  atom = Hydrogen ( 4 = H )
+                     *  => receptor H-bond donor, OH or NH.
                      *  calculate racc for H-bond ACCEPTOR PROBES at this grid pt.
                      *            ====     ======================
                      */
@@ -1691,12 +1786,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     } /* ia test */
                     /* END NEW2 calculate dot product of bond vector with bond vector of best hbond */
                     } /*else cos_theta>0*/
-                    /* endif (atomtype[ia] == HYDROGEN) */
+                    /* endif (atom_type[ia] == HYDROGEN) */
                 		
                 /* NEW Directional N acceptor */
-                    } else if (atomtype[ia] == NITROGEN) {
+                    } else if (atom_type[ia] == NITROGEN) {
                 /*
-                **  ia-th macromolecule atom = Nitrogen ( 4 = H )
+                **  ia-th receptor atom = Nitrogen ( 4 = H )
                 **  calculate rdon for H-bond Donor PROBES at this grid pt.
                 **            ====     ======================
                 */
@@ -1721,13 +1816,13 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 */
                             rdon = cos_theta*cos_theta;
                             }
-                            /* endif (atomtype[ia] == NITROGEN) */
+                            /* endif (atom_type[ia] == NITROGEN) */
                 /* end NEW Directional N acceptor */
 
-                } else if ((atomtype[ia] == OXYGEN) && (disorder[ia] == FALSE)) {
+                } else if ((atom_type[ia] == OXYGEN) && (disorder[ia] == FALSE)) {
                     /*
-                    **  ia-th macromolecule atom = Oxygen
-                    **  => Protein H-bond acceptor, oxygen.
+                    **  ia-th receptor atom = Oxygen
+                    **  => receptor H-bond acceptor, oxygen.
                     */
 
                     rdon = 0.;
@@ -1800,8 +1895,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                         rdon = 562.25*pow(0.116978-sq(cos_theta), 3.)*cos(t0);
                     }
 
-                    /* endif atomtype == OXYGEN, not disordered */
-                } else if ((atomtype[ia] == OXYGEN) && (disorder[ia] == TRUE)) {
+                    /* endif atom_type == OXYGEN, not disordered */
+                } else if ((atom_type[ia] == OXYGEN) && (disorder[ia] == TRUE)) {
 
                     /* cylindrically disordered hydroxyl */
                     cos_theta = 0.;
@@ -1824,7 +1919,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                         rdon = pow(cos(theta-1.24791), 4.);
                         racc = rdon;
                     }
-                } /* atomtype test */
+                } /* atom_type test */
 
                 /*
                  * For each probe atom-type,
@@ -1832,80 +1927,81 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                  * at this grid point (c[0:2])
                  * and the current receptor atom, ia...
                  */
-                for (probe = 0;  probe < atom_maps;  probe++) {
+                for (map_number = 0;  map_number < num_atom_maps;  map_number++) {
 
                     /* We do not want to change the current enrg value 
                      * for any covalent maps, make sure iscovalent is
                      * false... */
-                    if (iscovalent[probe] == FALSE) {
+                    if (gridmap[map_number].is_covalent == FALSE) {
                          
-                        if (hbond[probe] == TRUE) {
+                        if (gridmap[map_number].is_hbonder == TRUE) {
                             /*  PROBE forms H-bonds... */
                             
                             /* rsph ramps in angular dependence 
                              * for distances with negative energy */
-                            rsph = energy[atomtype[ia]][indx_r][probe]/100.;
+                            rsph = energy_lookup[atom_type[ia]][indx_r][map_number]/100.;
                             rsph = max(rsph, 0.);
                             rsph = min(rsph, 1.);
                             
-                            if ( (atmtypstr[probe] == 'O') ||
-                                (atmtypstr[probe] == 'S')) {
+                            if ( (gridmap[map_number].atom_type == 'O') ||
+                                (gridmap[map_number].atom_type == 'S')) {
                             
                                   /* PROBE can be an H-BOND ACCEPTOR, */
                                 /* New code picks only Min Hbond at each point */
                                 /* NEW2 ramped Hbonds */
                                 if (disorder[ia] == FALSE ) {
-                                    enrg[probe] += energy[atomtype[ia]][indx_r][probe] *
+                                    gridmap[map_number].energy += energy_lookup[atom_type[ia]][indx_r][map_number] *
                                          Hramp*(racc+(1.-racc)*rsph);
 
                                 } else {
-                                    enrg[probe] += energy[HYDROGEN][max(0,indx_r-110)][probe] *
+                                    gridmap[map_number].energy += energy_lookup[HYDROGEN][max(0,indx_r-110)][map_number] *
                                          Hramp*(racc+(1.-racc)*rsph);
                                 }
 
 
-                            } else if (atmtypstr[probe] == 'N') {
-                                    hbondmin[probe] = min( hbondmin[probe],energy[atomtype[ia]][indx_r][probe] * (racc+(1.-racc)*rsph));
-				                    hbondmax[probe] = max( hbondmax[probe],energy[atomtype[ia]][indx_r][probe] * (racc+(1.-racc)*rsph));
-				                    hbondflag[probe] = TRUE;
+                            } else if (gridmap[map_number].atom_type == 'N') {
+                                    hbondmin[map_number] = min( hbondmin[map_number],energy_lookup[atom_type[ia]][indx_r][map_number] * (racc+(1.-racc)*rsph));
+				                    hbondmax[map_number] = max( hbondmax[map_number],energy_lookup[atom_type[ia]][indx_r][map_number] * (racc+(1.-racc)*rsph));
+				                    hbondflag[map_number] = TRUE;
 
                             
-                            } else if (atmtypstr[probe] == 'H') {
+                            } else if (gridmap[map_number].atom_type == 'H') {
                             
                                 /*  PROBE is H-BOND DONOR, */
-                                /*enrg[probe] += energy[atomtype[ia]][indx_r][probe] * (rdon+(1.-rdon)*rsph);*/
+                                /*gridmap[map_number].energy += energy_lookup[atom_type[ia]][indx_r][map_number] * (rdon+(1.-rdon)*rsph);*/
 			                /*  PROBE is H-BOND DONOR, */
-			                hbondmin[probe] = min( hbondmin[probe],energy[atomtype[ia]][indx_r][probe] * (rdon+(1.-rdon)*rsph));
-			                hbondmax[probe] = max( hbondmax[probe],energy[atomtype[ia]][indx_r][probe] * (rdon+(1.-rdon)*rsph));
-				            hbondflag[probe] = TRUE;
+			                hbondmin[map_number] = min( hbondmin[map_number],energy_lookup[atom_type[ia]][indx_r][map_number] * (rdon+(1.-rdon)*rsph));
+			                hbondmax[map_number] = max( hbondmax[map_number],energy_lookup[atom_type[ia]][indx_r][map_number] * (rdon+(1.-rdon)*rsph));
+				            hbondflag[map_number] = TRUE;
 
                             }
                             
                         } else {
                             
                             /*  PROBE does not form H-bonds..., */
-                            enrg[probe] += energy[atomtype[ia]][indx_r][probe];
+                            gridmap[map_number].energy += energy_lookup[atom_type[ia]][indx_r][map_number];
                             
                         }/* hbond test */
                             
-                        /* add desolvation energy (notice sign) */
-                        if ((atomtype[ia] != HYDROGEN) && (atmtypstr[probe] != 'H')) {
-                            /* Full ligand and protein Stouten solvation energy */
-                            /* enrg[probe] -= (solpar_probe[probe]*vol[ia] +
-                            ** solpar[ia]*vol_probe[probe]) * sol_fn[indx_r]; */
+                        /* add desolvation energy_lookup (notice sign) */
+                        if ((atom_type[ia] != HYDROGEN) && (gridmap[map_number].atom_type != 'H')) {
+                            /* Full ligand and protein Stouten solvation
+                             * energy_lookup */
+                            /* gridmap[map_number].energy -= (solpar_probe[map_number]*vol[ia] +
+                            ** solpar[ia]*vol_probe[map_number]) * sol_fn[indx_r]; */
                             
                             /* Ligand only Stouten energy */
-                            enrg[probe] -= solpar_probe[probe] * vol[ia] * sol_fn[indx_r];
+                            gridmap[map_number].energy -= gridmap[map_number].solpar_probe * vol[ia] * sol_fn[indx_r];
                         }
                     } /* not covalent */
                 } /* probe */
             }/* ia loop, over all macromolecule atoms... */
 
             			/* Loop over probes and add in Min Hbond energy */
-			for (probe = 0; probe < atom_maps; probe++) {
-                if (hbondflag[probe]) {
-                    enrg[probe] += hbondmin[probe]; 
-                    enrg[probe] += hbondmax[probe]; } }
+			for (map_number = 0; map_number < num_atom_maps; map_number++) {
+                if (hbondflag[map_number]) {
+                    gridmap[map_number].energy += hbondmin[map_number]; 
+                    gridmap[map_number].energy += hbondmax[map_number]; } }
              /* END NEW2 only min over H donor probes */
 
 
@@ -1915,23 +2011,23 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
              * Now output this grid point's energies to the maps:
              *
              */
-            for (k = 0;  k < atom_maps_1;  k++) {
+            for (k = 0;  k < num_atom_maps + 1;  k++) {
                 if (!problem_wrt) {
-                    if (fabs(enrg[k]) < PRECISION) {
-                        fprintf_retval = fprintf(mapFile[k], "0.\n");
+                    if (fabs(gridmap[k].energy) < PRECISION) {
+                        fprintf_retval = fprintf(gridmap[k].map_fileptr, "0.\n");
                     } else {
-                        fprintf_retval = fprintf(mapFile[k], "%.3f\n", (float)enrg[k]);
+                        fprintf_retval = fprintf(gridmap[k].map_fileptr, "%.3f\n", (float)gridmap[k].energy);
                     }
                     if (fprintf_retval < 0) {
                         problem_wrt = TRUE;
                     }
                 }
 
-                emax[k] = max( emax[k], enrg[k] );
-                emin[k] = min( emin[k], enrg[k] );
+                gridmap[k].energy_max = max( gridmap[k].energy_max, gridmap[k].energy );
+                gridmap[k].energy_min = min( gridmap[k].energy_min, gridmap[k].energy );
             }
-            if (disGrid) {
-                if ((!problem_wrt)&&(fprintf(disFile, "%.3f\n", (float)r_min) < 0)) {
+            if (floating_grid) {
+                if ((!problem_wrt)&&(fprintf(floating_grid_fileptr, "%.3f\n", (float)r_min) < 0)) {
                     problem_wrt = TRUE;
                 }
             }
@@ -1963,11 +2059,11 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 (void) fprintf(logFile, "\t\t(kcal/mol)\t(kcal/mol)\n");
 (void) fprintf(logFile, "___\t____\t_____________\t_____________\n");
 
-for (i = 0;  i < atom_maps;  i++) {
-    (void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%6.2le\n", i+1, atmtypstr[i], emin[i], emax[i]);
+for (i = 0;  i < num_atom_maps;  i++) {
+    (void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%6.2le\n", i+1, gridmap[i].atom_type, gridmap[i].energy_min, gridmap[i].energy_max);
 }
 
-(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%6.2le\tElectrostatic Potential\n", atom_maps+1, 'e', emin[elecPE], emax[i]);
+(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%6.2le\tElectrostatic Potential\n", num_atom_maps+1, 'e', gridmap[elecPE].energy_min, gridmap[i].energy_max);
 
 (void) fprintf( logFile, "\n\n * Note:  Every pairwise-atomic interaction was clamped at %.2f\n\n", EINTCLAMP );
 
@@ -1975,12 +2071,15 @@ for (i = 0;  i < atom_maps;  i++) {
  * Close all files, ************************************************************
  */
 
-for (i = 0;  i < atom_maps_1;  i++) {
-    (void) fclose( mapFile[i] );
+for (i = 0;  i < num_atom_maps + 1;  i++) {
+    (void) fclose( gridmap[i].map_fileptr );
 }
-if (disGrid) {
-    (void) fclose(disFile);
+if (floating_grid) {
+    (void) fclose(floating_grid_fileptr);
 }
+/* Free up the memory allocated to the gridmap objects... */
+free(gridmap);
+
 (void) fprintf( stderr, "\n%s: Successful Completion.\n", programname);
 (void) fprintf( logFile, "\n%s: Successful Completion.\n", programname);
 
