@@ -1,4 +1,7 @@
 /* main.c */
+/*
+  $Id: main.c,v 1.19 2004/11/23 22:07:12 lindy Exp $
+*/
 
 #include <sys/types.h>
 #include <sys/times.h>
@@ -114,7 +117,7 @@ typedef struct mapObject {
     /*new 6/28*/
     double Rij;
     double epsij;
-    enum { NON, DS, D1, AS, A1, A2} hbond; /*hbonding character: */
+    hbond_type hbond; /*hbonding character: */
     double Rij_hb;
     double epsij_hb;
     /*per receptor type parameters, ordered as in receptor_types*/
@@ -154,7 +157,7 @@ double vol[MAX_ATOMS];
 double solpar[MAX_ATOMS];
 /*integers are simpler!*/
 int atom_type[MAX_ATOMS];
-int hbond[MAX_ATOMS];
+hbond_type hbond[MAX_ATOMS];
 int disorder[MAX_ATOMS];
 int rexp[MAX_ATOMS];
 double coord[MAX_ATOMS][XYZ];
@@ -783,7 +786,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             } 
             else {
                 /*add it to the database here*/
-                newparm = calloc(1, sizeof(struct parm_info));
+                newparm = (parm_info*) calloc(1, sizeof(struct parm_info));
                 * newparm = thisparm;
                 item.key = newparm->autogrid_type; /*ptr to string*/
                 item.data = newparm;  /*ptr to entire record*/
@@ -975,7 +978,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             } 
             else {
                 /*add it to the database here*/
-                newparm = calloc(1, sizeof(struct parm_info));
+                newparm = (parm_info *) calloc(1, sizeof(struct parm_info));
                 * newparm = thisparm;
                 item.key = newparm->autogrid_type; /*ptr to string*/
                 item.data = newparm;  /*ptr to entire record*/
@@ -1199,7 +1202,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         /* Angstrom is divided by A_DIVISOR in look-up table. */
         /* Typical value of r_smooth is 0.5 Angstroms */
         /* so i_smooth = 0.5 * 100. / 2 = 25 */
-        i_smooth = r_smooth*A_DIVISOR/2;
+        i_smooth = (int) (r_smooth*A_DIVISOR/2.);
         break;
 
 /******************************************************************************/
@@ -1308,7 +1311,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                     &thisparm.map_index);
                     
             if (nfields<2) continue; /*skip lines without enough info*/
-            newparm = calloc(1, sizeof(struct parm_info));
+            newparm = (parm_info *) calloc(1, sizeof(struct parm_info));
             /*newparm->rec_index = -1;
             newparm->map_index = -1;*/
             * newparm = thisparm;
