@@ -1312,7 +1312,7 @@ warned = 'F';
                 ** back of the vector.
                 */
                 for (i = 0;  i < XYZ;  i++) {
-                    rdot= (coord[ia][i]-coord[i1][i]) * rvector2[ia][i] ;
+                    rdot += (coord[ia][i]-coord[i1][i]) * rvector2[ia][i] ;
                 }
                 rd2 = 0.;
                 for (i = 0;  i < XYZ;  i++) {
