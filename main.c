@@ -89,6 +89,8 @@ int main( int argc,  char **argv )
 
 /* MAX_MAPS */
 char ligand_atom_type_string[MAX_MAPS];
+/*receptor atom types*/
+int carbon, aromatic_carbon, hydrogen, nitrogen, oxygen, sulfur;
 
 #define NUM_RECEPTOR_TYPES  NUM_ALL_TYPES
 static double energy_lookup[NUM_RECEPTOR_TYPES][MAX_DIST][MAX_MAPS];
@@ -114,7 +116,12 @@ FloatOrDouble *dummy_map;
     
 /* NUM_RECEPTOR_TYPES */
 char receptor_atom_types_string[NUM_RECEPTOR_TYPES];
+int  receptor_type_count = 0 ;
 int receptor_atom_type_count[NUM_RECEPTOR_TYPES];
+/*index of current receptor type for which energy_look up is calculated*/
+int cur_typ; 
+/*to hold type strings such as 'C-O' from parsing nbp_r_eps lines*/
+char typ_str[4];
 
 /* MAX_ATOMS */
 double charge[MAX_ATOMS];
@@ -283,7 +290,10 @@ job_start = times( &tms_job_start );
  * Initialize the atom type array,
  */
 
-(void) strcpy( receptor_atom_types_string, ALL_TYPES );
+for (i = 0; i<NUM_RECEPTOR_TYPES; i++) {
+        receptor_atom_types_string[i] = '\0';
+}
+/*    (void) strcpy( receptor_atom_types_string, ALL_TYPES );*/
 
 (void) strcpy( xyz, "xyz" );
 
@@ -487,7 +497,8 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                          * The default atom type is 'X',
                          * atom_type[ia] = UNKNOWN;
                          */
-                        atom_type[ia] = get_atom_type(atom_name, receptor_atom_types_string);
+                        atom_type[ia] = get_atom_type(atom_name, receptor_atom_types_string, &receptor_type_count);
+                        
                     }
                     /* Tell the user what you thought this atom was... */
                     (void) fprintf( logFile, "  was assigned atom type %d, \"%c\".\n", atom_type[ia]+1, receptor_atom_types_string[atom_type[ia]]);
@@ -523,6 +534,37 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             (void) fclose( receptor_fileptr );
             /* Update the total number of atoms in the receptor */
             num_receptor_atoms = ia;
+            /*set up carbon, aromatic_carbon, hydrogen, nitrogen and oxygen*/
+            carbon = -1;
+            aromatic_carbon = -1;
+            nitrogen = -1;
+            oxygen = -1;
+            sulfur = -1;
+            hydrogen = -1;
+            for (i=0; i<receptor_type_count; i++){
+                switch( receptor_atom_types_string[i] ) {
+                            case 'C':
+                                carbon = i;
+                                break;
+                            case 'A':
+                                aromatic_carbon = i;
+                                break;
+                            case 'N':
+                                nitrogen = i;
+                                break;
+                            case 'O':
+                                oxygen = i;
+                                break;
+                            case 'S':
+                                sulfur = i;
+                                break;
+                            case 'H':
+                                hydrogen = i;
+                                break;
+                };
+            };
+
+
             (void) fprintf( logFile, "\nMaximum partial atomic charge found = %+.3lf e\n", q_max );
             (void) fprintf( logFile, "Minimum partial atomic charge found = %+.3lf e\n\n", q_min );
             (void) fflush( logFile );
@@ -566,7 +608,8 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             (void) fprintf( logFile, "Type\t ID \t in Receptor\n");
             (void) fprintf( logFile, "____\t____\t___________________\n");
             (void) fflush( logFile );
-            for (i = 0;  i < NATOMTYPES;  i++) {
+            /*for (i = 0;  i < NATOMTYPES;  i++) {*/
+            for (i = 0;  i < receptor_type_count;  i++) {
                 (void) fprintf( logFile, " %d\t %c\t\t%6d\n", (i+1), receptor_atom_types_string[i], receptor_atom_type_count[i]);
             }
             (void) fprintf( logFile, "\nTotal number of atoms :\t\t%d atoms \n", num_receptor_atoms);
@@ -862,7 +905,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 
                 /* i is the index of the receptor atom type, that
                  * the ligand probe will interact with. */ /* GPF_MAP */
-                for (i = 0;  i < NATOMTYPES;  i++) {
+                for (i = 0;  i < receptor_type_count;  i++) {
                     if ( fgets( line, LINE_LEN, GPF_fileptr) != NULL ) {
                         /* Read in a new line of the GPF */
                         (void) fprintf( logFile, "GPF> %s", line );
@@ -873,14 +916,20 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                             (void) fprintf( stderr,  "%s", message );
                             break;
                         case GPF_NBP_COEFFS:
-                            (void) sscanf( line, "%*s %lf %lf %d %d", &cA, &cB, &xA, &xB );
+                            (void) sscanf( line, "%*s %lf %lf %d %d %*s %s", &cA, &cB, &xA, &xB, typ_str );
                             break;
                         case GPF_NBP_R_EPS:
-                            (void) sscanf( line, "%*s %lf %lf %d %d", &Rij, &epsij, &xA, &xB);
+                            (void) sscanf( line, "%*s %lf %lf %d %d %*s %s", &Rij, &epsij, &xA, &xB, typ_str);
                             cA = (tmpconst = epsij / (double)(xA - xB)) * pow( Rij, (double)xA ) * (double)xB;
                             cB = tmpconst * pow( Rij, (double)xB ) * (double)xA;
                             break;
                         } /* switch */ /* GPF_MAP */
+                        /*get correct receptor type index to build energy_table using this line's parameters*/
+                        typ_str[0] = typ_str[2];
+                        typ_str[1] = typ_str[3];
+                        typ_str[2] = '\0';
+                        typ_str[3] = ' ';
+                        cur_typ = get_atom_type(typ_str, receptor_atom_types_string, &receptor_type_count);
                         dxA = (double) xA;
                         dxB = (double) xB;
                         if (xB == (2*xA)) {
@@ -898,7 +947,8 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                         }
                         (void) fprintf( logFile, "\n             %9.1lf       %9.1lf \n", cA, cB);
                         (void) fprintf( logFile, "    E    =  -----------  -  -----------\n");
-                        (void) fprintf( logFile, "     %c, %c         %2d              %2d\n", gridmap[map_number].atom_type, receptor_atom_types_string[i], xA, xB);
+                        /*(void) fprintf( logFile, "     %c, %c         %2d              %2d\n", gridmap[map_number].atom_type, receptor_atom_types_string[i], xA, xB);*/
+                        (void) fprintf( logFile, "     %c, %c         %2d              %2d\n", gridmap[map_number].atom_type, receptor_atom_types_string[cur_typ], xA, xB);
                         (void) fprintf( logFile, "                r               r \n\n");
                         /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
                         for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
@@ -916,10 +966,11 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                             /* calculate the dispersion-repulsion or hydrogen bonding energy
                                between receptor atom type i and ligand atom type
                                map_number, and store it for this distance, indx_r. */
-                            energy_lookup[i][indx_r][map_number] = min( EINTCLAMP, (cA/rA - cB/rB) );
+                            /*energy_lookup[i][indx_r][map_number] = min( EINTCLAMP, (cA/rA - cB/rB) );*/
+                            energy_lookup[cur_typ][indx_r][map_number] = min( EINTCLAMP, (cA/rA - cB/rB) );
                         } /* indx_r */ /* GPF_MAP */
-                        energy_lookup[i][0][map_number]    = EINTCLAMP;
-                        energy_lookup[i][MD_1][map_number] = 0.;
+                        energy_lookup[cur_typ][0][map_number]    = EINTCLAMP;
+                        energy_lookup[cur_typ][MD_1][map_number] = 0.;
 
                         /* smooth with min function */ /* GPF_MAP */
                         if (i_smooth > 0) {
@@ -937,14 +988,14 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                                   /* store the minimum energy within the this
                                    * range, of this distance, indx_r, plus or 
                                    * minus the smoothing radius, i_smooth */
-                                  energy_smooth[indx_r] = min(energy_smooth[indx_r], energy_lookup[i][j][map_number]);
+                                  energy_smooth[indx_r] = min(energy_smooth[indx_r], energy_lookup[cur_typ][j][map_number]);
                                 }
                             }
                             /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP*/
                             for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
                                 /* update the interatomic energy table with the
                                  * smoothed value at this distance, indx_r. */
-                                energy_lookup[i][indx_r][map_number] = energy_smooth[indx_r];
+                                energy_lookup[cur_typ][indx_r][map_number] = energy_smooth[indx_r];
                             }
                         } /* end smoothing */
                     } /* if */ /* GPF_MAP */
@@ -963,17 +1014,20 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                 * Print out a table, of distance versus energy...
                 */
                 (void) fprintf( logFile, "\n  r ");
-                for (iat = 0;  iat < NATOMTYPES;  iat++) {
+                /*for (iat = 0;  iat < NATOMTYPES;  iat++) {*/
+                for (iat = 0;  iat < receptor_type_count;  iat++) {
                     (void) fprintf( logFile, "    %c    ", receptor_atom_types_string[iat]);
                 } /* iat */  /* GPF_MAP*/
                 (void) fprintf( logFile, "\n ___");
-                for (iat = 0;  iat < NATOMTYPES;  iat++) {
+                /*for (iat = 0;  iat < NATOMTYPES;  iat++) {*/
+                for (iat = 0;  iat < receptor_type_count;  iat++) {
                     (void) fprintf( logFile, " ________");
                 } /* iat */
                 (void) fprintf( logFile, "\n");
                 for (i = 0;  i <= 500;  i += 10) {
                     (void) fprintf( logFile, "%4.1lf", angstrom(i) );
-                    for (iat = 0;  iat < NATOMTYPES;  iat++) {
+                    /*for (iat = 0;  iat < NATOMTYPES;  iat++) {*/
+                    for (iat = 0;  iat < receptor_type_count;  iat++) {
                         (void) fprintf( logFile, (energy_lookup[iat][i][map_number]<100000.)?"%9.2lf":"%9.2lg", energy_lookup[iat][i][map_number]);
                     } /* iat */
                     (void) fprintf( logFile, "\n");
@@ -1178,14 +1232,14 @@ warned = 'F';
  * If 'ia' is a hydrogen atom, it could be a
  * RECEPTOR HYDROGEN-BOND DONOR,
  */
-    if (atom_type[ia] == HYDROGEN) {
+    if (atom_type[ia] == hydrogen) {
 
         for ( ib = from; ib <= to; ib++) {
 /*
  * =>  NH-> or OH->
  */
-           /* if ((atom_type[ib] == NITROGEN) || (atom_type[ib] == OXYGEN)) {*/
-           if (atom_type[ib] != CARBON ) { /*7/22*/
+           /* if ((atom_type[ib] == nitrogen) || (atom_type[ib] == oxygen)) {*/
+           if ((ib !=ia) && (atom_type[ib] != carbon )&&(atom_type[ib] != aromatic_carbon)) { /*7/22*/
 /*
  * Calculate the square of the N-H or O-H bond distance, rd2,
  *                            ib-ia  ib-ia
@@ -1209,12 +1263,12 @@ warned = 'F';
 /*
  * N-H: Set exponent rexp to 2 for m/m H-atom,
  */
-                    if (atom_type[ib] == NITROGEN) rexp[ia] = 2;
+                    if (atom_type[ib] == nitrogen) rexp[ia] = 2;
 /*
  * O-H: Set exponent rexp to 4 for m/m H-atom,
  * and flag disordered hydroxyls
  */
-                    if (atom_type[ib] == OXYGEN) {
+                    if (atom_type[ib] == oxygen) {
                         rexp[ia] = 4;
                         if (disorder_h == TRUE) disorder[ia] = TRUE;
                     }
@@ -1237,7 +1291,7 @@ warned = 'F';
  * RECEPTOR H_BOND ACCEPTOR,
  */
 
-    } else if (atom_type[ia] == OXYGEN) {
+    } else if (atom_type[ia] == oxygen) {
 /*
  * Scan from at most, (ia-20)th m/m atom, or ia-th (if ia<20)
  *        to (ia+5)th m/m-atom
@@ -1258,8 +1312,8 @@ warned = 'F';
                         rd2 += sq(coord[ia][i] - coord[ib][i]);
                     }
                 */
-                if (((rd2 < 2.89) && (atom_type[ib] == CARBON)) ||
-                    ((rd2 < 1.69) && (atom_type[ib] == HYDROGEN))) {
+                if (((rd2 < 2.89) && ((atom_type[ib] == carbon)||(atom_type[ib] == aromatic_carbon))) ||
+                    ((rd2 < 1.69) && (atom_type[ib] == hydrogen))) {
                     if (nbond == 2) {
                         (void) fprintf( logFile, "WARNING! oxygen with three bonded atoms, atom serial number %d\n", ia+1);
                     }
@@ -1313,8 +1367,8 @@ warned = 'F';
                         dc[i] = coord[i1][i] - coord[i2][i]; /*NEW*/
                         rd2 += sq( dc[i] );
                     }
-                    if (((rd2 < 2.89) && (atom_type[i2] != HYDROGEN)) ||
-                        ((rd2 < 1.69) && (atom_type[i2] == HYDROGEN))) {
+                    if (((rd2 < 2.89) && (atom_type[i2] != hydrogen)) ||
+                        ((rd2 < 1.69) && (atom_type[i2] == hydrogen))) {
 
                         /* found one */
                         /* d[i] vector from carbon to second atom */
@@ -1366,11 +1420,11 @@ warned = 'F';
 
             /* disordered hydroxyl */
 
-            if ( ((atom_type[i1] == HYDROGEN) || (atom_type[i2] == HYDROGEN))
+            if ( ((atom_type[i1] == hydrogen) || (atom_type[i2] == hydrogen))
                 && (atom_type[i1] != atom_type[i2]) && (disorder_h == TRUE) )  {
 
-                if (atom_type[i1] == CARBON) ib = i1;
-                if (atom_type[i2] == CARBON) ib = i2;
+                if (atom_type[i1] == carbon) ib = i1;
+                if (atom_type[i2] == carbon) ib = i2;
                 disorder[ia] = TRUE;
                 rd2 = 0.;
                 for (i = 0;  i < XYZ;  i++) {
@@ -1445,7 +1499,7 @@ warned = 'F';
 
         }  /* end two bonds to Oxygen */
         /* NEW Directional N Acceptor */
-    } else if (atom_type[ia] == NITROGEN) {
+    } else if (atom_type[ia] == nitrogen) {
 /*
 ** Scan from at most, (ia-20)th m/m atom, or ia-th (if ia<20)
 **        to (ia+5)th m/m-atom
@@ -1466,8 +1520,8 @@ warned = 'F';
 			rd2 += sq(coord[ia][i] - coord[ib][i]);
 		    }
 		*/
-		if (((rd2 < 2.89) && (atom_type[ib] == CARBON)) || 
-		    ((rd2 < 1.69) && (atom_type[ib] == HYDROGEN))) {
+		if (((rd2 < 2.89) && ((atom_type[ib] == carbon)||(atom_type[ib] == aromatic_carbon))) || 
+		    ((rd2 < 1.69) && (atom_type[ib] == hydrogen))) {
 	            if (nbond == 2) {
 			nbond = 3;
 			i3 = ib;
@@ -1660,7 +1714,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
             rmin=999999.;
             closestH=0;
             for (ia = 0;  ia < num_receptor_atoms;  ia++) {
-                if (atom_type[ia] == HYDROGEN) {
+                if (atom_type[ia] == hydrogen) {
                     for (i = 0;  i < XYZ;  i++) { 
                         d[i]  = coord[ia][i] - c[i]; 
                     }
@@ -1720,7 +1774,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 if ( r > NBCUTOFF ) {
                     continue; /* onto the next atom... */
                 }
-                if ((atom_type[ia] == HYDROGEN) && (disorder[ia] == TRUE)) {
+                if ((atom_type[ia] == hydrogen) && (disorder[ia] == TRUE)) {
                     continue; /* onto the next atom... */
                 }
 
@@ -1732,7 +1786,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 /* END NEW2 Hramp ramps in Hbond acceptor probes */
 
 
-                if (atom_type[ia] == HYDROGEN) {
+                if (atom_type[ia] == hydrogen) {
                     /*
                      *  ia-th receptor  atom = Hydrogen ( 4 = H )
                      *  => receptor H-bond donor, OH or NH.
@@ -1786,10 +1840,10 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     } /* ia test */
                     /* END NEW2 calculate dot product of bond vector with bond vector of best hbond */
                     } /*else cos_theta>0*/
-                    /* endif (atom_type[ia] == HYDROGEN) */
+                    /* endif (atom_type[ia] == hydrogen) */
                 		
                 /* NEW Directional N acceptor */
-                    } else if (atom_type[ia] == NITROGEN) {
+                    } else if (atom_type[ia] == nitrogen) {
                 /*
                 **  ia-th receptor atom = Nitrogen ( 4 = H )
                 **  calculate rdon for H-bond Donor PROBES at this grid pt.
@@ -1816,10 +1870,10 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 */
                             rdon = cos_theta*cos_theta;
                             }
-                            /* endif (atom_type[ia] == NITROGEN) */
+                            /* endif (atom_type[ia] == nitrogen) */
                 /* end NEW Directional N acceptor */
 
-                } else if ((atom_type[ia] == OXYGEN) && (disorder[ia] == FALSE)) {
+                } else if ((atom_type[ia] == oxygen) && (disorder[ia] == FALSE)) {
                     /*
                     **  ia-th receptor atom = Oxygen
                     **  => receptor H-bond acceptor, oxygen.
@@ -1895,8 +1949,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                         rdon = 562.25*pow(0.116978-sq(cos_theta), 3.)*cos(t0);
                     }
 
-                    /* endif atom_type == OXYGEN, not disordered */
-                } else if ((atom_type[ia] == OXYGEN) && (disorder[ia] == TRUE)) {
+                    /* endif atom_type == oxygen, not disordered */
+                } else if ((atom_type[ia] == oxygen) && (disorder[ia] == TRUE)) {
 
                     /* cylindrically disordered hydroxyl */
                     cos_theta = 0.;
@@ -1954,7 +2008,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                                          Hramp*(racc+(1.-racc)*rsph);
 
                                 } else {
-                                    gridmap[map_number].energy += energy_lookup[HYDROGEN][max(0,indx_r-110)][map_number] *
+                                    gridmap[map_number].energy += energy_lookup[hydrogen][max(0,indx_r-110)][map_number] *
                                          Hramp*(racc+(1.-racc)*rsph);
                                 }
 
@@ -1984,7 +2038,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                         }/* hbond test */
                             
                         /* add desolvation energy_lookup (notice sign) */
-                        if ((atom_type[ia] != HYDROGEN) && (gridmap[map_number].atom_type != 'H')) {
+                        if ((atom_type[ia] != hydrogen) && (gridmap[map_number].atom_type != 'H')) {
                             /* Full ligand and protein Stouten solvation
                              * energy_lookup */
                             /* gridmap[map_number].energy -= (solpar_probe[map_number]*vol[ia] +
