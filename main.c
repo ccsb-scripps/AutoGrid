@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.c,v 1.22 2005/03/09 21:50:29 rhuey Exp $
+  $Id: main.c,v 1.23 2005/03/10 17:35:45 rhuey Exp $
 */
 
 #include <sys/types.h>
@@ -1503,6 +1503,7 @@ for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
      r  = angstrom(indx_r);
      /* sol_fn[indx_r] = exp(-sq(r)/(2.*sigma*sigma)); */
      sol_fn[indx_r] = exp( sq(r) * minus_inv_two_sigma_sqd);
+     sol_fn[indx_r] *= FE_coeff_desolv;
 }
 
 /**************************************************
@@ -2335,12 +2336,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
                         }/* end hbonder test */
                         /* add desolvation energy  */
-                        /*apply the forcefield desolv coefficient/weight  here*/
-                        gridmap[map_index].energy += FE_coeff_desolv *(gridmap[map_index].solpar_probe * vol[ia]*sol_fn[indx_r] + 
-                                        (solpar[ia]+solpar_q*fabs(charge[ia]))*gridmap[map_index].vol_probe*sol_fn[indx_r]);
+                        /* forcefield desolv coefficient/weight in sol_fn*/
+                        gridmap[map_index].energy += gridmap[map_index].solpar_probe * vol[ia]*sol_fn[indx_r] + 
+                                        (solpar[ia]+solpar_q*fabs(charge[ia]))*gridmap[map_index].vol_probe*sol_fn[indx_r];
                 } /* is not covalent */
             }/* map_index */
-            gridmap[dsolvPE].energy += FE_coeff_desolv * solpar_q * vol[ia] * sol_fn[indx_r];
+            gridmap[dsolvPE].energy += solpar_q * vol[ia] * sol_fn[indx_r];
             }/* ia loop, over all receptor atoms... */
             for (map_index = 0; map_index < num_atom_maps; map_index++) {
 			    if (hbondflag[map_index]) {
