@@ -45,8 +45,14 @@
 #define APPROX_ZERO  1.0E-6 /* To avoid division-by-zero errors...            */
 #define BIG          1.0E12 /* Very large constant                            */
 #define MAX_CHARS    128    /* Number of characters in atom data & filenames  */
-#define LINE_LEN     128    /* Line length in characters                      */
+#define LINE_LEN     256    /* Line length in characters                      */
+/* #if defined(__ppc__)
+ * / * this was necessary for 10.0.1 since there was a problem linking with
+ *   * the 128 setting for MAX_GRID_PTS * /
+ * #define MAX_GRID_PTS 64     / * Maximum number of grid points in 1 dimension   * /
+   #else */
 #define MAX_GRID_PTS 128    /* Maximum number of grid points in 1 dimension   */
+/* #endif / * __ppc__ */
 #define	EINTCLAMP    100000. /* Clamp pairwise internal energies (kcal/mol )  */
 #define MAX_MAPS     8      /* Maximum number of energy maps                  */
 #define ATOM_MAPS    6      /* Number of atomic affinity grids                */
@@ -54,26 +60,10 @@
                             /* last is for electrostatics                     */
 #define VECLENMAX    16     /* For AVS fld files...                           */
 
-#define ATOMTYPE	"CNOSHXM"
-/*                   0123456 */
 
 
-#define COVALENTTYPE 'Z'
-#define COVALENTTYPE2 'Y'
-
-#define CARBON		0
-#define NITROGEN	1
-#define OXYGEN		2
-#define SULPHUR		3
-#define HYDROGEN	4
-#define UNKNOWN		5
-#define METAL		6
-#define COVALENT 7
-#define COVALENT2 8
-
-#define NATOMTYPES	7    /* Number of atom types for atomic interactions  */
-
-#define MAX_TYPES       8 /* Maximum number of atom types used. */
+/* parm-ii.h */
+#include "parm-ii.h"
 
 #define UnderLine "________________________________________________________________________________\n\n"
 
@@ -86,19 +76,23 @@
 #define prStr           (void) sprintf
 #define flushLog        (void) fflush(logFile)
 
-#define dist(x1,y1,z1,x2,y2,z2,r) _dx=((x2)-(x1));_dy=((y2)-(y1));_dz=((z2)-(z1));r=sqrt(_dx*_dx + _dy*_dy + _dz*_dz)
+#define dist(x1,y1,z1,x2,y2,z2,r) _dx=((x2)-(x1)),_dy=((y2)-(y1)),_dz=((z2)-(z1)),r=sqrt(_dx*_dx + _dy*_dy + _dz*_dz)
 
 /*
 ** New types...
 */
+
+
+#include "typedefs.h"
+
 
 typedef char Boole;
 
 
 typedef struct AtomDesc {
 
-	float crd[XYZ];
-	float q;
+	FloatOrDouble crd[XYZ];
+	FloatOrDouble q;
 	int   type;
 
 	} AtomDesc;
