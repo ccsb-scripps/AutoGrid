@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.c,v 1.21 2005/03/01 00:28:15 garrett Exp $
+  $Id: main.c,v 1.22 2005/03/09 21:50:29 rhuey Exp $
 */
 
 #include <sys/types.h>
@@ -224,9 +224,19 @@ FILE *receptor_fileptr,
      *xyz_fileptr,
      *floating_grid_fileptr;
 
+/*initialize ff values*/
+double FE_coeff_vdW    = 0.14880;
+double FE_coeff_hbond  = 0.12667;
+double FE_coeff_estat  = 0.14084;
+double FE_coeff_desolv = 0.122;
+double FE_coeff_tors   = 0.090277;
+/*for NEW3 desolvation terms*/
+double solpar_q = .01097;  /*unweighted value restored 3:9:05 */
+/*double solpar_q = 0.0013383; =.01097 * 0.122*/
+
 
 /*for NEW3 desolvation terms*/
-double solpar_q = 0.0013383; /*=.01097 * 0.122*/
+/*double solpar_q = 0.0013383; =.01097 * 0.122*/
 /*double solpar_q = 0.001118; */
 
 double A, epsilon0, rk, lambda, B, lambda_B;
@@ -260,9 +270,6 @@ double temp_hbond_enrg, hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
 double rmin, Hramp;
 
 /*int num_rec_types = 0;*/
-/*FE_vdW_coeff */
-double FE_vdW_coeff = 0.1485;
-double FE_hbond_coeff = 0.0656;
 
 float timeRemaining = 0.;
 
@@ -889,6 +896,9 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 
                     gridmap[i].nbp_r[j] = (gridmap[i].Rij + found_parm->Rij)/2.;
                     gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij * found_parm->epsij);
+                    /*apply the vdW forcefield parameter/weight here */
+                    gridmap[i].nbp_eps[j] *= FE_coeff_vdW;
+
                     gridmap[i].xA[j] = 12;
                     /*setup hbond dependent stuff*/
                     gridmap[i].xB[j] = 6;
@@ -903,8 +913,9 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                          * hb factors*/
                         gridmap[i].nbp_r[j] = gridmap[i].Rij_hb;
                         gridmap[i].nbp_eps[j] = gridmap[i].epsij_hb;
-                        /*gridmap[i].nbp_r[j] = (gridmap[i].Rij_hb + found_parm->Rij_hb)/2.;*/
-                        /*gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij_hb * found_parm->epsij_hb);*/
+
+                        /*apply the hbond forcefield parameter/weight here */
+                        gridmap[i].nbp_eps[j] *= FE_coeff_hbond;
 #ifdef DEBUG
                         (void) fprintf(stderr, "set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
 #endif
@@ -918,12 +929,13 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                          * hb factors*/
                         gridmap[i].nbp_r[j] = found_parm->Rij_hb;
                         gridmap[i].nbp_eps[j] = found_parm->epsij_hb;
-                        /*gridmap[i].nbp_r[j] = (gridmap[i].Rij_hb + found_parm->Rij_hb)/2.;
-                        gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij_hb * found_parm->epsij_hb);*/
+
+                        /*apply the hbond forcefield parameter/weight here */
+                        gridmap[i].nbp_eps[j] *= FE_coeff_hbond;
 #ifdef DEBUG
                         (void) fprintf(stderr, "2: set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
 #endif
-                    }
+                    } 
 #ifdef DEBUG
                 (void) fprintf(stderr, "vs receptor_type[%d]:type->%s, hbond->%d ",j,found_parm->autogrid_type, (int)found_parm->hbond);
                 (void) fprintf(stderr, "nbp_r->%6.4f, nbp_eps->%6.4f,xB=%d,hbonder=%d\n",gridmap[i].nbp_r[j], gridmap[i].nbp_eps[j],gridmap[i].xB[j], gridmap[i].hbonder[j]);
@@ -1224,7 +1236,8 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             for (i = 1;  i < MAX_DIST;  i++) {
                 epsilon[i] = 332.0 / epsilon[i];
                 /* -diel: weight from free energy survey */
-                epsilon[i] *= -diel;
+                /*3/9/2005: do NOT apply it here*/
+                /*epsilon[i] *= -diel;*/
                 /* Really, LHS should be "inv_epsilon[i]", but this way saves memory... */
             }
         } else {
@@ -1278,7 +1291,19 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             /*WISH LIST:
              * read autogrid_type into a temporary string and test 
              * that it's not too long*/
-            nfields = sscanf(dataline, "%s %lf %lf %lf %lf %lf %lf %d %d %d",
+            /*check for FF_coeff lines*/
+            if (strncmp(dataline, "FE_coeff_vdW", 12)==0) {
+                sscanf(dataline, "%*s %lf", &FE_coeff_vdW);
+            } else if (strncmp(dataline, "FE_coeff_hbond", 14)==0) {
+                sscanf(dataline, "%*s %lf", &FE_coeff_hbond);
+            } else if (strncmp(dataline, "FE_coeff_estat", 14)==0) {
+                sscanf(dataline, "%*s %lf", &FE_coeff_estat);
+            } else if (strncmp(dataline, "FE_coeff_desolv", 15)==0) {
+                sscanf(dataline, "%*s %lf", &FE_coeff_desolv);
+            } else if (strncmp(dataline, "FE_coeff_tors", 13)==0) {
+                sscanf(dataline, "%*s %lf", &FE_coeff_tors);
+            } else { /*skip 'atom_parm' at start of line*/
+            nfields = sscanf(dataline, "%*s %s %lf %lf %lf %lf %lf %lf %d %d %d %d",
                     thisparm.autogrid_type,
                     &thisparm.Rij,
                     &thisparm.epsij,
@@ -1288,7 +1313,8 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                     &thisparm.epsij_hb,
                     &thisparm.hbond,
                     &thisparm.rec_index,
-                    &thisparm.map_index);
+                    &thisparm.map_index,
+                    &thisparm.bond_index);
                     
             if (nfields<2) continue; /*skip lines without enough info*/
             newparm = (parm_info *) calloc(1, sizeof(struct parm_info));
@@ -1303,6 +1329,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             /*WISH LIST:
              * check that hsearch return value is ok*/
             hsearch(item, ENTER);
+           } /*end of scan a new parameter line*/
         }
         break;
 
@@ -1383,7 +1410,7 @@ for (ia=0; ia<num_atom_maps; ia++){
             Rij = gridmap[ia].nbp_r[i];
             epsij = gridmap[ia].nbp_eps[i];
 #ifdef DEBUG
-            printf("%d-%d-built xA=%d, xB=%d, npb_r=%6.3lf, nbp_eps=%10.8lf = %6.4lf for %s\n",ia,i,xA, xB, Rij,epsij,gridmap[ia].type);
+            printf("%d-%d-built xA=%d, xB=%d, npb_r=%6.3lf, nbp_eps=%10.8f for %s\n",ia,i,xA, xB, Rij,epsij,gridmap[ia].type);
 #endif
             /*for each receptor_type get its parms and fill in tables*/
             cA = (tmpconst = epsij / (double)(xA - xB)) * pow( Rij, (double)xA ) * (double)xB;
@@ -2031,12 +2058,15 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 if (dddiel) {
                     /* Distance-dependent dielectric... */
                     /*gridmap[elecPE].energy += charge[ia] * inv_r * epsilon[indx_r];*/
-                    gridmap[elecPE].energy += charge[ia] * inv_rmax * epsilon[indx_r];
+
+                    /*apply the estat forcefield coefficient/weight here */
+                    gridmap[elecPE].energy += charge[ia] * inv_rmax * epsilon[indx_r] * FE_coeff_estat;
+
                     
                 } else {
                     /* Constant dielectric... */
                     /*gridmap[elecPE].energy += charge[ia] * inv_r * invdielcal;*/
-                    gridmap[elecPE].energy += charge[ia] * inv_rmax * invdielcal;
+                    gridmap[elecPE].energy += charge[ia] * inv_rmax * invdielcal * FE_coeff_estat;
                 }
 
                 /*
@@ -2305,11 +2335,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
                         }/* end hbonder test */
                         /* add desolvation energy  */
-                        gridmap[map_index].energy += gridmap[map_index].solpar_probe * vol[ia]*sol_fn[indx_r] + 
-                                        (solpar[ia]+solpar_q*fabs(charge[ia]))*gridmap[map_index].vol_probe*sol_fn[indx_r];
+                        /*apply the forcefield desolv coefficient/weight  here*/
+                        gridmap[map_index].energy += FE_coeff_desolv *(gridmap[map_index].solpar_probe * vol[ia]*sol_fn[indx_r] + 
+                                        (solpar[ia]+solpar_q*fabs(charge[ia]))*gridmap[map_index].vol_probe*sol_fn[indx_r]);
                 } /* is not covalent */
             }/* map_index */
-            gridmap[dsolvPE].energy += solpar_q * vol[ia] * sol_fn[indx_r];
+            gridmap[dsolvPE].energy += FE_coeff_desolv * solpar_q * vol[ia] * sol_fn[indx_r];
             }/* ia loop, over all receptor atoms... */
             for (map_index = 0; map_index < num_atom_maps; map_index++) {
 			    if (hbondflag[map_index]) {
