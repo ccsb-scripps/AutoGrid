@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.c,v 1.19 2004/11/23 22:07:12 lindy Exp $
+  $Id: main.c,v 1.20 2005/02/25 19:30:26 rhuey Exp $
 */
 
 #include <sys/types.h>
@@ -499,6 +499,9 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                     printf("%d:key=%s, type=%d,solpar=%f,vol=%f\n",ia,thisparm.autogrid_type, atom_type[ia],solpar[ia],vol[ia]);
 #endif
                     ++receptor_atom_type_count[found_parm->rec_index];
+                } else {
+                    fprintf(stderr, "receptor file contains unknown type: %s\nadd parameters for it to the parameter library first", thisparm.autogrid_type);
+                    exit(-1);
                 }
                     
                 /* if from pdbqs: convert cal/molA**3 to kcal/molA**3 */
@@ -785,22 +788,10 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 #endif
             } 
             else {
-                /*add it to the database here*/
-                newparm = (parm_info*) calloc(1, sizeof(struct parm_info));
-                * newparm = thisparm;
-                item.key = newparm->autogrid_type; /*ptr to string*/
-                item.data = newparm;  /*ptr to entire record*/
-                /*increment total types count for ligand */
-                newparm->map_index = i;
-                /*WISH LIST:
-                 * check that hsearch return value is ok*/
-                hsearch(item, ENTER);
-#ifdef DEBUG
-                printf("building ligand type: %-6s%2d\n",
-                        newparm->autogrid_type,
-                        newparm->map_index); 
-#endif
-            }
+                 // return error here
+                (void) fprintf( stderr, "unknown ligand atom type %s\nadd parameters for it to the parameter library first!\n", ligand_atom_types[i]);
+                 exit(-1);
+             }
         };
 
 
@@ -977,20 +968,9 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                 found_parm->rec_index = i;
             } 
             else {
-                /*add it to the database here*/
-                newparm = (parm_info *) calloc(1, sizeof(struct parm_info));
-                * newparm = thisparm;
-                item.key = newparm->autogrid_type; /*ptr to string*/
-                item.data = newparm;  /*ptr to entire record*/
-                newparm->rec_index = i;
-                /*WISH LIST:
-                 * check that hsearch return value is ok*/
-                hsearch(item, ENTER);
-#ifdef DEBUG
-                printf("building receptor type: %-6s%2d\n",
-                        newparm->autogrid_type,
-                        newparm->rec_index); 
-#endif
+                fprintf(stderr, "unknown receptor type:%s\n add parameters for it to the parameter library first!\n", receptor_atom_types[i]);
+                exit(-1);
+
             }
         };
         /*at this point set up hydrogen, carbon, oxygen and nitrogen*/
