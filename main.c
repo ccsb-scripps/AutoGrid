@@ -424,6 +424,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
     case GPF_NULL:
     case GPF_COMMENT:
         (void) fprintf( logFile, "GPF> %s", GPF_line);
+        (void) fflush( logFile);
         break;
 
     default:
@@ -432,6 +433,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         if (indcom != -1) {
             GPF_line[ indcom ] = '\0'; /* Truncate str. at the comment */
         }
+        (void) fflush( logFile);
         break;
 
     } /* switch */
@@ -658,9 +660,9 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         (void) fprintf( logFile, "\nMaximum coordinates :\t\t(%.3lf, %.3lf, %.3lf)\n", cmax[X], cmax[Y], cmax[Z]);
         (void) fprintf( logFile, "Minimum coordinates :\t\t(%.3lf, %.3lf, %.3lf)\n\n", cmin[X], cmin[Y], cmin[Z]);
         (void) fprintf( logFile, "\n");
-        for (i = 0;  i < XYZ;  i++) {
-            cmean[i] = csum[i] / (double)num_receptor_atoms;
-        }
+        cmean[0] = csum[0] / (double)num_receptor_atoms;
+        cmean[1] = csum[1] / (double)num_receptor_atoms;
+        cmean[2] = csum[2] / (double)num_receptor_atoms;
         (void) fflush( logFile);
         break;
 
@@ -700,6 +702,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         } else {
             (void) fprintf( logFile, "\nCreating (AVS-readable) grid-coordinates extrema file : %s\n\n", xyz_filename);
         }
+        (void) fflush( logFile);
         break;
 
 /******************************************************************************/
@@ -718,6 +721,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         (void) fprintf( logFile, "\n");
         num_grid_points_per_map = n1[X] * n1[Y] * n1[Z];
         percentdone = 100. / (double) n1[Z];
+        (void) fflush( logFile);
         break;
 
 /******************************************************************************/
@@ -726,6 +730,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         (void) sscanf( GPF_line, "%*s %lf", &spacing);
         (void) fprintf( logFile, "Grid Spacing :\t\t\t%.3lf Angstrom\n", spacing);
         (void) fprintf( logFile, "\n");
+        (void) fflush( logFile);
         break;
 
 /******************************************************************************/
@@ -772,6 +777,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             (void) fprintf(xyz_fileptr, "%.3lf %.3lf\n", cgridmin[i], cgridmax[i]);
         }
         (void) fclose(xyz_fileptr);
+        (void) fflush( logFile);
         break;
 
 /******************************************************************************/
@@ -914,6 +920,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             }
         }
         (void) fprintf( logFile, " respectively.\n");
+        (void) fflush( logFile);
         break;
 
 /******************************************************************************/
@@ -1034,6 +1041,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 
 #endif
 
+        (void) fflush( logFile);
         break;
 
 /******************************************************************************/
@@ -1060,6 +1068,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         } else {
             (void) fprintf( logFile, "%s key not found\n", item.key);
         };
+        (void) fflush( logFile);
         break; /* end solvation parameter */
 
 /******************************************************************************/
