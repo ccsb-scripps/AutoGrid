@@ -1,7 +1,7 @@
 #
 # 
 #
-# $Id: autogrid4test.py,v 1.4 2004/07/01 16:49:40 rhuey Exp $
+# $Id: autogrid4test.py,v 1.5 2004/07/13 17:37:41 rhuey Exp $
 #
 """
 
@@ -563,7 +563,7 @@ class BasicTestCase(Autogrid4TestCase):
         self.compare_maps("OA")
 
 
-    def xtest_testHD(self):
+    def test_testHD(self):
         """testHD test case"""
         gpf_filename = 'testHD.gpf'
         glg_filename = 'testHD.glg'
