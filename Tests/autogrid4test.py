@@ -1,7 +1,7 @@
 #
 # 
 #
-# $Id: autogrid4test.py,v 1.2 2004/05/28 22:45:26 garrett Exp $
+# $Id: autogrid4test.py,v 1.3 2004/05/28 23:08:55 garrett Exp $
 #
 """
 
@@ -49,6 +49,10 @@ class Autogrid4TestCase(unittest.TestCase):
         Locate the autogrid binary now during setUp.
         """
         self.autogrid = "../autogrid4"
+        # Make sure you remove all the products of AutoGrid from
+        # any previous tests.
+        command = "rm -f *map*"
+        os.system(command)
 
 
     def tearDown(self):
