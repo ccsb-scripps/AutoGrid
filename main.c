@@ -26,17 +26,12 @@ int main( int argc,  char **argv )
 /******************************************************************************/
 /*      Name: main (executable's name is "autogrid").                         */
 /*  Function: Calculation of interaction energy grids for Autodock.           */
-/*            Directional H_bonds implemented, after Goodford:                */
-/*              Oxygen accepter to probe Hd                       t0/ti model */
-/*              Hydroxyl hydrogen donor to probe Oa                  cos**4   */
-/*              Hydrogen on nitrogen donor to probe Oa               cos**2   */
-/*              Directional nitrogen acceptor                         n/a     */
-/*              Disordered hydroxyls                                 cos**4   */
+/*            Directional H_bonds from Goodford:                              */
 /*            Distance dependent dielectric after Mehler and Solmajer.        */
-/*            Solvation term of Stouten et al 1993                            */
-/* Copyright: (C) 2003, TSRI                                                  */
+/*            Charge-based desolvation                                        */
+/* Copyright: (C) 2004, TSRI                                                  */
 /*                                                                            */
-/*   Authors: Garrett Matthew Morris, David S. Goodsell                       */
+/*   Authors: Garrett Matthew Morris, Ruth Huey, David S. Goodsell            */
 /*                                                                            */
 /*            The Scripps Research Institute                                  */
 /*            Department of Molecular Biology, MB5                            */
@@ -44,19 +39,18 @@ int main( int argc,  char **argv )
 /*            La Jolla, CA 92037-1000.                                        */
 /*                                                                            */
 /*            e-mail: garrett@scripps.edu                                     */
+/*                    rhuey@scripps.edu                                       */
 /*                    goodsell@scripps.edu                                    */
 /*                                                                            */
 /*            Helpful suggestions and advice:                                 */
 /*            Arthur J. Olson                                                 */
 /*            Bruce Duncan, Yng Chen, Michael Pique, Victoria Roberts         */
-/*            Lindy Lindstrom, Ruth Huey                                      */
+/*            Lindy Lindstrom                                                 */
 /*                                                                            */
-/*      Date: 24/03/03                                                        */
+/*      Date: 07/07/04                                                        */
 /*                                                                            */
-/*    Inputs: Control file, receptor PDB file                                 */
-/*            Note: atomic charge, volume, and solvation parameter must be    */
-/*                  included in each atomic record                            */
-/*   Returns: Atomic affinity and electrostatic grid maps.                    */
+/*    Inputs: Control file, receptor PDBQT file, parameter file               */
+/*   Returns: Atomic affinity, desolvation and electrostatic grid maps.       */
 /*   Globals: MAX_DIST, MAX_MAPS                                              */
 /*             increased from 8 to 16  6/4/2004                               */
 /*                                                                            */
@@ -64,24 +58,8 @@ int main( int argc,  char **argv )
 /* Date     Inits   Comments                                                  */
 /* 07/06/89 DSG     FORTRAN implementation                                    */
 /* 07/05/92 GMM     C translation                                             */
-/* 14/05/92 GMM     Time-dependent seed in random-number generation           */
-/* 10/07/92 GMM     ASCII grid display of extrema and midpoint                */
-/* 13/07/92 GMM     Barycentre calculation of centre of mass                  */
-/* 14/07/92 GMM     AVS field format for displaying grids                     */
-/* 27/07/92 GMM     Introduced 'num_atom_maps' -> variable number of maps     */
-/* 16/10/92 GMM     H-bonding allowed in any map                              */
-/* 17/11/92 GMM     Header information included in grid maps, for checking.   */
-/* 06/11/92 GMM     Command line parsing, using Bruce S. Duncan's "setflags". */
-/* 04/01/93 GMM     Created for use in makefile.                              */
-/* 03/11/94 GMM     Four-fold acceleration due to non-bond cutoff checking    */
-/*                  Plus correction of normalization for directional H-bonds  */
-/*                  Plus floating grid calculation                            */
-/*                  Plus system times                                         */
-/* 02/06/95 GMM     New keyword-based interface; added r-eqm & epsilon option */
-/* 29/08/95 DSG     Directional H-Bonds on oxygen atoms                       */
-/*                  Disordered hydroxyls (automatically found 29/04/96)       */
-/* 20/09/95 DSG     Solvation Term of Stouten et al 1993                      */
-/* 21/03/03 GMM     Dynamically allocated arrays removing atom type limits.   */
+/* 20/09/95 GMM/DSG AutoGrid3                                                 */
+/* 07/07/04 DSG/RH  AutoGrid4                                                 */
 /******************************************************************************/
 
 /* Note: 21/03/03 GMM note: ATOM_MAPS is no longer used here; was used for
@@ -245,7 +223,7 @@ FILE *receptor_fileptr,
 
 
 /*for NEW3 desolvation terms*/
-double solpar_q = 0.01097;
+double solpar_q = 0.001118;
 
 double A, epsilon0, rk, lambda, B, lambda_B;
 double q_tot = 0.0;
@@ -1215,6 +1193,13 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 
 /******************************************************************************/
 
+    case GPF_QASP:
+        (void) sscanf( GPF_line, "%*s %lf", &solpar_q);
+        (void) fprintf( logFile, "\nCharge component of the atomic solvation parameter: %.3lf\n\n", solpar_q);
+        /* Typical value of solpar_q is 0.001118 */
+        break;
+
+/******************************************************************************/
     case GPF_DIEL:
         (void) sscanf( GPF_line, "%*s %lf", &diel);
         if (diel < 0.) {
@@ -1607,10 +1592,10 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                         rd2 += sq(coord[ia][i] - coord[ib][i]);
                     }
                 */
-                if (((rd2 < 2.89) && ((atom_type[ib] != hydrogen)&&(atom_type[ib]!=nonHB_hydrogen))) ||
+                if (((rd2 < 3.61) && ((atom_type[ib] != hydrogen)&&(atom_type[ib]!=nonHB_hydrogen))) ||
                     ((rd2 < 1.69) && ((atom_type[ib] == hydrogen)||(atom_type[ib]==nonHB_hydrogen)))) {
                     if (nbond == 2) {
-                        (void) fprintf( logFile, "WARNING! oxygen with three bonded atoms, atom serial number %d\n", ia + 1);
+                        (void) fprintf( logFile, "WARNING! h-bonding atom with three bonded atoms, atom serial number %d\n", ia + 1);
                     }
                     if (nbond == 1) {
                         nbond = 2;

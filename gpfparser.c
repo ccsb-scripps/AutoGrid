@@ -93,6 +93,9 @@ int gpfparser( char line[LINE_LEN] )
     } else if (equal(c,"dielectric",10)) {
         token = GPF_DIEL;
 
+    } else if (equal(c,"qasp",4)) {
+        token = GPF_QASP;
+
     } else if (equal(c,"fmap",4)) {
         token = GPF_FMAP;
 

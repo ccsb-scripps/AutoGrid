@@ -20,3 +20,4 @@
 #define GPF_RECEPTOR_TYPES	20
 #define GPF_PARAM_FILE	21
 #define GPF_DSOLVMAP	22
+#define GPF_QASP	23
