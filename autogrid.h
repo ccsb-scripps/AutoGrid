@@ -1,6 +1,6 @@
 /* autogrid.h */
 /*
-  $Id: autogrid.h,v 1.6 2004/11/23 22:10:27 lindy Exp $
+  $Id: autogrid.h,v 1.7 2005/03/09 21:43:18 rhuey Exp $
 */
 
 #include "autocomm.h"
@@ -105,6 +105,7 @@ struct parm_info {
         double epsij_hb;           /*12-10 Lennard-Jones energy well-depth*/
         int rec_index;              /*used to set up receptor atom_types*/
         int map_index;              /*used to set up map atom_types*/
+        int bond_index;             /*used to set up bonds by distance*/
 };
 
 
