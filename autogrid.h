@@ -66,6 +66,7 @@
 
 
 #define MAX_NUM_AUTOGRID_TYPES 100
+#define NUM_ALL_TYPES 20   /*??? IS THIS REASONABLE???*/
 #define MAX_LEN_AUTOGRID_TYPE 7
 /*enum babel_type { C3, C2, C1, Cac, Cpl, 
                   N3pl, Nox, N3, Ntr, Npl, N1, Nam, 
