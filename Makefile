@@ -18,7 +18,7 @@ OBJS = main.o \
        strindex.o \
        banner.o \
        gpfparser.o \
-       get_atom_type.o \
+       parsetypes.o \
 	   parm-ii.o
 
 LNS = \
@@ -32,7 +32,7 @@ LNS = \
       printdate.ln \
       banner.ln \
       gpfparser.ln \
-      get_atom_type.ln \
+      parsetypes.ln \
       strindex.ln \
       parm-ii.ln \
 
@@ -108,13 +108,13 @@ LINTFLAGS = $(LIB) -lansi -c # DEC-Alpha # MA
 # LINTFLAGS = $(LIB) -n -lansic # Sun Sparc
 
 
-DBUG = -DNDEBUG # No debugging and no assert code.
+###DBUG = -DNDEBUG # No debugging and no assert code.
 # DBUG = # Use assert code.
 # DBUG = -g # dbx.
 # DBUG = -g -DDEBUG # dbx + DEBUG-specific code.
 # DBUG = -g3 # dbx + optimization.
 # DBUG = -g3 -DDEBUG # dbx + optimization, + DEBUG-specific code.
-# DBUG = -DDEBUG # Just DEBUG-specific code.
+DBUG = -DDEBUG # Just DEBUG-specific code.
 # DBUG = -DDEBUG2 # Just DEBUG2-specific code for tracking prop.selection.
 # DBUG = -DDEBUG3 # Just DEBUG3-specific code for print age of individuals.
 
@@ -126,13 +126,14 @@ WARN = # Default warning level.
 # WARN = -fullwarn -ansiE -ansiW # For full warnings during compilation.
 
 
-autogrid3 : $(OBJS)
+autogrid4 : $(OBJS)
 	@echo $(EXE) on `date` using' >>> ' `hostname` ' <<<' >> LATEST_MAKE
 	@echo 'Flags: '$(CC) $(LINK) $(LIB) >> LATEST_MAKE
 	$(CC) $(LINK) -o $@ $(OBJS) $(LIB)
 
 convertmap : convertmap.o
 	$(CC) $(OPT) -o $@ convertmap.o $(LIB)
+
 
 
 main.o : main.c autogrid.h autoglobal.h parm-ii.c parm-ii.h banner.c gpfparser.c gpftoken.h
@@ -164,9 +165,6 @@ banner.o : banner.c autogrid.h
 
 gpfparser.o : gpfparser.c autogrid.h gpftoken.h
 	$(CC) $(OPT) -c gpfparser.c
-
-get_atom_type.o : get_atom_type.c autogrid.h gpftoken.h
-	$(CC) $(OPT) -c get_atom_type.c
 
 strindex.o : strindex.c autogrid.h
 	$(CC) $(OPT) -c strindex.c
@@ -211,9 +209,6 @@ banner.ln : banner.c autogrid.h
 gpfparser.ln : gpfparser.c autogrid.h gpftoken.h
 	$(LINT) $(LINTFLAGS) $?
 
-get_atom_type.ln : get_atom_type.c autogrid.h gpftoken.h
-	$(LINT) $(LINTFLAGS) $?
-
 strindex.ln : strindex.c autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
@@ -224,7 +219,7 @@ parm-ii.ln : parm-ii.c parm-ii.h
 # Remove objects, lint files, cores, etc.
 #
 clean:
-	/bin/rm -rf *.o *.s *.ln a.out core autogrid3 convertmap
+	/bin/rm -rf *.o *.s *.ln a.out core autogrid4 convertmap
 
 #
 # DEC Alpha

@@ -64,6 +64,44 @@
 
 #include "prototypes.h"
 
+
+#define MAX_NUM_AUTOGRID_TYPES 100
+#define MAX_LEN_AUTOGRID_TYPE 7
+/*enum babel_type { C3, C2, C1, Cac, Cpl, 
+                  N3pl, Nox, N3, Ntr, Npl, N1, Nam, 
+                  O3, O2, Om, 
+                  S3pl, S3, S2, Sac, Sox, S,
+                  HC, H, 
+                  P3, Pac, Pox, 
+                  B, Bac, Box, 
+                  Al, As , Be, Br, Ca, Cl, Cu, Fl, 
+                  Fe, Ge, I, K, Li, Mg, Mn, Na, Ni, 
+                  Pb, Si, Zn};*/
+
+
+
+struct parm_info {
+        char  autogrid_type[MAX_LEN_AUTOGRID_TYPE + 1]; /*KEY:  autogrid_type
+                                                    is based on babel_types
+                                                    assigned by PyBabel*/
+        int   num;              /* ct of autogrid_type as above*/
+        int   map_number;        /*index of autogrid_type in ligand_types*/
+        int   rec_index;        /*index of autogrid_type in receptor_types*/
+        double Rij;             /*Lennard-Jones equilibrium separation*/
+        double epsij;           /*Lennard-Jones energy well-depth*/
+        double vol;             /*solvation volume*/
+        double solpar;          /*solvation parameter*/
+        double constant;       /*OLDSTYLE: constant parameter*/
+        /*lists of parameters for this type vs each receptor type*/
+        double rij[NUM_ALL_TYPES];       /*rij per thistype-receptor_type*/
+        double eps[NUM_ALL_TYPES];       /*epsij per thistype-receptor_type*/
+        double xA[NUM_ALL_TYPES];       /*exponent1 per thistype-receptor_type*/
+        double xB[NUM_ALL_TYPES];       /*exponent2 per thistype-receptor_type*/
+        int hb[NUM_ALL_TYPES];       /*hb per thistype-receptor_type*/
+        int is_metal;                /*1 if FE,ZN,MN,MG,CA*/
+};
+
+
 /*----------------------------------------------------------------------------*/
 /* EOF.                                                                       */
 /*----------------------------------------------------------------------------*/

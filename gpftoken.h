@@ -5,7 +5,7 @@
 #define GPF_NPTS	4
 #define GPF_SPACING	5
 #define GPF_GRIDCENTER	7
-#define GPF_TYPES	8
+#define GPF_LIGAND_TYPES	8
 #define GPF_MAP		9
 #define	GPF_NBP_COEFFS	10
 #define GPF_NBP_R_EPS	11
@@ -18,3 +18,5 @@
 #define GPF_CONSTANT	18
 #define GPF_COVALENTMAP	19
 #define GPF_RECEPTOR_TYPES	20
+#define GPF_PARAM_FILE	21
+#define GPF_DSOLVMAP	22

@@ -228,9 +228,6 @@ float  eintcalPrint( int nonbondlist[MAX_NONBONDS][2],
 		Boole B_calcIntElec,
 		float q1q2[MAX_NONBONDS]);
 
-int  get_atom_type( char aname[4], 
-                    char chtype[ATOM_MAPS] );
-
 int getpdbcrds( char rms_ref_crds_FN[MAX_CHARS],
 		float ref_crds[MAX_ATOMS][XYZ] );
 

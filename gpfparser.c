@@ -47,6 +47,9 @@ int gpfparser( char line[LINE_LEN] )
     } else if (c[0]=='#') {
         token = GPF_COMMENT;
 
+    } else if (equal(c,"receptor_types",14)) {
+        token = GPF_RECEPTOR_TYPES;
+
     } else if (equal(c,"receptor",8)) {
         token = GPF_RECEPTOR;
 
@@ -63,19 +66,20 @@ int gpfparser( char line[LINE_LEN] )
         token = GPF_GRIDCENTER;
 
     } else if (equal(c,"types",5)) {
-        token = GPF_TYPES;
+        token = GPF_LIGAND_TYPES;
 
     } else if (equal(c,"ligand_types",12)) {
-        token = GPF_TYPES;
+        token = GPF_LIGAND_TYPES;
 
-    } else if (equal(c,"receptor_types",14)) {
-        token = GPF_RECEPTOR_TYPES;
 
     } else if (equal(c,"map",3)) {
         token = GPF_MAP;
 
-     } else if (equal(c,"elecmap",7)) {
+    } else if (equal(c,"elecmap",7)) {
         token = GPF_ELECMAP;
+
+    } else if (equal(c,"dsolvmap",8)) {
+        token = GPF_DSOLVMAP;
 
     } else if (equal(c,"covalentmap",11)) {
         token = GPF_COVALENTMAP;
@@ -103,6 +107,9 @@ int gpfparser( char line[LINE_LEN] )
 
     } else if (equal(c,"constant",8)) {
         token = GPF_CONSTANT;
+
+    } else if (equal(c,"parameter_file",14)) {
+        token = GPF_PARAM_FILE;
 
     }
     return(token);

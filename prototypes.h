@@ -7,6 +7,7 @@ int	strindex( char s[], char t[] );
 void	banner( double version_num );
 int	check_size( int nelements, char axischar );
 int	gpfparser( char line[LINE_LEN] );
+int	parsetypes(char * line, char *words[], int maxwords);
 int	main( int argc, char **argv );
 void	printdate( FILE *fp, int flag );
 void	printhms( float t );
