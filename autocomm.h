@@ -54,7 +54,7 @@
 #define MAX_GRID_PTS 128    /* Maximum number of grid points in 1 dimension   */
 /* #endif / * __ppc__ */
 #define	EINTCLAMP    100000. /* Clamp pairwise internal energies (kcal/mol )  */
-#define MAX_MAPS     8      /* Maximum number of energy maps                  */
+#define MAX_MAPS     16      /* Maximum number of energy maps                  */
 #define ATOM_MAPS    6      /* Number of atomic affinity grids                */
                             /* 0,1,2,... are for atomic interactions          */
                             /* last is for electrostatics                     */
@@ -62,8 +62,6 @@
 
 
 
-/* parm-ii.h */
-#include "parm-ii.h"
 
 #define UnderLine "________________________________________________________________________________\n\n"
 
