@@ -1,6 +1,6 @@
 /* autogrid.h */
 /*
-  $Id: autogrid.h,v 1.6 2004/11/23 22:10:27 lindy Exp $
+  $Id: autogrid.h,v 1.6.2.1 2005/03/07 19:02:37 gillet Exp $
 */
 
 #include "autocomm.h"
@@ -107,7 +107,8 @@ struct parm_info {
         int map_index;              /*used to set up map atom_types*/
 };
 
-
+/* added for port to BOINC 11/17/2004 */
+FILE *ag_fopen(const char *path, const char *mode);
 /*----------------------------------------------------------------------------*/
 /* EOF.                                                                       */
 /*----------------------------------------------------------------------------*/
