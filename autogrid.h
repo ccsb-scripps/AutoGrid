@@ -34,6 +34,7 @@
 #define MAX_ATOMS    32768   /* Maximum number of atoms in macromolecule.     */
 /*    32768 = 2^15	*/
 /*    int 16-bit two's complement ranges 0-32767, 0 to (2^15 - 1)	*/
+#define MAX_ATOM_TYPES    20   /* Maximum number of atom types     */
 
 #define ORDERED 	0
 #define CYLINDRICAL 	1
