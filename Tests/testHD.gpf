@@ -2,27 +2,12 @@ npts 4 4 4                           # num.grid points in xyz
 parameter_file parm_data.dat         # force field default parm file
 gridfld testHD.maps.fld                # grid_data_file
 spacing 1.000                        # spacing(A)
-ligand_types HD                       # ligand atom type
 receptor_types C A N NA OA SA HD     # receptor atom types
+ligand_types HD                       # ligand atom type
 receptor hsg1.pdbqt                  # macromolecule
 gridcenter 2.5 6.5 -7.5              # xyz-coordinates or auto
-ligand testHD.pdbqt                   # ligand to be evaluated  NB: vol solpar
-sol_par  N 22.44930 -0.00162
-sol_par OA 17.15728 -0.00251
-sol_par HD  0.00000  0.00051
-sol_par  C 33.51032 -0.00143
-sol_par NA 22.44930 -0.00162
-sol_par  A 33.51032 -0.00052
-sol_par SA 33.51032 -0.00214
-smooth 0.5                           # store minimum energy w/in rad(A)
-map testHD.HD.map                       # atom-specific affinity map
-nbp_r_eps HD  C  3.00 0.0081378 12  6   # HD-C lj
-nbp_r_eps HD  A  3.00 0.0081378 12  6   # HD-A lj
-nbp_r_eps HD  N  2.75 0.0084051 12  6   # HD-N lj
-nbp_r_eps HD NA  1.90 0.3280000 12 10   # HD-NA hb
-nbp_r_eps HD OA  1.90 0.3280000 12 10   # HD-OA hb
-nbp_r_eps HD SA  2.50 0.0656000 12 10   # HD-SA hb
-nbp_r_eps HD HD  2.00 0.0029700 12  6   # HD-HD lj
+smooth 0.5
+map HD testHD.HD.map                       # atom-specific affinity map
 elecmap testHD.e.map                # electrostatic potential map
 dsolvmap testHD.d.map
 dielectric -0.1146                   # <0, distance-dep.diel;>0, constant
