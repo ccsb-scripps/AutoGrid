@@ -58,6 +58,7 @@ int main( int argc,  char **argv )
 /*                  included in each atomic record                            */
 /*   Returns: Atomic affinity and electrostatic grid maps.                    */
 /*   Globals: MAX_DIST, MAX_MAPS                                              */
+/*             increased from 8 to 16  6/4/2004                               */
 /*                                                                            */
 /* Modification Record                                                        */
 /* Date     Inits   Comments                                                  */
@@ -111,7 +112,6 @@ char ligand_types[MAX_MAPS][3];
 
 /*array of ptrs used to parse input line*/
 char * ligand_atom_types[MAX_MAPS];
-
 
 #define NUM_RECEPTOR_TYPES  NUM_ALL_TYPES
 /*malloc this after the number of receptor types is parsed*/
@@ -170,8 +170,6 @@ double vol[MAX_ATOMS];
 double solpar[MAX_ATOMS];
 /*integers are simpler!*/
 int atom_type[MAX_ATOMS];
-/*flag whether ia-receptor atom is a metal*/
-int is_metal[MAX_ATOMS];
 int disorder[MAX_ATOMS];
 int rexp[MAX_ATOMS];
 double coord[MAX_ATOMS][XYZ];
@@ -270,12 +268,10 @@ double temp_Rij, temp_epsij;
 double temp_hbond_enrg, hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
 double rmin, Hramp;
 
-int num_rec_types = 0;
-
-
+/*int num_rec_types = 0;*/
 /*FE_vdW_coeff */
-/*double vdwCoeff = 0.1485;
-double hbondCoeff = 0.0656;*/
+double FE_vdW_coeff = 0.1485;
+double FE_hbond_coeff = 0.0656;
 
 float timeRemaining = 0.;
 
@@ -512,7 +508,6 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                         atom_type[ia] = found_parm->rec_index;
                         solpar[ia] = found_parm->solpar;
                         vol[ia] = found_parm->vol;
-                        is_metal[ia] = found_parm->is_metal;
 /*#ifdef DEBUG
                         printf("%d:key=%s, type=%d,solpar=%f,vol=%f\n",ia,thisparm.autogrid_type, atom_type[ia],solpar[ia],vol[ia]);
 #endif*/
@@ -914,10 +909,10 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         for (i = 0;  i < num_atom_maps;  i++) {
             (void) fprintf( logFile, "\t\t\t%d->%s\n", gridmap[i].map_number, ligand_types[i]);
             /*FIX THIS!!!*/
-            if (gridmap[i].atom_type == COVALENTTYPE) {
+            /*if (gridmap[i].atom_type == COVALENTTYPE) {
               gridmap[i].is_covalent = TRUE;
               (void) fprintf( logFile, "\nAtom type number %d will be used to calculate a covalent affinity grid map\n\n", i + 1);
-            }
+            }*/
         }
         (void) fprintf( logFile, " respectively.\n");
         (void) fflush( logFile);
@@ -1290,7 +1285,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             /*WISH LIST:
              * read autogrid_type into a temporary string and test 
              * that it's not too long*/
-            nfields = sscanf(dataline, "%s %d %lf %lf %lf %lf %lf %d %d %d",
+            nfields = sscanf(dataline, "%s %d %lf %lf %lf %lf %lf %d %d",
                     thisparm.autogrid_type,
                     &thisparm.num,
                     &thisparm.Rij,
@@ -1299,26 +1294,14 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                     &thisparm.solpar,
                     &thisparm.constant,
                     &thisparm.map_number,
-                    &thisparm.rec_index,
-                    &thisparm.is_metal);
+                    &thisparm.rec_index);
                     
-            /*solvation parameters * .001 to convert from cal to kcal
-             solvation parameters * FE_desol_coeff->.1711
-            thisparm.solpar*=0.1711;
-            thisparm.solpar*=0.001;
-             * */
             if (nfields<2) continue; /*skip lines without enough info*/
             newparm = calloc(1, sizeof(struct parm_info));
             * newparm = thisparm;
 #ifdef DEBUG
-            printf("%-6s%2d%7.2f%8.3f%8.3f%8.3f%8.3f%2d%2d%2d\n",newparm->autogrid_type,newparm->num, newparm->Rij, newparm->epsij, newparm->vol, newparm->solpar, newparm->constant, newparm->map_number, newparm->rec_index, newparm->is_metal);
+            printf("%-6s%2d%7.2f%8.3f%8.3f%8.3f%8.3f%2d%2d\n",newparm->autogrid_type,newparm->num, newparm->Rij, newparm->epsij, newparm->vol, newparm->solpar, newparm->constant, newparm->map_number, newparm->rec_index);
 #endif
-            /*newparm->solpar *= 0.001;*/
-            /*FIX THIS:
-             *
-             * multiply by .001 here???
-             *              !!!!*/
-            /*stick them into the hash table*/
             item.key = newparm->autogrid_type; /*ptr to string*/
             item.data = newparm;  /*ptr to entire record*/
             /*WISH LIST:
