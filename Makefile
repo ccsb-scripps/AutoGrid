@@ -35,7 +35,7 @@ LNS = \
       strindex.ln 
 
 
-CC = cc # SGI, Sun, MacOS X
+CC = g++ # SGI, Sun, MacOS X
 # CC = cxx # Alpha.
 # CC = gcc # use this if you have the Gnu compiler, as on Linux, MkLinux, LinuxPPC systems.
 
