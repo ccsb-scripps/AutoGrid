@@ -1,7 +1,7 @@
 #
 # 
 #
-# $Id: autogrid4test.py,v 1.5 2004/07/13 17:37:41 rhuey Exp $
+# $Id: autogrid4test.py,v 1.6 2004/08/09 21:26:16 rhuey Exp $
 #
 """
 
@@ -84,7 +84,7 @@ class Autogrid4TestCase(unittest.TestCase):
         dsolv_lines = fptr.readlines()
         fptr.close()
         #read in the results of the evaluator
-        evaluator_filename = 'test' + stem + "_summary.txt"
+        evaluator_filename = 'test' + stem + "_eval4_summary.txt"
         fptr = open(evaluator_filename)
         evaluator_lines = fptr.readlines()
         fptr.close()
@@ -118,7 +118,7 @@ class Autogrid4TestCase(unittest.TestCase):
         #dsolv_lines = fptr.readlines()
         #fptr.close()
         #read in the results of the evaluator
-        evaluator_filename = 'test' + stem + "_summary.txt"
+        evaluator_filename = 'test' + stem + "_eval4_summary.txt"
         fptr = open(evaluator_filename)
         evaluator_lines = fptr.readlines()
         fptr.close()
@@ -148,7 +148,7 @@ class Autogrid4TestCase(unittest.TestCase):
         #dsolv_lines = fptr.readlines()
         #fptr.close()
         #read in the results of the evaluator
-        evaluator_filename = 'test' + stem + "_summary.txt"
+        evaluator_filename = 'test' + stem + "_eval4_summary.txt"
         fptr = open(evaluator_filename)
         evaluator_lines = fptr.readlines()
         fptr.close()
@@ -201,7 +201,7 @@ class Autogrid4TestCase(unittest.TestCase):
         dsolv_lines = fptr.readlines()
         fptr.close()
         #read in the results of the evaluator
-        evaluator_filename = 'test' + stem + "_summary.txt"
+        evaluator_filename = 'test' + stem + "_eval4_summary.txt"
         fptr = open(evaluator_filename)
         evaluator_lines = fptr.readlines()
         fptr.close()
