@@ -10,9 +10,9 @@ void prHMSfixed( float t )
     float T, s;
     float hrs = 3600., min = 60.;
 
-    h = t/hrs;
+    h = (int) (t/hrs);
     T = t - h*hrs;
-    m = T/min;
+    m = (int) (T/min);
     s = T - m*min;
 
     if (h == 0) {
