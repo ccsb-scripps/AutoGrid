@@ -80,26 +80,25 @@
                   Pb, Si, Zn};*/
 
 
-
 struct parm_info {
         char  autogrid_type[MAX_LEN_AUTOGRID_TYPE + 1]; /*KEY:  autogrid_type
                                                     is based on babel_types
                                                     assigned by PyBabel*/
-        int   num;              /* ct of autogrid_type as above*/
-        int   map_number;        /*index of autogrid_type in ligand_types*/
-        int   rec_index;        /*index of autogrid_type in receptor_types*/
         double Rij;             /*Lennard-Jones equilibrium separation*/
         double epsij;           /*Lennard-Jones energy well-depth*/
         double vol;             /*solvation volume*/
         double solpar;          /*solvation parameter*/
-        double constant;       /*OLDSTYLE: constant parameter*/
-        /*lists of parameters for this type vs each receptor type*/
-        double rij[NUM_ALL_TYPES];       /*rij per thistype-receptor_type*/
-        double eps[NUM_ALL_TYPES];       /*epsij per thistype-receptor_type*/
-        double xA[NUM_ALL_TYPES];       /*exponent1 per thistype-receptor_type*/
-        double xB[NUM_ALL_TYPES];       /*exponent2 per thistype-receptor_type*/
-        int hb[NUM_ALL_TYPES];       /*hb per thistype-receptor_type*/
-        int is_metal;                /*1 if FE,ZN,MN,MG,CA*/
+        enum { NON, DS, D1, AS, A1, A2} hbond; /*hbonding character: 
+                    NON: none, 
+                    DS: spherical donor 
+                    D1: directional donor
+                    AS: spherical acceptor
+                    A1: acceptor of 1 directional hbond
+                    A2: acceptor of 2 directional hbonds*/
+        double Rij_hb;             /*12-10 Lennard-Jones equilibrium separation*/
+        double epsij_hb;           /*12-10 Lennard-Jones energy well-depth*/
+        int rec_index;              /*used to set up receptor atom_types*/
+        int map_index;              /*used to set up map atom_types*/
 };
 
 
