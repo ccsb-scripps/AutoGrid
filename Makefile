@@ -18,7 +18,8 @@ OBJS = main.o \
        strindex.o \
        banner.o \
        gpfparser.o \
-       get_atom_type.o
+       get_atom_type.o \
+	   parm-ii.o
 
 LNS = \
       main.ln \
@@ -32,7 +33,8 @@ LNS = \
       banner.ln \
       gpfparser.ln \
       get_atom_type.ln \
-      strindex.ln
+      strindex.ln \
+      parm-ii.ln \
 
 
 CC = cc # SGI, Sun, MacOS X
@@ -66,27 +68,26 @@ OPTLEVEL = -O3 # Agressive optimization.
 # OPT_SGI_IPNUM = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
 # OPT_SGI_IPNUM = -Ofast=ip19 # SGI, 'uname -a' says 'IP19'
 # OPT_SGI_IPNUM = -Ofast=ip21 # SGI, 'uname -a' says 'IP21'
-# OPT_SGI_IPNUM = -Ofast=ip22 # SGI, 'uname -a' says 'IP22'
 # OPT_SGI_IPNUM = -Ofast=ip25 # SGI, 'uname -a' says 'IP25' PowerChallenge is R10000, IP25
 OPT_SGI_IPNUM = -Ofast=ip27 # SGI, 'uname -a' says 'IP27'  Atlas Cluster is R12000, IP27
 # OPT_SGI_IPNUM = -Ofast=ip30 # SGI, 'uname -a' says 'IP30'
 
 # OPT_SGI_R000 = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
 # OPT_SGI_R000 = -r4000 -mips2 # SGI, 'hinv' says MIPS Processor is R4000
-# OPT_SGI_R000 = -r4000 -mips3 # SGI, 'hinv' says MIPS Processor is R4000
 # OPT_SGI_R000 = -r8000 -mips4 # SGI, 'hinv' says MIPS Processor is R8000
-OPT_SGI_R000 = -r10000 -mips4 # SGI, 'hinv' says MIPS Processor is R10000
+# OPT_SGI_R000 = -r10000 -mips4 # SGI, 'hinv' says MIPS Processor is R10000
 # OPT_SGI_R000 = -r12000 -mips4 # SGI, 'hinv' says MIPS Processor is R12000
-# OPT_SGI_R000 = -r14000 -mips4 # SGI, 'hinv' says MIPS Processor is R14000
+OPT_SGI_R000 = -r14000 -mips4 # SGI, 'hinv' says MIPS Processor is R14000
 
 # OPT_ARCH_SPECIFIC = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
-OPT_ARCH_SPECIFIC = -n32 $(OPT_SGI_IPNUM) $(OPT_SGI_R000) -IPA $(LNO_OPT) # SGI, new 32-bit
+# OPT_ARCH_SPECIFIC = -n32 $(OPT_SGI_IPNUM) $(OPT_SGI_R000) -IPA $(LNO_OPT) # SGI, new 32-bit
 # OPT_ARCH_SPECIFIC = -n32 $(OPT_SGI_IPNUM) $(OPT_SGI_R000) -IPA $(LNO_OPT) -DUSE_INT_AS_LONG # SGI (long is 8bytes).
 # OPT_ARCH_SPECIFIC = $(OPT_SGI_IPNUM) $(OPT_SGI_R000) $(LNO_OPT) # SGI, not new 32-bit
 # OPT_ARCH_SPECIFIC = -ifo # DEC Alpha
 # OPT_ARCH_SPECIFIC = -O +O3 +Obb2048 # Hewlett-Packard
 # OPT_ARCH_SPECIFIC = -ur # Convex
-# OPT_ARCH_SPECIFIC = # -g debugging
+# OPT_ARCH_SPECIFIC = -g # debugging
+OPT_ARCH_SPECIFIC = # Mac OS X
 
 OPT = $(CSTD) $(OPTLEVEL) $(OPT_ARCH_SPECIFIC) # All platforms
 
@@ -126,19 +127,15 @@ WARN = # Default warning level.
 
 
 autogrid3 : $(OBJS)
-	echo $(EXE) on `date` using' >>> ' `hostname` ' <<<' >> LATEST_MAKE
-	echo 'Flags: '$(CC) $(LINK) $(LIB) >> LATEST_MAKE
+	@echo $(EXE) on `date` using' >>> ' `hostname` ' <<<' >> LATEST_MAKE
+	@echo 'Flags: '$(CC) $(LINK) $(LIB) >> LATEST_MAKE
 	$(CC) $(LINK) -o $@ $(OBJS) $(LIB)
 
 convertmap : convertmap.o
 	$(CC) $(OPT) -o $@ convertmap.o $(LIB)
 
 
-lcheck :  $(LNS)
-	$(LINT) -lansi $(LIB) $(LNS)
-
-
-main.o : main.c autogrid.h autoglobal.h
+main.o : main.c autogrid.h autoglobal.h parm-ii.c parm-ii.h banner.c gpfparser.c gpftoken.h
 	$(CC) $(OPT) $(OLIMIT) -c main.c
 
 check_size.o : check_size.c autogrid.h
@@ -176,6 +173,9 @@ strindex.o : strindex.c autogrid.h
 
 convertmap.o : convertmap.c
 	$(CC) $(OPT) -c convertmap.c
+
+parm-ii.o : parm-ii.c parm-ii.h
+	$(CC) $(OPT) -c parm-ii.c
 
 #
 # lcheck dependencies...
@@ -215,6 +215,9 @@ get_atom_type.ln : get_atom_type.c autogrid.h gpftoken.h
 	$(LINT) $(LINTFLAGS) $?
 
 strindex.ln : strindex.c autogrid.h
+	$(LINT) $(LINTFLAGS) $?
+
+parm-ii.ln : parm-ii.c parm-ii.h
 	$(LINT) $(LINTFLAGS) $?
 
 #
