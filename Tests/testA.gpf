@@ -1,28 +1,13 @@
 npts 5 5 5                           # num.grid points in xyz
 parameter_file parm_data.dat         # force field default parm file
-gridfld testA.maps.fld                # grid_data_file
+gridfld testA.maps.fld               # grid_data_file
 spacing 1.000                        # spacing(A)
-ligand_types A                       # ligand atom type
 receptor_types C A N NA OA SA HD     # receptor atom types
+ligand_types A                       # ligand atom type
 receptor hsg1.pdbqt                  # macromolecule
 gridcenter 2.5 6.5 -7.5              # xyz-coordinates or auto
-ligand testA.pdbqt                   # ligand to be evaluated  NB: vol solpar
-sol_par  N 22.44930 -0.00162
-sol_par OA 17.15728 -0.00251
-sol_par HD  0.00000  0.00051
-sol_par  C 33.51032 -0.00143
-sol_par NA 22.44930 -0.00162
-sol_par  A 33.51032 -0.00052
-sol_par SA 33.51032 -0.00214
 smooth 0.5                           # store minimum energy w/in rad(A)
-map testA.A.map                       # atom-specific affinity map
-nbp_r_eps  A  C  4.00 0.0222750 12  6   # A-C lj
-nbp_r_eps  A  A  4.00 0.0222750 12  6   # A-A lj
-nbp_r_eps  A  N  3.75 0.0230026 12  6   # A-N lj
-nbp_r_eps  A NA  3.75 0.0230026 12  6   # A-NA lj
-nbp_r_eps  A OA  3.60 0.0257202 12  6   # A-OA lj
-nbp_r_eps  A SA  4.00 0.0257202 12  6   # A-SA lj
-nbp_r_eps  A HD  3.00 0.0081378 12  6   # A-HD lj
-elecmap testA.e.map                # electrostatic potential map
+map A testA.A.map                    # atom-specific affinity map
+elecmap testA.e.map                  # electrostatic potential map
 dsolvmap testA.d.map
 dielectric -0.1146                   # <0, distance-dep.diel;>0, constant
