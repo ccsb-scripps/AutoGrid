@@ -762,7 +762,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
     case GPF_LIGAND_TYPES:
         /* Read in the ligand atom types */
         /*GPF_line ex: "ligand_types N O A C HH NH            " */
-        num_atom_maps = parsetypes(GPF_line, ligand_atom_types,20);
+        num_atom_maps = parsetypes(GPF_line, ligand_atom_types, MAX_ATOM_TYPES);
         for(i=0; i<num_atom_maps; i++){
             strcpy(ligand_types[i], ligand_atom_types[i]);
 #ifdef DEBUG
@@ -946,7 +946,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
     case GPF_RECEPTOR_TYPES:
         /* Read in the receptor atom types */
         /*GPF_line ex: "receptor_types N O A C HH NH            " */
-        receptor_types_ct = parsetypes(GPF_line, receptor_atom_types, 20);
+        receptor_types_ct = parsetypes(GPF_line, receptor_atom_types,  MAX_ATOM_TYPES);
 #ifdef DEBUG
         printf("receptor_types_ct=%d\n",receptor_types_ct);
 #endif
