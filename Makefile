@@ -18,8 +18,7 @@ OBJS = main.o \
        strindex.o \
        banner.o \
        gpfparser.o \
-       parsetypes.o \
-	   parm-ii.o
+       parsetypes.o 
 
 LNS = \
       main.ln \
@@ -33,8 +32,7 @@ LNS = \
       banner.ln \
       gpfparser.ln \
       parsetypes.ln \
-      strindex.ln \
-      parm-ii.ln \
+      strindex.ln 
 
 
 CC = cc # SGI, Sun, MacOS X
@@ -136,7 +134,7 @@ convertmap : convertmap.o
 
 
 
-main.o : main.c autogrid.h autoglobal.h parm-ii.c parm-ii.h banner.c gpfparser.c gpftoken.h parsetypes.c
+main.o : main.c autogrid.h autoglobal.h  banner.c gpfparser.c gpftoken.h parsetypes.c
 	$(CC) $(OPT) $(OLIMIT) -c main.c
 
 check_size.o : check_size.c autogrid.h
@@ -175,8 +173,6 @@ strindex.o : strindex.c autogrid.h
 convertmap.o : convertmap.c
 	$(CC) $(OPT) -c convertmap.c
 
-parm-ii.o : parm-ii.c parm-ii.h
-	$(CC) $(OPT) -c parm-ii.c
 
 #
 # lcheck dependencies...
@@ -218,8 +214,6 @@ parsetypes.ln : parsetypes.c autogrid.h
 strindex.ln : strindex.c autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
-parm-ii.ln : parm-ii.c parm-ii.h
-	$(LINT) $(LINTFLAGS) $?
 
 #
 # Remove objects, lint files, cores, etc.
