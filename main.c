@@ -223,7 +223,7 @@ FILE *receptor_fileptr,
 
 
 /*for NEW3 desolvation terms*/
-double solpar_q = 0.0009072; /*.0009072=.01097*.0827*/
+double solpar_q = 0.0013383; /*=.01097 * 0.122*/
 /*double solpar_q = 0.001118; */
 
 double A, epsilon0, rk, lambda, B, lambda_B;
@@ -2123,6 +2123,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     for (i = 0;  i < XYZ;  i++) {
                     cos_theta += rvector[closestH][i] * rvector[ia][i];
                     }
+                   cos_theta = min(cos_theta, 1.0); 
+                   cos_theta = max(cos_theta, -1.0);
                    theta = acos(cos_theta);
                    Hramp = 0.5-0.5*cos(theta * 120./90.);
                 } /* ia test */
