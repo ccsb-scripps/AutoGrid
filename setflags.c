@@ -75,7 +75,7 @@ int setflags( int argc, char **argv )
 	    exit(0);
             break;
         case 'l':
-            if ( (logFile = fopen(argv[2], "w")) == NULL ) {
+            if ( (logFile = ag_fopen(argv[2], "w")) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't create the log file \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
                 exit(911);
@@ -86,7 +86,7 @@ int setflags( int argc, char **argv )
             break;
         case 'p':
             strcpy(GPF_filename, argv[2]);
-            if ( (GPF_fileptr = fopen(argv[2], "r")) == NULL ) {
+            if ( (GPF_fileptr = ag_fopen(argv[2], "r")) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't find or open Grid Parameter File \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
                 exit(911);

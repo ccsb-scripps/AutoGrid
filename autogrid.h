@@ -1,6 +1,6 @@
 /* autogrid.h */
 /*
-  $Id: autogrid.h,v 1.7 2005/03/09 21:43:18 rhuey Exp $
+  $Id: autogrid.h,v 1.8 2005/03/16 00:08:14 gillet Exp $
 */
 
 #include "autocomm.h"
@@ -108,7 +108,8 @@ struct parm_info {
         int bond_index;             /*used to set up bonds by distance*/
 };
 
-
+/* added for port to BOINC 11/17/2004 */
+FILE *ag_fopen(const char *path, const char *mode);
 /*----------------------------------------------------------------------------*/
 /* EOF.                                                                       */
 /*----------------------------------------------------------------------------*/
