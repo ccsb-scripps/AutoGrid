@@ -1,4 +1,7 @@
 /* autogrid.h */
+/*
+  $Id: autogrid.h,v 1.6 2004/11/23 22:10:27 lindy Exp $
+*/
 
 #include "autocomm.h"
 #include "gpftoken.h"
@@ -81,6 +84,8 @@
                   Pb, Si, Zn};*/
 
 
+enum hbond_type { NON, DS, D1, AS, A1, A2}; /*hbonding character: */
+
 struct parm_info {
         char  autogrid_type[MAX_LEN_AUTOGRID_TYPE + 1]; /*KEY:  autogrid_type
                                                     is based on babel_types
@@ -89,7 +94,7 @@ struct parm_info {
         double epsij;           /*Lennard-Jones energy well-depth*/
         double vol;             /*solvation volume*/
         double solpar;          /*solvation parameter*/
-        enum { NON, DS, D1, AS, A1, A2} hbond; /*hbonding character: 
+        hbond_type hbond; /*hbonding character: 
                     NON: none, 
                     DS: spherical donor 
                     D1: directional donor
