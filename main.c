@@ -1323,6 +1323,7 @@ warned = 'F';
                 ** coords of X1 gives the point on the X1-X2 line for the
                 ** back of the vector.
                 */
+                rdot = 0;
                 for (i = 0;  i < XYZ;  i++) {
                     rdot+= (coord[ia][i]-coord[i1][i]) * rvector2[ia][i] ;
                 }
