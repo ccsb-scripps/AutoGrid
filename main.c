@@ -1,4 +1,5 @@
 /* main.c */
+/*modified to do new min/directinal hbonds*/
 
 #include <sys/types.h>
 #include <sys/times.h>
@@ -145,6 +146,10 @@ double vol_probe[MAX_MAPS], solpar_probe[MAX_MAPS], sigma;
 double ln_half = 0.0;
 double covhalfwidth = 1.0;
 double covbarrier = 1000.0;
+double hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
+double rmin, Hramp;
+
+
 
 double version_num = 3.06;
 
@@ -175,11 +180,16 @@ int problem_wrt = FALSE;
 int rexp[MAX_ATOMS], veclen = 0;
 int tycount[MAX_TYPES];
 int xA, xB;
+int hbondflag[MAX_MAPS];
+
+
 
 register int i = 0, ii = 0, j = 0, k = 0, indx_r = 0, i_smooth = 0;
 /* register int i = 0, ii = 0, j = 0, jj = 0, k = 0, indx_r = 0, i_smooth = 0;
  */
-register int ia = 0, ib = 0, ic = 0, probe = -1, iat = 0, i1 = 0, i2 = 0;
+register int ia = 0, ib = 0, ic = 0, probe = -1, iat = 0, i1 = 0, i2 = 0, i3 = 0;
+register int closestH = 0;
+
 
 static int natom;
 static double energy[MAX_TYPES][MAX_DIST][MAX_MAPS];
@@ -617,6 +627,7 @@ while( fgets( gpfline, LINE_LEN, GPF) != NULL ) {
             for (ia = 0;  ia < natom;  ia++) {
                 for (i = 0;  i < XYZ;  i++) {
                     coord[ia][i] -= center[i];        /* transform to center of gridmaps */
+
                 }
             }
             for (i = 0;  i < XYZ;  i++) {
@@ -1077,7 +1088,8 @@ warned = 'F';
 /*
  * =>  NH-> or OH->
  */
-            if ((atomtype[ib] == NITROGEN) || (atomtype[ib] == OXYGEN)) {
+           /* if ((atomtype[ib] == NITROGEN) || (atomtype[ib] == OXYGEN)) {*/
+           if (atomtype[ib] != CARBON ) { /*7/22*/
 /*
  * Calculate the square of the N-H or O-H bond distance, rd2,
  *                            ib-ia  ib-ia
@@ -1312,7 +1324,7 @@ warned = 'F';
                 ** back of the vector.
                 */
                 for (i = 0;  i < XYZ;  i++) {
-                    rdot += (coord[ia][i]-coord[i1][i]) * rvector2[ia][i] ;
+                    rdot+= (coord[ia][i]-coord[i1][i]) * rvector2[ia][i] ;
                 }
                 rd2 = 0.;
                 for (i = 0;  i < XYZ;  i++) {
@@ -1335,6 +1347,126 @@ warned = 'F';
             } /* end disordered hydroxyl */
 
         }  /* end two bonds to Oxygen */
+        /* NEW Directional N Acceptor */
+    } else if (atomtype[ia] == NITROGEN) {
+/*
+** Scan from at most, (ia-20)th m/m atom, or ia-th (if ia<20)
+**        to (ia+5)th m/m-atom
+** determine number of atoms bonded to the oxygen
+*/
+	nbond = 0;
+	for ( ib = from; ib <= to; ib++) {
+	    if ( ib != ia ) {
+		rd2 = 0.;
+
+		for (i = 0;  i < XYZ;  i++) {
+		    dc[i] = coord[ia][i] - coord[ib][i];
+		    rd2 += sq( dc[i] );
+		}
+
+		/*
+		    for (i = 0;  i < XYZ;  i++) {
+			rd2 += sq(coord[ia][i] - coord[ib][i]);
+		    }
+		*/
+		if (((rd2 < 2.89) && (atomtype[ib] == CARBON)) || 
+		    ((rd2 < 1.69) && (atomtype[ib] == HYDROGEN))) {
+	            if (nbond == 2) {
+			nbond = 3;
+			i3 = ib;
+		    }
+		    if (nbond == 1) {
+			nbond = 2;
+			i2 = ib;
+		    }
+		    if (nbond == 0) {
+			nbond = 1;
+			i1 = ib;
+		    }
+		}
+	    } /* ( ib != ia ) */
+	} /*ib-loop*/
+
+	/* if no bonds, something is wrong */
+
+	if (nbond == 0) {
+	    (void) fprintf( logFile, "WARNING! nitrogen with no bonded atoms, atom serial number %d\n",ia);
+	}
+
+	/* one bond: Azide Nitrogen :N=C-X */
+
+	if (nbond == 1) {
+
+	    /* calculate normalized N=C bond vector rvector[ia][] */
+
+	    rd2 = 0.;
+	    for (i = 0;  i < XYZ;  i++) {
+		rvector[ia][i] = coord[ia][i]-coord[i1][i];
+		rd2 += sq(rvector[ia][i]);
+	    }
+	    if (rd2 < APPROX_ZERO) {
+		if ((rd2 == 0.) && (warned == 'F')) {
+		    (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+		    (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+		    warned = 'T';
+		}
+		rd2 = APPROX_ZERO;
+	    }
+	    inv_rd = 1./sqrt(rd2);
+	    for (i = 0;  i < XYZ;  i++) {
+		rvector[ia][i] *= inv_rd;
+	    }
+	} /* endif nbond==1 */
+
+	/* two bonds: X1-N=X2 */
+	if (nbond == 2) {
+		/* normalized vector from Nitrogen to midpoint between X1 and X2 */
+
+		rd2 = 0.;
+		for (i = 0;  i < XYZ;  i++) {
+		    rvector[ia][i] = coord[ia][i]-(coord[i2][i]+coord[i1][i])/2.;
+		    rd2 += sq(rvector[ia][i]);
+		}
+		if (rd2 < APPROX_ZERO) {
+		    if ((rd2 == 0.) && (warned == 'F')) {
+			(void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+			(void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+			warned = 'T';
+		    }
+		    rd2 = APPROX_ZERO;
+		}
+		inv_rd = 1./sqrt(rd2);
+		for (i = 0;  i < XYZ;  i++) {
+		    rvector[ia][i] *= inv_rd;
+		}
+
+	}  /* end two bonds for nitrogen */
+
+	/* three bonds: X1,X2,X3 */
+	if (nbond == 3) {
+		/* normalized vector from Nitrogen to midpoint between X1, X2, and X3 */
+
+		rd2 = 0.;
+		for (i = 0;  i < XYZ;  i++) {
+		    rvector[ia][i] = coord[ia][i]-(coord[i1][i]+coord[i2][i]+coord[i3][i])/3.;
+		    rd2 += sq(rvector[ia][i]);
+		}
+		if (rd2 < APPROX_ZERO) {
+		    if ((rd2 == 0.) && (warned == 'F')) {
+			(void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+			(void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+			warned = 'T';
+		    }
+		    rd2 = APPROX_ZERO;
+		}
+		inv_rd = 1./sqrt(rd2);
+		for (i = 0;  i < XYZ;  i++) {
+		    rvector[ia][i] *= inv_rd;
+		}
+
+	}  /* end three bonds for Nitrogen */
+/* endNEW directional N Acceptor */
+
 
     } /* end test for atom type */
 
@@ -1421,6 +1553,30 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
             if (disGrid) {
                 r_min = BIG;
             }
+            /* Initialize Min Hbond variables  for each new point*/
+            for (probe = 0; probe < atom_maps; probe++){	
+                hbondmin[probe] = 999999.;
+                hbondmax[probe] = -999999.;
+                hbondflag[probe] = FALSE;
+            }
+            /* NEW2: Find Closest Hbond to this point*/
+            rmin=999999.;
+            closestH=0;
+            for (ia = 0;  ia < natom;  ia++) {
+                if (atomtype[ia] == HYDROGEN) {
+                    for (i = 0;  i < XYZ;  i++) { 
+                        d[i]  = coord[ia][i] - c[i]; 
+                    }
+                    r = hypotenuse( d[X],d[Y],d[Z] );
+                    if (r < rmin) {
+                        rmin = r;
+                        closestH = ia; }
+                } /* Hydrogen test */
+            } /* ia loop to find closest hbond*/
+            /* END NEW2: Find Min Hbond */
+
+
+
 
             /*
              *  Loop over all Macromolecule (protein, DNA, etc.) atoms...
@@ -1438,6 +1594,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     r = APPROX_ZERO;
                 }
                 inv_r  = 1./r;
+
                 for (i = 0;  i < XYZ;  i++) {
                     d[i] *= inv_r;
                 }
@@ -1451,6 +1608,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 if (dddiel) {
                     /* Distance-dependent dielectric... */
                     enrg[elecPE] += charge[ia] * inv_r * epsilon[indx_r];
+
                     /* elecPE is the last grid map, i.e. electrostatics */
                 } else {
                     /* Constant dielectric... */
@@ -1473,6 +1631,10 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 /*** racc = rdon = 1.; ***/
                 racc = 1.;
                 rdon = 1.;
+                /* NEW2 Hramp ramps in Hbond acceptor probes */
+		        Hramp = 1.;
+                /* END NEW2 Hramp ramps in Hbond acceptor probes */
+
 
                 if (atomtype[ia] == HYDROGEN) {
                     /*
@@ -1515,8 +1677,52 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                                 break;
                         }
                         /* racc = pow( cos_theta, (double)rexp[ia] ); */
-                    }
+                         /* NEW2 calculate dot product of bond vector with bond vector of best hbond */
+                    if (ia == closestH) {
+                        Hramp = 1.;
+                    } else {
+                        cos_theta = 0.;
+                        for (i = 0;  i < XYZ;  i++) {
+                            cos_theta += rvector[closestH][i] * rvector[ia][i];
+                        }
+                       theta = acos(cos_theta);
+                       Hramp = 0.5-0.5*cos(theta * 120./90.);
+                    } /* ia test */
+                    /* END NEW2 calculate dot product of bond vector with bond vector of best hbond */
+                    } /*else cos_theta>0*/
                     /* endif (atomtype[ia] == HYDROGEN) */
+                		
+                /* NEW Directional N acceptor */
+                    } else if (atomtype[ia] == NITROGEN) {
+                /*
+                **  ia-th macromolecule atom = Nitrogen ( 4 = H )
+                **  calculate rdon for H-bond Donor PROBES at this grid pt.
+                **            ====     ======================
+                */
+                            cos_theta = 0.;
+                /*
+                **  d[] = Unit vector from current grid pt to ia_th m/m atom.
+                **  cos_theta = d dot rvector == cos(angle) subtended.
+                */
+                            for (i = 0;  i < XYZ;  i++) {
+                            cos_theta -= d[i] * rvector[ia][i];
+                            }
+
+                            if (cos_theta <= 0.) {
+                /*
+                **  H->current-grid-pt vector >= 90 degrees from
+                **  X->N vector,
+                */
+                            rdon = 0.;
+                            } else {
+                /*
+                **  racc = [cos(theta)]^2.0 for H->N
+                */
+                            rdon = cos_theta*cos_theta;
+                            }
+                            /* endif (atomtype[ia] == NITROGEN) */
+                /* end NEW Directional N acceptor */
+
                 } else if ((atomtype[ia] == OXYGEN) && (disorder[ia] == FALSE)) {
                     /*
                     **  ia-th macromolecule atom = Oxygen
@@ -1641,22 +1847,37 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                             rsph = max(rsph, 0.);
                             rsph = min(rsph, 1.);
                             
-                            if ((atmtypstr[probe] == 'N') ||
-                                (atmtypstr[probe] == 'O') ||
+                            if ( (atmtypstr[probe] == 'O') ||
                                 (atmtypstr[probe] == 'S')) {
                             
                                   /* PROBE can be an H-BOND ACCEPTOR, */
+                                /* New code picks only Min Hbond at each point */
+                                /* NEW2 ramped Hbonds */
                                 if (disorder[ia] == FALSE ) {
-                                    enrg[probe] += energy[atomtype[ia]][indx_r][probe] * (racc+(1.-racc)*rsph);
+                                    enrg[probe] += energy[atomtype[ia]][indx_r][probe] *
+                                         Hramp*(racc+(1.-racc)*rsph);
+
                                 } else {
-                                    enrg[probe] += energy[HYDROGEN][max(0, indx_r-110)][probe] * (racc+(1.-racc)*rsph);
+                                    enrg[probe] += energy[HYDROGEN][max(0,indx_r-110)][probe] *
+                                         Hramp*(racc+(1.-racc)*rsph);
                                 }
+
+
+                            } else if (atmtypstr[probe] == 'N') {
+                                    hbondmin[probe] = min( hbondmin[probe],energy[atomtype[ia]][indx_r][probe] * (racc+(1.-racc)*rsph));
+				                    hbondmax[probe] = max( hbondmax[probe],energy[atomtype[ia]][indx_r][probe] * (racc+(1.-racc)*rsph));
+				                    hbondflag[probe] = TRUE;
+
                             
                             } else if (atmtypstr[probe] == 'H') {
                             
                                 /*  PROBE is H-BOND DONOR, */
-                                enrg[probe] += energy[atomtype[ia]][indx_r][probe] *
-                                                             (rdon+(1.-rdon)*rsph);
+                                /*enrg[probe] += energy[atomtype[ia]][indx_r][probe] * (rdon+(1.-rdon)*rsph);*/
+			                /*  PROBE is H-BOND DONOR, */
+			                hbondmin[probe] = min( hbondmin[probe],energy[atomtype[ia]][indx_r][probe] * (rdon+(1.-rdon)*rsph));
+			                hbondmax[probe] = max( hbondmax[probe],energy[atomtype[ia]][indx_r][probe] * (rdon+(1.-rdon)*rsph));
+				            hbondflag[probe] = TRUE;
+
                             }
                             
                         } else {
@@ -1678,6 +1899,14 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     } /* not covalent */
                 } /* probe */
             }/* ia loop, over all macromolecule atoms... */
+
+            			/* Loop over probes and add in Min Hbond energy */
+			for (probe = 0; probe < atom_maps; probe++) {
+                if (hbondflag[probe]) {
+                    enrg[probe] += hbondmin[probe]; 
+                    enrg[probe] += hbondmax[probe]; } }
+             /* END NEW2 only min over H donor probes */
+
 
             /*
              * O U T P U T . . .
