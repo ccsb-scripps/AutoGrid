@@ -263,7 +263,7 @@ double covhalfwidth = 1.0;
 double covbarrier = 1000.0;
 double cA, cB, tmpconst;
 double sigma;
-double version_num = 3.06;
+double version_num = 4.00;
 /*are these necessary??*/
 double temp_vol, temp_solpar;
 double temp_Rij, temp_epsij;
