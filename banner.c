@@ -45,9 +45,10 @@ void banner( double version_num )
 (void) fprintf(logFile,"                 |                                      |\n");
 (void) fprintf(logFile,"                 |        Garrett M. Morris, TSRI       |\n");
 (void) fprintf(logFile,"                 |        David S. Goodsell, TSRI       |\n");
-(void) fprintf(logFile,"                 |        Arthur J. Olson, TSRI         |\n");
+(void) fprintf(logFile,"                 |         Arthur J. Olson, TSRI        |\n");
+(void) fprintf(logFile,"                 |            Ruth Huey, TSRI           |\n");
 (void) fprintf(logFile,"                 |                                      |\n");
-(void) fprintf(logFile,"                 |           (c) 2000, TSRI             |\n");
+(void) fprintf(logFile,"                 |           (c) 2003, TSRI             |\n");
 (void) fprintf(logFile,"                 |   The Scripps Research Institute     |\n");
 (void) fprintf(logFile,"                 |______________________________________|\n");
 (void) fprintf(logFile,"\n");

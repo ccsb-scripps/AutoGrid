@@ -68,8 +68,8 @@ OPTLEVEL = -O3 # Agressive optimization.
 # OPT_SGI_IPNUM = -Ofast=ip21 # SGI, 'uname -a' says 'IP21'
 # OPT_SGI_IPNUM = -Ofast=ip22 # SGI, 'uname -a' says 'IP22'
 # OPT_SGI_IPNUM = -Ofast=ip25 # SGI, 'uname -a' says 'IP25' PowerChallenge is R10000, IP25
-# OPT_SGI_IPNUM = -Ofast=ip27 # SGI, 'uname -a' says 'IP27'  Atlas Cluster is R12000, IP27
-OPT_SGI_IPNUM = -Ofast=ip30 # SGI, 'uname -a' says 'IP30'
+OPT_SGI_IPNUM = -Ofast=ip27 # SGI, 'uname -a' says 'IP27'  Atlas Cluster is R12000, IP27
+# OPT_SGI_IPNUM = -Ofast=ip30 # SGI, 'uname -a' says 'IP30'
 
 # OPT_SGI_R000 = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
 # OPT_SGI_R000 = -r4000 -mips2 # SGI, 'hinv' says MIPS Processor is R4000
