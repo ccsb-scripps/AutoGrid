@@ -1,7 +1,8 @@
 /* main.c */
 /*
-  $Id: main.c,v 1.19 2004/11/23 22:07:12 lindy Exp $
+  $Id: main.c,v 1.19.2.1 2005/03/07 19:01:58 gillet Exp $
 */
+
 
 #include <sys/types.h>
 #include <sys/times.h>
@@ -9,13 +10,21 @@
 #include <math.h>
 #include <stdio.h>
 #include <search.h>
-#include <string.h>
+#include <string>
 #include <stdlib.h>
 #include <time.h>
 #include <ctype.h> /* tolower */
 #include <unistd.h> /* long sysconf(int name) */
 #include <stddef.h> 
-#include <ctype.h> 
+
+/* the BOINC API header file */
+#ifdef BOINC
+
+#include "diagnostics.h"
+#include "boinc_api.h" 
+#include "filesys.h" 		// boinc_fopen(), etc... */
+
+#endif
 
 #include "autogrid.h"
 #include "autoglobal.h"
@@ -23,6 +32,26 @@
 
 extern float idct;
 
+
+/* fopen rewrite to either use BOINC api or normal system call */
+FILE *ag_fopen(const char *path, const char *mode)
+{
+  FILE *filep;
+#ifdef BOINC
+  int rc;
+  char resolved_name[512];
+  rc = boinc_resolve_filename(path, resolved_name, sizeof(resolved_name));
+  if (rc){
+      fprintf(stderr, "BOINC_ERROR: cannot open filename.%s\n",path);
+      boinc_finish(rc);    /* back to BOINC core */
+    }
+    // Then open the file with boinc_fopen() not just fopen()
+    filep = boinc_fopen(resolved_name, mode);
+#else
+    filep = fopen(path,mode);
+#endif
+    return filep;
+}
 
 int main( int argc,  char **argv )
 
@@ -305,6 +334,43 @@ Clock      grd_end;
 struct tms tms_grd_start;
 struct tms tms_grd_end;
 
+#ifdef BOINC
+    int flags = 0;
+    int rc;
+    flags =
+      BOINC_DIAG_DUMPCALLSTACKENABLED |
+      BOINC_DIAG_HEAPCHECKENABLED |
+      BOINC_DIAG_REDIRECTSTDERR |
+      BOINC_DIAG_REDIRECTSTDOUT ;
+    boinc_init_diagnostics(flags);
+
+#ifdef BOINCCOMPOUND
+    BOINC_OPTIONS options;
+    options.main_program = false;
+    options.check_heartbeat = false;// monitor does check heartbeat
+    options.handle_trickle_ups = false;
+    options.handle_trickle_downs = false;
+    options.handle_process_control = false;
+    options.send_status_msgs = true;// only the worker programs (i.e. model) sends status msgs
+    options.direct_process_action = true;// monitor handles suspend/quit, but app/model doesn't
+    // Initialisation of Boinc 
+    rc =  boinc_init_options(options); //return 0 for success
+    if( rc ){
+      fprintf(stderr,"BOINC_ERROR: boinc_init_options() failed \n");
+      exit(rc);
+    }
+
+#else
+    // All BOINC applications must initialize the BOINC interface:
+    rc = boinc_init();
+    if (rc){
+      fprintf(stderr, "BOINC_ERROR: boinc_init() failed.\n");
+      exit(rc);
+    }
+#endif
+
+#endif
+
 /*
  * Fetch clock ticks per second.
  */
@@ -440,7 +506,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         (void) fprintf( logFile, "Receptor Input File :\t%s\n\nAtom Type Assignments:\n\n", receptor_filename);
 
         /* try to open receptor file */
-        if ( (receptor_fileptr = fopen(receptor_filename, "r")) == NULL ) {
+        if ( (receptor_fileptr = ag_fopen(receptor_filename, "r")) == NULL ) {
             (void) fprintf( stderr, "\n%s: can't find or open receptor-file %s\n", programname, receptor_filename);
             (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
             (void) fprintf( logFile, "\n%s: can't find or open receptor-file %s\n", programname, receptor_filename);
@@ -662,7 +728,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             xyz_filename[infld + 1] = 'y';
             xyz_filename[infld + 2] = 'z';
         }
-        if ( (AVS_fld_fileptr = fopen(AVS_fld_filename, "w")) == NULL ) {
+        if ( (AVS_fld_fileptr = ag_fopen(AVS_fld_filename, "w")) == NULL ) {
             (void) fprintf( stderr, "\n%s: can't create grid dimensions data file %s\n", programname, AVS_fld_filename);
             (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
             (void) fprintf( logFile, "\n%s: can't create grid dimensions data file %s\n", programname, AVS_fld_filename);
@@ -671,7 +737,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         } else {
             (void) fprintf( logFile, "\nCreating (AVS-readable) grid maps file : %s\n", AVS_fld_filename);
         }
-        if ( (xyz_fileptr = fopen(xyz_filename, "w")) == NULL ) {
+        if ( (xyz_fileptr = ag_fopen(xyz_filename, "w")) == NULL ) {
             (void) fprintf( stderr, "\n%s: can't create grid extrema data file %s\n", programname, xyz_filename);
             (void) fprintf( stderr, "%s: SORRY!    unable to create the \".xyz\" file.\n\n", programname);
             (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
@@ -979,6 +1045,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             else {
                 /*add it to the database here*/
                 newparm = (parm_info *) calloc(1, sizeof(struct parm_info));
+
                 * newparm = thisparm;
                 item.key = newparm->autogrid_type; /*ptr to string*/
                 item.data = newparm;  /*ptr to entire record*/
@@ -1136,7 +1203,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         }
         /* Read in the filename for this grid map */ /* GPF_MAP */
         (void) sscanf( GPF_line, "%*s %s", gridmap[map_index].map_filename);
-        if ( (gridmap[map_index].map_fileptr = fopen( gridmap[map_index].map_filename, "w")) == NULL ) {
+        if ( (gridmap[map_index].map_fileptr = ag_fopen( gridmap[map_index].map_filename, "w")) == NULL ) {
             (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[map_index].map_filename);
             (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
             (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[map_index].map_filename);
@@ -1151,7 +1218,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 /******************************************************************************/
     case GPF_ELECMAP:
         (void) sscanf( GPF_line, "%*s %s", gridmap[elecPE].map_filename);
-        if ( (gridmap[elecPE].map_fileptr = fopen( gridmap[elecPE].map_filename, "w" )) == NULL){
+        if ( (gridmap[elecPE].map_fileptr = ag_fopen( gridmap[elecPE].map_filename, "w" )) == NULL){
             (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[elecPE].map_filename);
             (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
             (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[elecPE].map_filename);
@@ -1164,7 +1231,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 /******************************************************************************/
     case GPF_DSOLVMAP:
         (void) sscanf( GPF_line, "%*s %s", gridmap[dsolvPE].map_filename);
-        if ( (gridmap[dsolvPE].map_fileptr = fopen( gridmap[dsolvPE].map_filename, "w" )) == NULL){
+        if ( (gridmap[dsolvPE].map_fileptr = ag_fopen( gridmap[dsolvPE].map_filename, "w" )) == NULL){
             (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[dsolvPE].map_filename);
             (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
             (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[dsolvPE].map_filename);
@@ -1262,7 +1329,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 
     case GPF_FMAP:
         (void) sscanf( GPF_line, "%*s %s", floating_grid_filename);
-        if ( (floating_grid_fileptr = fopen( floating_grid_filename, "w" )) == NULL) {
+        if ( (floating_grid_fileptr = ag_fopen( floating_grid_filename, "w" )) == NULL) {
             (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, floating_grid_filename);
             (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
             (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, floating_grid_filename);
@@ -1282,7 +1349,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         (void) sscanf( GPF_line, "%*s %s ", param_filename);
         /*flag that data from a parameter file are available*/
 
-        if ((dataFile = fopen(param_filename, "r"))==NULL){
+        if ((dataFile = ag_fopen(param_filename, "r"))==NULL){
              fprintf(stderr,"Sorry, I can't find or open %s\n",param_filename);
              exit(911);
         }
@@ -1383,6 +1450,11 @@ if (floating_grid) {
     (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_maps, floating_grid_filename);
 }
 (void) fclose( AVS_fld_fileptr);
+
+
+#ifdef BOINCCOMPOUND
+ boinc_fraction_done(0.1);
+#endif
 
 /**************************************************
  * do the map stuff here: 
@@ -2386,6 +2458,10 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
 } /* icoord[Z] loop */
 
+#ifdef BOINCCOMPOUND
+ boinc_fraction_done(0.9);
+#endif
+
 /*____________________________________________________________________________
  * Print a summary of extrema-values from the atomic-affinity and
  * electrostatics grid-maps,
@@ -2427,9 +2503,30 @@ timesyshms( job_end - job_start, &tms_job_start, &tms_job_end);
 
 (void) fclose( logFile);
 
+#ifdef BOINCCOMPOUND
+ boinc_fraction_done(1.);
+#endif
+
+#ifdef BOINC	
+   
+    boinc_finish(0);       /* should not return */
+#endif
 
 return 0;
 }
 /*
  * End of main function.
  */
+
+#ifdef BOINC
+/*  Dummy graphics API entry points.
+ *  This app does not do graphics, but it still must provide these callbacks.
+ */
+
+void app_graphics_render(int xs, int ys, double time_of_day) {}
+void app_graphics_reread_prefs(){}
+void boinc_app_mouse_move(int x, int y, bool left, bool middle, bool right ){}
+void boinc_app_mouse_button(int x, int y, int which, bool is_down){}
+void boinc_app_key_press(int wParam, int lParam){}
+void boinc_app_key_release(int wParam, int lParam){}
+#endif
