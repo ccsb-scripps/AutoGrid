@@ -1,3 +1,13 @@
+/*
+
+ $Id: get_atom_type.c,v 1.2 2003/02/12 19:32:29 lindy Exp $
+
+*/
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 /* get_atom_type.cc */
 
 

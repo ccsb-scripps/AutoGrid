@@ -1,3 +1,13 @@
+/*
+
+ $Id: check_size.c,v 1.2 2003/02/12 19:32:29 lindy Exp $
+
+*/
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 #include <stdio.h>
 #include <math.h>
 #include "autogrid.h"

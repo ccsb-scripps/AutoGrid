@@ -1,3 +1,13 @@
+/*
+
+ $Id: main.c,v 1.2 2003/02/12 19:32:29 lindy Exp $
+
+*/
+
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
+
 /* main.c */
 
 #include <sys/types.h> 
