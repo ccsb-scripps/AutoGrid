@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.c,v 1.20 2005/02/25 19:30:26 rhuey Exp $
+  $Id: main.c,v 1.21 2005/03/01 00:28:15 garrett Exp $
 */
 
 #include <sys/types.h>
@@ -772,7 +772,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         for(i=0; i<num_atom_maps; i++){
             strcpy(ligand_types[i], ligand_atom_types[i]);
 #ifdef DEBUG
-            printf("%d %s ->%s\n",i, ligand_atom_types[i], ligand_types[i]);
+            (void) fprintf(stderr, "%d %s ->%s\n",i, ligand_atom_types[i], ligand_types[i]);
 #endif
         }
         for(i=0; i<num_atom_maps; i++){
@@ -782,7 +782,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                 found_parm = (struct parm_info *)found_item->data;
                 found_parm->map_index = i;
 #ifdef DEBUG
-                printf("found ligand type: %-6s%2d\n",
+                (void) fprintf(stderr, "found ligand type: %-6s%2d\n",
                         found_parm->autogrid_type,
                         found_parm->map_index );
 #endif
@@ -877,8 +877,8 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                     gridmap[i].is_hbonder=TRUE;}
 
 #ifdef DEBUG
-            printf(" setting ij parms for map %d \n",i);
-            printf("for gridmap[%d], type->%s,Rij->%6.4f, epsij->%6.4f, hbond->%d\n",i,found_parm->autogrid_type, gridmap[i].Rij, gridmap[i].epsij,gridmap[i].hbond);
+            (void) fprintf(stderr, " setting ij parms for map %d \n",i);
+            (void) fprintf(stderr, "for gridmap[%d], type->%s,Rij->%6.4f, epsij->%6.4f, hbond->%d\n",i,found_parm->autogrid_type, gridmap[i].Rij, gridmap[i].epsij,gridmap[i].hbond);
 #endif
             for (j=0; j<NUM_RECEPTOR_TYPES;j++){
                 /*SET THIS UP HERE!!!!*/
@@ -906,7 +906,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                         /*gridmap[i].nbp_r[j] = (gridmap[i].Rij_hb + found_parm->Rij_hb)/2.;*/
                         /*gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij_hb * found_parm->epsij_hb);*/
 #ifdef DEBUG
-                        printf("set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
+                        (void) fprintf(stderr, "set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
 #endif
                     } else if (((int)gridmap[i].hbond==1||(int)gridmap[i].hbond==2) &&
                             ((int)found_parm->hbond>2)) { /*DS,D1 map vs AS,A1,A2 probe*/
@@ -921,12 +921,12 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                         /*gridmap[i].nbp_r[j] = (gridmap[i].Rij_hb + found_parm->Rij_hb)/2.;
                         gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij_hb * found_parm->epsij_hb);*/
 #ifdef DEBUG
-                        printf("2: set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
+                        (void) fprintf(stderr, "2: set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
 #endif
                     }
 #ifdef DEBUG
-                printf("vs receptor_type[%d]:type->%s, hbond->%d ",j,found_parm->autogrid_type, (int)found_parm->hbond);
-                printf("nbp_r->%6.4f, nbp_eps->%6.4f,xB=%d,hbonder=%d\n",gridmap[i].nbp_r[j], gridmap[i].nbp_eps[j],gridmap[i].xB[j], gridmap[i].hbonder[j]);
+                (void) fprintf(stderr, "vs receptor_type[%d]:type->%s, hbond->%d ",j,found_parm->autogrid_type, (int)found_parm->hbond);
+                (void) fprintf(stderr, "nbp_r->%6.4f, nbp_eps->%6.4f,xB=%d,hbonder=%d\n",gridmap[i].nbp_r[j], gridmap[i].nbp_eps[j],gridmap[i].xB[j], gridmap[i].hbonder[j]);
 #endif
               };
             }; /*initialize energy parms for each possible receptor type*/
