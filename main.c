@@ -223,7 +223,8 @@ FILE *receptor_fileptr,
 
 
 /*for NEW3 desolvation terms*/
-double solpar_q = 0.001118;
+double solpar_q = 0.0009072; /*.0009072=.01097*.0827*/
+/*double solpar_q = 0.001118; */
 
 double A, epsilon0, rk, lambda, B, lambda_B;
 double q_tot = 0.0;
