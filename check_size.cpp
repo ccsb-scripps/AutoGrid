@@ -1,4 +1,8 @@
-#include <stdio.h>
+/*
+  $Id
+*/
+
+#include <iostream>
 #include <math.h>
 #include "autogrid.h"
 
@@ -44,7 +48,7 @@ int check_size(int nelements,
         nelements = MAX_GRID_PTS;
     }
     oldnelements = nelements;
-    nelements = (float) ( (int) (nelements/2) ) * 2.0;
+    nelements = (int) ((nelements/2) * 2); // N.B.: integer divide truncates remainder.
     if (oldnelements != nelements)
         fprintf(logFile, "%s: Number of grid elements must be even; %c-elements changed to: %d\n", programname, axischar, nelements);
 
