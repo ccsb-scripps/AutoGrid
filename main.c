@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.c,v 1.25 2005/05/12 21:50:01 rhuey Exp $
+  $Id: main.c,v 1.26 2005/05/12 22:20:13 garrett Exp $
 */
 
 
@@ -10,7 +10,7 @@
 #include <math.h>
 #include <stdio.h>
 #include <search.h>
-#include <string>
+#include <string.h>
 #include <stdlib.h>
 #include <time.h>
 #include <ctype.h> /* tolower */
@@ -835,13 +835,13 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 /******************************************************************************/
 
     case GPF_LIGAND_TYPES:
-        /* Read in the ligand atom types */
-        /*GPF_line ex: "ligand_types N O A C HH NH            " */
+        // Read in the list of atom types in the ligand.
+        // GPF_line e.g.: "ligand_types N O A C HH NH"
         num_atom_maps = parsetypes(GPF_line, ligand_atom_types, MAX_ATOM_TYPES);
-        for(i=0; i<num_atom_maps; i++){
+        for (i=0; i<num_atom_maps; i++) {
             strcpy(ligand_types[i], ligand_atom_types[i]);
 #ifdef DEBUG
-            (void) fprintf(stderr, "%d %s ->%s\n",i, ligand_atom_types[i], ligand_types[i]);
+            (void) fprintf(logFile, "%d %s ->%s\n",i, ligand_atom_types[i], ligand_types[i]);
 #endif
         }
         for(i=0; i<num_atom_maps; i++){
@@ -1013,9 +1013,10 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 /******************************************************************************/
 
     case GPF_RECEPTOR_TYPES:
-        /* Read in the receptor atom types */
-        /*GPF_line ex: "receptor_types N O A C HH NH            " */
+        // Read in the list of atom types in the receptor.
+        // GPF_line e.g.: "receptor_types N O A C HH NH"
         receptor_types_ct = parsetypes(GPF_line, receptor_atom_types,  MAX_ATOM_TYPES);
+
 #ifdef DEBUG
         printf("receptor_types_ct=%d\n",receptor_types_ct);
 #endif
@@ -1025,7 +1026,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             printf("%d %s  ->%s\n",i, receptor_atom_types[i],  receptor_types[i]);
 #endif
         }
-        for(i=0; i<receptor_types_ct; i++){
+        for (i=0; i<receptor_types_ct; i++) {
             found_parm = apm_find(receptor_atom_types[i]);
             if (found_parm != NULL){
                 found_parm->rec_index = i;
@@ -1048,6 +1049,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 #ifdef DEBUG
         printf("assigned receptor types:arom_carbon->%d, hydrogen->%d,nonHB_hydrogen->%d, carbon->%d, oxygen->%d, nitrogen->%d\n, nonHB_nitrogen->%d, sulphur->%d, nonHB_sulphur->%d\n",arom_carbon,hydrogen, nonHB_hydrogen, carbon,oxygen, nitrogen, nonHB_nitrogen, sulphur, nonHB_sulphur);
 #endif
+
         (void) fflush( logFile);
         break;
 
@@ -1055,7 +1057,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 
     case GPF_SOL_PAR:  //THIS IS OBSOLETE!!!
         /*
-        ** read volume and solvation parameter for probe *****************
+        ** Read volume and solvation parameter for probe:
         */
         (void) sscanf( GPF_line, "%*s %s %lf %lf", thisparm.autogrid_type, &temp_vol, &temp_solpar );
         found_parm = apm_find(thisparm.autogrid_type);
@@ -2443,7 +2445,6 @@ static int get_rec_index(const char key[]) {
 }
 
 
-
 #ifdef BOINC
 /*  Dummy graphics API entry points.
  *  This app does not do graphics, but it still must provide these callbacks.
@@ -2456,3 +2457,7 @@ void boinc_app_mouse_button(int x, int y, int which, bool is_down){}
 void boinc_app_key_press(int wParam, int lParam){}
 void boinc_app_key_release(int wParam, int lParam){}
 #endif
+
+/*
+ * EOF
+ */ 
