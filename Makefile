@@ -18,7 +18,8 @@ OBJS = main.o \
        strindex.o \
        banner.o \
        gpfparser.o \
-       parsetypes.o 
+       parsetypes.o \
+       atom_parameter_manager.o 
 
 LNS = \
       main.ln \
@@ -32,10 +33,12 @@ LNS = \
       banner.ln \
       gpfparser.ln \
       parsetypes.ln \
-      strindex.ln 
+      strindex.ln \
+      atom_parameter_manager.ln
 
 
-CC = g++ # SGI, Sun, MacOS X
+CC = g++
+# CC = cc # SGI, Sun, MacOS X
 # CC = cxx # Alpha.
 # CC = gcc # use this if you have the Gnu compiler, as on Linux, MkLinux, LinuxPPC systems.
 
@@ -43,17 +46,7 @@ LIB = -lm # SGI, Sun, Linux, MacOS X
 # LIB = -lm -lc # Alpha, Convex.
 # LIB = -lm -lg++ # HP, Gnu.
 
-CSTD = $(DBUG) $(PROF) $(WARN) # SGI, Sun, Linux, MacOS X
-# CSTD = $(DBUG) $(PROF) $(WARN) -std # Convex.
-# CSTD = -std -verbose $(PROF) $(DBUG) $(WARN) # Alpha. Not sarah
-# CSTD = -std arm -verbose $(PROF) $(DBUG) $(WARN) # Alpha. sarah
-# CSTD = -DHPPA -D_HPUX_SOURCE -ansi $(PROF) $(DBUG) $(WARN) # HP.
-
-CFLAGS = $(OPT) # SGI, HP, Alpha, Sun, Convex, MacOS X: Optimize the object files, too.
-
-CFLAGS = $(PROF) $(DBUG) # SGI, Linux, MacOS X
-# CFLAGS = -std -verbose $(PROF) $(DBUG) # DEC Alpha, Convex
-# CFLAGS = -Aa -D_HPUX_SOURCE $(PROF) $(DBUG) # Hewlett-Packard
+CFLAGS = $(DBUG) $(OPT) -I../autodock $(WARN) $(PROF) # SGI, HP, Alpha, Sun, Convex, Linux, MacOS X
 
 OLIMIT = # SGI, Convex, Linux, MacOS X, -g debugging
 # OLIMIT = -Olimit 2048 # Sun, Hewlett-Packard, DEC Alpha
@@ -87,10 +80,10 @@ OPT_ARCH_SPECIFIC = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
 # OPT_ARCH_SPECIFIC = -g # debugging
 # OPT_ARCH_SPECIFIC = # Mac OS X
 
-OPT = $(CSTD) $(OPTLEVEL) $(OPT_ARCH_SPECIFIC) # All platforms
+OPT = $(OPTLEVEL) $(OPT_ARCH_SPECIFIC) # All platforms
 
 LINKOPT = $(OPT) # SGI, HP, Alpha, Sun, Convex, Linux.
-# LINKOPT = $(CSTD) -O2 -r4000 -IPA $(LNO_OPT) # SGI/IRIX5: R4000.
+# LINKOPT = -O2 -r4000 -IPA $(LNO_OPT) # SGI/IRIX5: R4000.
 
 LINK = $(LINKOPT) # Linking flags.
 # LINK = $(LINKOPT) -cord # Procedure rearranger on SGI.
@@ -133,45 +126,33 @@ convertmap : convertmap.o
 	$(CC) $(OPT) -o $@ convertmap.o $(LIB)
 
 
-
 main.o : main.c autogrid.h autoglobal.h  banner.c gpfparser.c gpftoken.h parsetypes.c
-	$(CC) $(OPT) $(OLIMIT) -c main.c
 
 check_size.o : check_size.c autogrid.h
-	$(CC) $(OPT) -c check_size.c
 
 setflags.o : setflags.c autogrid.h
-	$(CC) $(OPT) -c setflags.c
 
 timesyshms.o : timesyshms.c autogrid.h
-	$(CC) $(OPT) -c timesyshms.c
 
 timesys.o : timesys.c autogrid.h
-	$(CC) $(OPT) -c timesys.c
 
 printhms.o : printhms.c autogrid.h
-	$(CC) $(OPT) -c printhms.c
 
 prHMSfixed.o : prHMSfixed.c autogrid.h
-	$(CC) $(OPT) -c prHMSfixed.c
 
 printdate.o : printdate.c autogrid.h
-	$(CC) $(OPT) -c printdate.c
 
 banner.o : banner.c autogrid.h
-	$(CC) $(OPT) -c banner.c
 
 gpfparser.o : gpfparser.c autogrid.h gpftoken.h
-	$(CC) $(OPT) -c gpfparser.c
 
 parsetypes.o : parsetypes.c autogrid.h
-	$(CC) $(OPT) -c parsetypes.c
 
 strindex.o : strindex.c autogrid.h
-	$(CC) $(OPT) -c strindex.c
 
 convertmap.o : convertmap.c
-	$(CC) $(OPT) -c convertmap.c
+
+atom_parameter_manager.o : atom_parameter_manager.c parameters.h
 
 
 #

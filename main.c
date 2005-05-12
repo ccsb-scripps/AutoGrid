@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.c,v 1.24 2005/03/16 00:08:14 gillet Exp $
+  $Id: main.c,v 1.25 2005/05/12 21:50:01 rhuey Exp $
 */
 
 
@@ -16,6 +16,8 @@
 #include <ctype.h> /* tolower */
 #include <unistd.h> /* long sysconf(int name) */
 #include <stddef.h> 
+#include <ctype.h> 
+
 
 /* the BOINC API header file */
 #ifdef BOINC
@@ -52,6 +54,9 @@ FILE *ag_fopen(const char *path, const char *mode)
 #endif
     return filep;
 }
+
+static int get_rec_index(const char key[]);
+
 
 int main( int argc,  char **argv )
 
@@ -104,10 +109,10 @@ int main( int argc,  char **argv )
 /*  for associative dictionary storing parameters by autogrid 'type'  */
 FILE * dataFile;
 char dataline[100];
-ENTRY item, *found_item; /*see hsearch(3C)*/
-static struct parm_info thisparm;
-struct parm_info * newparm;
-struct parm_info * found_parm;
+ENTRY item; /*see  atom_parameter_manager.c */
+static ParameterEntry thisparm;
+ParameterEntry * newparm;
+ParameterEntry * found_parm;
 char param_filename[MAX_CHARS];
 
 
@@ -425,12 +430,6 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
     receptor_atom_type_count[i] = 0;
 }
 
-/*WISH LIST:
- * check that hsearch create value is ok*/
-/*
- * Initialize hash table
- */
-(void) hcreate(MAX_NUM_AUTOGRID_TYPES);
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
  * 
@@ -554,13 +553,10 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 
                 /*1:CHANGE HERE: need to set up vol and solpar*/
                 (void) sscanf(&line[70], "%lf", &charge[ia]);
-                /*for pdbqt: use vol+solpar from somewhere else*/
-                /*NB:solpar is NOW USED FOR THE RECEPTOR ATOMS*/
+                //printf("new type is: %s\n", &line[77]);
                 (void) sscanf(&line[77], "%s", thisparm.autogrid_type);
-                item.key = thisparm.autogrid_type;
-                if ((found_item = hsearch (item, FIND)) !=NULL){
-                    found_parm = (struct parm_info *)found_item->data;
-/*FIX receptor data structure atom_type*/
+                found_parm = apm_find(thisparm.autogrid_type);
+                if (found_parm != NULL){
                     if (found_parm->rec_index<0){
                         found_parm->rec_index = receptor_types_ct++;
                     }
@@ -573,7 +569,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 #endif
                     ++receptor_atom_type_count[found_parm->rec_index];
                 } else {
-                    fprintf(stderr, "receptor file contains unknown type: %s\nadd parameters for it to the parameter library first", thisparm.autogrid_type);
+                    fprintf(logFile, "\n\nreceptor file contains unknown type: '%s'\nadd parameters for it to the parameter library first\n", thisparm.autogrid_type);
                     exit(-1);
                 }
                     
@@ -849,20 +845,18 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 #endif
         }
         for(i=0; i<num_atom_maps; i++){
-            strcpy(thisparm.autogrid_type, ligand_atom_types[i]);
-            item.key = thisparm.autogrid_type;
-            if ((found_item = hsearch (item, FIND)) !=NULL){
-                found_parm = (struct parm_info *)found_item->data;
+            found_parm = apm_find(ligand_types[i]);
+            if (found_parm != NULL) {
                 found_parm->map_index = i;
 #ifdef DEBUG
-                (void) fprintf(stderr, "found ligand type: %-6s%2d\n",
+                (void) fprintf(logFile, "found ligand type: %-6s%2d\n",
                         found_parm->autogrid_type,
                         found_parm->map_index );
 #endif
             } 
             else {
                  // return error here
-                (void) fprintf( stderr, "unknown ligand atom type %s\nadd parameters for it to the parameter library first!\n", ligand_atom_types[i]);
+                (void) fprintf( logFile, "unknown ligand atom type %s\nadd parameters for it to the parameter library first!\n", ligand_atom_types[i]);
                  exit(-1);
              }
         };
@@ -932,83 +926,76 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             gridmap[i].is_covalent = FALSE;
             gridmap[i].is_hbonder = FALSE;
             gridmap[i].map_index = i;
-            strcpy(gridmap[i].type, ligand_atom_types[i]);
-            /*find the parm object and set the grid map fields here*/
-            strcpy(thisparm.autogrid_type, ligand_atom_types[i]);
-            item.key = thisparm.autogrid_type;
-            if ((found_item = hsearch (item, FIND)) !=NULL){
-                found_parm = (struct parm_info *)found_item->data;
-                gridmap[i].atom_type = found_parm->map_index;
-                gridmap[i].solpar_probe = found_parm->solpar;
-                gridmap[i].vol_probe = found_parm->vol;
-                gridmap[i].Rij = found_parm->Rij;
-                gridmap[i].epsij = found_parm->epsij;
-                gridmap[i].hbond = found_parm->hbond;
-                gridmap[i].Rij_hb = found_parm->Rij_hb;
-                gridmap[i].epsij_hb = found_parm->epsij_hb;
-                if (gridmap[i].hbond>0){
-                    gridmap[i].is_hbonder=TRUE;}
+            found_parm = apm_find(ligand_types[i]);
+            gridmap[i].atom_type = found_parm->map_index;
+            gridmap[i].solpar_probe = found_parm->solpar;
+            gridmap[i].vol_probe = found_parm->vol;
+            gridmap[i].Rij = found_parm->Rij;
+            gridmap[i].epsij = found_parm->epsij;
+            gridmap[i].hbond = found_parm->hbond;
+            gridmap[i].Rij_hb = found_parm->Rij_hb;
+            gridmap[i].epsij_hb = found_parm->epsij_hb;
+            if (gridmap[i].hbond>0){
+                gridmap[i].is_hbonder=TRUE;}
 
 #ifdef DEBUG
-            (void) fprintf(stderr, " setting ij parms for map %d \n",i);
-            (void) fprintf(stderr, "for gridmap[%d], type->%s,Rij->%6.4f, epsij->%6.4f, hbond->%d\n",i,found_parm->autogrid_type, gridmap[i].Rij, gridmap[i].epsij,gridmap[i].hbond);
+            (void) fprintf(logFile, " setting ij parms for map %d \n",i);
+            (void) fprintf(logFile, "for gridmap[%d], type->%s,Rij->%6.4f, epsij->%6.4f, hbond->%d\n",i,found_parm->autogrid_type, gridmap[i].Rij, gridmap[i].epsij,gridmap[i].hbond);
 #endif
-            for (j=0; j<NUM_RECEPTOR_TYPES;j++){
+            //for (j=0; j<NUM_RECEPTOR_TYPES;j++){
+            for (j=0; j<receptor_types_ct;j++){
                 /*SET THIS UP HERE!!!!*/
-                strcpy(thisparm.autogrid_type, receptor_types[j]);
-                item.key = thisparm.autogrid_type;
-                if ((found_item = hsearch (item, FIND)) !=NULL){
-                    found_parm = (struct parm_info *)found_item->data;
+                found_parm = apm_find(receptor_types[j]);
+                //strcpy(thisparm.autogrid_type, receptor_types[j]);
+                //item.key = thisparm.autogrid_type;
 
-                    gridmap[i].nbp_r[j] = (gridmap[i].Rij + found_parm->Rij)/2.;
-                    gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij * found_parm->epsij);
-                    /*apply the vdW forcefield parameter/weight here */
-                    gridmap[i].nbp_eps[j] *= FE_coeff_vdW;
+                gridmap[i].nbp_r[j] = (gridmap[i].Rij + found_parm->Rij)/2.;
+                gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij * found_parm->epsij);
+                /*apply the vdW forcefield parameter/weight here */
+                gridmap[i].nbp_eps[j] *= FE_coeff_vdW;
+                gridmap[i].xA[j] = 12;
+                /*setup hbond dependent stuff*/
+                gridmap[i].xB[j] = 6;
+                gridmap[i].hbonder[j] = 0;
+                if ((int)(gridmap[i].hbond)>2 &&
+                        ((int)found_parm->hbond==1||(int)found_parm->hbond==2)){ /*AS,A1,A2 map vs DS,D1 probe*/
+                    gridmap[i].xB[j] = 10;
+                    gridmap[i].hbonder[j] = 1;
+                    gridmap[i].is_hbonder = TRUE;
+                    /*Rij and epsij for this hb interaction in
+                     * parm_data.dat file as Rii and epsii for heavy atom
+                     * hb factors*/
+                    gridmap[i].nbp_r[j] = gridmap[i].Rij_hb;
+                    gridmap[i].nbp_eps[j] = gridmap[i].epsij_hb;
 
-                    gridmap[i].xA[j] = 12;
-                    /*setup hbond dependent stuff*/
-                    gridmap[i].xB[j] = 6;
-                    gridmap[i].hbonder[j] = 0;
-                    if ((int)(gridmap[i].hbond)>2 &&
-                            ((int)found_parm->hbond==1||(int)found_parm->hbond==2)){ /*AS,A1,A2 map vs DS,D1 probe*/
-                        gridmap[i].xB[j] = 10;
-                        gridmap[i].hbonder[j] = 1;
-                        gridmap[i].is_hbonder = TRUE;
-                        /*Rij and epsij for this hb interaction in
-                         * parm_data.dat file as Rii and epsii for heavy atom
-                         * hb factors*/
-                        gridmap[i].nbp_r[j] = gridmap[i].Rij_hb;
-                        gridmap[i].nbp_eps[j] = gridmap[i].epsij_hb;
-
-                        /*apply the hbond forcefield parameter/weight here */
-                        gridmap[i].nbp_eps[j] *= FE_coeff_hbond;
+                    /*apply the hbond forcefield parameter/weight here */
+                    gridmap[i].nbp_eps[j] *= FE_coeff_hbond;
 #ifdef DEBUG
-                        (void) fprintf(stderr, "set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
+                    (void) fprintf(logFile, "set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
 #endif
-                    } else if (((int)gridmap[i].hbond==1||(int)gridmap[i].hbond==2) &&
+                } else if (((int)gridmap[i].hbond==1||(int)gridmap[i].hbond==2) &&
                             ((int)found_parm->hbond>2)) { /*DS,D1 map vs AS,A1,A2 probe*/
-                        gridmap[i].xB[j] = 10;
-                        gridmap[i].hbonder[j] = 1;
-                        gridmap[i].is_hbonder = TRUE;
-                        /*Rij and epsij for this hb interaction in
-                         * parm_data.dat file as Rii and epsii for heavy atom
-                         * hb factors*/
-                        gridmap[i].nbp_r[j] = found_parm->Rij_hb;
-                        gridmap[i].nbp_eps[j] = found_parm->epsij_hb;
+                    gridmap[i].xB[j] = 10;
+                    gridmap[i].hbonder[j] = 1;
+                    gridmap[i].is_hbonder = TRUE;
+                    /*Rij and epsij for this hb interaction in
+                     * parm_data.dat file as Rii and epsii for heavy atom
+                     * hb factors*/
+                    gridmap[i].nbp_r[j] = found_parm->Rij_hb;
+                    gridmap[i].nbp_eps[j] = found_parm->epsij_hb;
 
-                        /*apply the hbond forcefield parameter/weight here */
-                        gridmap[i].nbp_eps[j] *= FE_coeff_hbond;
+                    /*apply the hbond forcefield parameter/weight here */
+                    gridmap[i].nbp_eps[j] *= FE_coeff_hbond;
 #ifdef DEBUG
-                        (void) fprintf(stderr, "2: set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
+                    (void) fprintf(logFile, "2: set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
 #endif
-                    } 
+                } 
 #ifdef DEBUG
-                (void) fprintf(stderr, "vs receptor_type[%d]:type->%s, hbond->%d ",j,found_parm->autogrid_type, (int)found_parm->hbond);
-                (void) fprintf(stderr, "nbp_r->%6.4f, nbp_eps->%6.4f,xB=%d,hbonder=%d\n",gridmap[i].nbp_r[j], gridmap[i].nbp_eps[j],gridmap[i].xB[j], gridmap[i].hbonder[j]);
+                (void) fprintf(logFile, "vs receptor_type[%d]:type->%s, hbond->%d ",j,found_parm->autogrid_type, (int)found_parm->hbond);
+                (void) fprintf(logFile, "nbp_r->%6.4f, nbp_eps->%6.4f,xB=%d,hbonder=%d\n",gridmap[i].nbp_r[j], gridmap[i].nbp_eps[j],gridmap[i].xB[j], gridmap[i].hbonder[j]);
 #endif
-              };
+              //};
             }; /*initialize energy parms for each possible receptor type*/
-          }; /*if hash succeeded*/
         } /*for each map*/
         (void) fprintf( logFile, "\nAtom names for ligand_types 1-%d and for ligand-atom affinity grid maps :\n", num_atom_maps);
         for (i = 0;  i < num_atom_maps;  i++) {
@@ -1039,114 +1026,40 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 #endif
         }
         for(i=0; i<receptor_types_ct; i++){
-            strcpy(thisparm.autogrid_type, receptor_atom_types[i]);
-            item.key = thisparm.autogrid_type;
-            if ((found_item = hsearch (item, FIND))!=NULL){
-                found_parm = (struct parm_info *)found_item->data;
+            found_parm = apm_find(receptor_atom_types[i]);
+            if (found_parm != NULL){
                 found_parm->rec_index = i;
-            } 
-            else {
+            } else {
                 fprintf(stderr, "unknown receptor type:%s\n add parameters for it to the parameter library first!\n", receptor_atom_types[i]);
                 exit(-1);
-
             }
         };
         /*at this point set up hydrogen, carbon, oxygen and nitrogen*/
-        strcpy(thisparm.autogrid_type, "HD\0");
-        item.key = thisparm.autogrid_type;
-        if ((found_item = hsearch (item, FIND)) !=NULL){
-            found_parm = (struct parm_info *)found_item->data;
-            hydrogen = found_parm->rec_index;
-        } else {
-            hydrogen = -1;
-            };
-        strcpy(thisparm.autogrid_type, "H\0");
-        item.key = thisparm.autogrid_type;
-        if ((found_item = hsearch (item, FIND)) !=NULL){
-            found_parm = (struct parm_info *)found_item->data;
-            nonHB_hydrogen = found_parm->rec_index;
-        } else {
-            nonHB_hydrogen = -1;
-        }
-        strcpy(thisparm.autogrid_type, "C\0");
-        item.key = thisparm.autogrid_type;
-        if ((found_item = hsearch (item, FIND)) !=NULL){
-            found_parm = (struct parm_info *)found_item->data;
-            carbon = found_parm->rec_index;
-        } else {
-            carbon = -1;
-            };
-        strcpy(thisparm.autogrid_type, "A\0");
-        item.key = thisparm.autogrid_type;
-        if ((found_item = hsearch (item, FIND)) !=NULL){
-            found_parm = (struct parm_info *)found_item->data;
-            arom_carbon = found_parm->rec_index;
-        } else {
-            arom_carbon = -1;
-            };
-
-        strcpy(thisparm.autogrid_type, "OA\0");
-        item.key = thisparm.autogrid_type;
-        if ((found_item = hsearch (item, FIND)) !=NULL){
-            found_parm = (struct parm_info *)found_item->data;
-            oxygen = found_parm->rec_index;
-        } else {
-            oxygen = -1;
-        };
-        /*FIX THIS: it should be NA*/
-        strcpy(thisparm.autogrid_type, "NA\0");
-        item.key = thisparm.autogrid_type;
-        if ((found_item = hsearch (item, FIND)) !=NULL){
-            found_parm = (struct parm_info *)found_item->data;
-            nitrogen = found_parm->rec_index;
-        } else {
-            nitrogen = -1;
-        };
-                strcpy(thisparm.autogrid_type, "N\0");
-        item.key = thisparm.autogrid_type;
-        if ((found_item = hsearch (item, FIND)) !=NULL){
-            found_parm = (struct parm_info *)found_item->data;
-            nonHB_nitrogen = found_parm->rec_index;
-        } else {
-            nonHB_nitrogen = -1;
-        };
-
-        strcpy(thisparm.autogrid_type, "SA\0");
-        item.key = thisparm.autogrid_type;
-        if ((found_item = hsearch (item, FIND)) !=NULL){
-            found_parm = (struct parm_info *)found_item->data;
-            sulphur = found_parm->rec_index;
-        } else {
-            sulphur = -1;
-        };
-
-        strcpy(thisparm.autogrid_type, "S\0");
-        item.key = thisparm.autogrid_type;
-        if ((found_item = hsearch (item, FIND)) !=NULL){
-            found_parm = (struct parm_info *)found_item->data;
-            nonHB_sulphur = found_parm->rec_index;
-        } else {
-            nonHB_sulphur = -1;
-        };
-
+        hydrogen = get_rec_index("HD");
+        nonHB_hydrogen = get_rec_index("H");
+        carbon = get_rec_index("C");
+        arom_carbon = get_rec_index("A");
+        oxygen = get_rec_index("OA");
+        nitrogen = get_rec_index("NA");
+        nonHB_nitrogen = get_rec_index("N");
+        sulphur = get_rec_index("SA");
+        nonHB_sulphur = get_rec_index("S");
 
 #ifdef DEBUG
         printf("assigned receptor types:arom_carbon->%d, hydrogen->%d,nonHB_hydrogen->%d, carbon->%d, oxygen->%d, nitrogen->%d\n, nonHB_nitrogen->%d, sulphur->%d, nonHB_sulphur->%d\n",arom_carbon,hydrogen, nonHB_hydrogen, carbon,oxygen, nitrogen, nonHB_nitrogen, sulphur, nonHB_sulphur);
 #endif
-
         (void) fflush( logFile);
         break;
 
 /******************************************************************************/
 
-    case GPF_SOL_PAR:
+    case GPF_SOL_PAR:  //THIS IS OBSOLETE!!!
         /*
         ** read volume and solvation parameter for probe *****************
         */
         (void) sscanf( GPF_line, "%*s %s %lf %lf", thisparm.autogrid_type, &temp_vol, &temp_solpar );
-        item.key = thisparm.autogrid_type;
-        if ((found_item = hsearch (item, FIND)) !=NULL){
-            found_parm = (struct parm_info *)found_item->data;
+        found_parm = apm_find(thisparm.autogrid_type);
+        if (found_parm != NULL) {
             found_parm->vol = temp_vol;
             found_parm->solpar = temp_solpar;
             i = found_parm->map_index;
@@ -1383,18 +1296,10 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                     &thisparm.bond_index);
                     
             if (nfields<2) continue; /*skip lines without enough info*/
-            newparm = (parm_info *) calloc(1, sizeof(struct parm_info));
-            /*newparm->rec_index = -1;
-            newparm->map_index = -1;*/
-            * newparm = thisparm;
+            apm_enter(thisparm.autogrid_type, thisparm);
 #ifdef DEBUG
-            printf("%-6s%7.2f%8.3f%8.3f%8.3f %8.3f%8.3f %d %d %d\n",newparm->autogrid_type, newparm->Rij, newparm->epsij, newparm->vol, newparm->solpar,  newparm->Rij_hb, newparm->epsij_hb, newparm->hbond, newparm->rec_index, newparm->map_index);
+            printf("%-6s%7.2f%8.3f%8.3f%8.3f %8.3f%8.3f %d %d %d\n",thisparm.autogrid_type, thisparm.Rij, thisparm.epsij, thisparm.vol, thisparm.solpar,  thisparm.Rij_hb, thisparm.epsij_hb, thisparm.hbond, thisparm.rec_index, thisparm.map_index);
 #endif
-            item.key = newparm->autogrid_type; /*ptr to string*/
-            item.data = newparm;  /*ptr to entire record*/
-            /*WISH LIST:
-             * check that hsearch return value is ok*/
-            hsearch(item, ENTER);
            } /*end of scan a new parameter line*/
         }
         break;
@@ -2528,6 +2433,16 @@ return 0;
 /*
  * End of main function.
  */
+
+static int get_rec_index(const char key[]) {
+    ParameterEntry * found_parm;
+    found_parm = apm_find(key);
+    if (found_parm != NULL)
+        return found_parm->rec_index;
+    return -1;
+}
+
+
 
 #ifdef BOINC
 /*  Dummy graphics API entry points.

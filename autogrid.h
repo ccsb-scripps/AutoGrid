@@ -1,6 +1,6 @@
 /* autogrid.h */
 /*
-  $Id: autogrid.h,v 1.8 2005/03/16 00:08:14 gillet Exp $
+  $Id: autogrid.h,v 1.9 2005/05/12 21:50:01 rhuey Exp $
 */
 
 #include "autocomm.h"
@@ -72,41 +72,6 @@
 #define MAX_NUM_AUTOGRID_TYPES 100
 #define NUM_ALL_TYPES 20   /*??? IS THIS REASONABLE???*/
 #define MAX_LEN_AUTOGRID_TYPE 7
-/*enum babel_type { C3, C2, C1, Cac, Cpl, 
-                  N3pl, Nox, N3, Ntr, Npl, N1, Nam, 
-                  O3, O2, Om, 
-                  S3pl, S3, S2, Sac, Sox, S,
-                  HC, H, 
-                  P3, Pac, Pox, 
-                  B, Bac, Box, 
-                  Al, As , Be, Br, Ca, Cl, Cu, Fl, 
-                  Fe, Ge, I, K, Li, Mg, Mn, Na, Ni, 
-                  Pb, Si, Zn};*/
-
-
-enum hbond_type { NON, DS, D1, AS, A1, A2}; /*hbonding character: */
-
-struct parm_info {
-        char  autogrid_type[MAX_LEN_AUTOGRID_TYPE + 1]; /*KEY:  autogrid_type
-                                                    is based on babel_types
-                                                    assigned by PyBabel*/
-        double Rij;             /*Lennard-Jones equilibrium separation*/
-        double epsij;           /*Lennard-Jones energy well-depth*/
-        double vol;             /*solvation volume*/
-        double solpar;          /*solvation parameter*/
-        hbond_type hbond; /*hbonding character: 
-                    NON: none, 
-                    DS: spherical donor 
-                    D1: directional donor
-                    AS: spherical acceptor
-                    A1: acceptor of 1 directional hbond
-                    A2: acceptor of 2 directional hbonds*/
-        double Rij_hb;             /*12-10 Lennard-Jones equilibrium separation*/
-        double epsij_hb;           /*12-10 Lennard-Jones energy well-depth*/
-        int rec_index;              /*used to set up receptor atom_types*/
-        int map_index;              /*used to set up map atom_types*/
-        int bond_index;             /*used to set up bonds by distance*/
-};
 
 /* added for port to BOINC 11/17/2004 */
 FILE *ag_fopen(const char *path, const char *mode);
