@@ -13,7 +13,7 @@ int	main( int argc, char **argv );
 void	printdate( FILE *fp, int flag );
 void	printhms( float t );
 void	prHMSfixed( float t );
-int	    setflags( int argc, char **argv );
+int	setflags( int argc, char **argv );
 void	timesys( Clock duration, struct tms *start, struct tms *end );
 void	timesyshms( Clock duration, struct tms *start, struct tms *end );
 void    apm_enter(const char key[], ParameterEntry value);
