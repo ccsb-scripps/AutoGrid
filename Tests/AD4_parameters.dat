@@ -4,11 +4,11 @@
 # AutoDock 4 coefficient with respect to original (AD2) parameters
 #
 
-FE_coeff_vdW    0.1488
-FE_coeff_hbond  0.1267
-FE_coeff_estat  0.1408
-FE_coeff_desolv 0.1220
-FE_coeff_tors   0.290
+FE_coeff_vdW    0.1570
+FE_coeff_hbond  0.1344
+FE_coeff_estat  0.1319
+FE_coeff_desolv 0.1350
+FE_coeff_tors   0.257
 
 # - Unweighted vdW and Unweighted hbond Well Depths
 #
