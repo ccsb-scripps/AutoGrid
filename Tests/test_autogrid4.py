@@ -1,7 +1,7 @@
 #
 # 
 #
-# $Id: test_autogrid4.py,v 1.1 2004/11/15 17:43:15 rhuey Exp $
+# $Id: test_autogrid4.py,v 1.2 2005/05/13 17:14:59 rhuey Exp $
 #
 """
 
@@ -77,7 +77,7 @@ class Autogrid4_hsg1_sm_test(unittest.TestCase):
         for atomL, py_atomL in zip(c_autogrid4_lines[6:], py_autogrid4_lines[6:]):
             c_num = float(strip(atomL))
             py_num = float(strip(py_atomL))
-            if abs(c_num)>.40:
+            if abs(c_num)>.30:
                 # use percentage difference for large(r) values:
                 #  allowing up to 0.5% error 
                 #if ((abs(c_num-py_num)/(c_num))*100.<.5)==False:
