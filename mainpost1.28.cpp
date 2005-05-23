@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: mainpost1.28.cpp,v 1.30 2005/05/23 23:37:09 gillet Exp $
+  $Id: mainpost1.28.cpp,v 1.31 2005/05/23 23:44:35 gillet Exp $
 */
 
 
@@ -2478,6 +2478,30 @@ void boinc_app_key_press(int wParam, int lParam){}
 void boinc_app_key_release(int wParam, int lParam){}
 #endif
 
+
+/* Windows entry point WinMain() */
+
+#ifdef _WIN32 
+
+/*******************************************************
+ * Windows:  Unix applications begin with main() while Windows applications
+ * begin with WinMain, so this just makes WinMain() process the command line
+ * and then invoke main()
+ */
+
+int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
+                   LPSTR Args, int WinMode)
+{
+    LPSTR command_line;
+    char* argv[100];
+    int argc;
+    
+    command_line = GetCommandLine();
+    argc = parse_command_line( command_line, argv );
+    return main(argc, argv);
+}
+
+#endif
 /*
  * EOF
  */ 
