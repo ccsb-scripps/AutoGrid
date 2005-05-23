@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.c,v 1.26 2005/05/12 22:20:13 garrett Exp $
+  $Id: main.c,v 1.27 2005/05/23 17:59:56 rhuey Exp $
 */
 
 
@@ -109,8 +109,7 @@ int main( int argc,  char **argv )
 /*  for associative dictionary storing parameters by autogrid 'type'  */
 FILE * dataFile;
 char dataline[100];
-ENTRY item; /*see  atom_parameter_manager.c */
-static ParameterEntry thisparm;
+static ParameterEntry thisparm; /*see  atom_parameter_manager.c */
 ParameterEntry * newparm;
 ParameterEntry * found_parm;
 char param_filename[MAX_CHARS];
@@ -1074,7 +1073,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                 (void) fflush( logFile);
             }
         } else {
-            (void) fprintf( logFile, "%s key not found\n", item.key);
+            (void) fprintf( logFile, "%s key not found\n", found_parm->autogrid_type);
         };
         (void) fflush( logFile);
         break; /* end solvation parameter */
