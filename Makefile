@@ -126,73 +126,73 @@ convertmap : convertmap.o
 	$(CC) $(OPT) -o $@ convertmap.o $(LIB)
 
 
-main.o : main.c autogrid.h autoglobal.h  banner.c gpfparser.c gpftoken.h parsetypes.c
+main.o : main.cpp autogrid.h autoglobal.h  banner.cpp gpfparser.cpp gpftoken.h parsetypes.cpp
 
-check_size.o : check_size.c autogrid.h
+check_size.o : check_size.cpp autogrid.h
 
-setflags.o : setflags.c autogrid.h
+setflags.o : setflags.cpp autogrid.h
 
-timesyshms.o : timesyshms.c autogrid.h
+timesyshms.o : timesyshms.cpp autogrid.h
 
-timesys.o : timesys.c autogrid.h
+timesys.o : timesys.cpp autogrid.h
 
-printhms.o : printhms.c autogrid.h
+printhms.o : printhms.cpp autogrid.h
 
-prHMSfixed.o : prHMSfixed.c autogrid.h
+prHMSfixed.o : prHMSfixed.cpp autogrid.h
 
-printdate.o : printdate.c autogrid.h
+printdate.o : printdate.cpp autogrid.h
 
-banner.o : banner.c autogrid.h
+banner.o : banner.cpp autogrid.h
 
-gpfparser.o : gpfparser.c autogrid.h gpftoken.h
+gpfparser.o : gpfparser.cpp autogrid.h gpftoken.h
 
-parsetypes.o : parsetypes.c autogrid.h
+parsetypes.o : parsetypes.cpp autogrid.h
 
-strindex.o : strindex.c autogrid.h
+strindex.o : strindex.cpp autogrid.h
 
-convertmap.o : convertmap.c
+convertmap.o : convertmap.cpp
 
-atom_parameter_manager.o : atom_parameter_manager.c parameters.h
+atom_parameter_manager.o : atom_parameter_manager.cpp parameters.h
 
 
 #
 # lcheck dependencies...
 #
 
-main.ln : main.c autogrid.h autoglobal.h
+main.ln : main.cpp autogrid.h autoglobal.h
 	$(LINT) $(LINTFLAGS) $?
 
-check_size.ln : check_size.c autogrid.h
+check_size.ln : check_size.cpp autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
-setflags.ln : setflags.c autogrid.h
+setflags.ln : setflags.cpp autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
-timesyshms.ln : timesyshms.c autogrid.h
+timesyshms.ln : timesyshms.cpp autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
-timesys.ln : timesys.c autogrid.h
+timesys.ln : timesys.cpp autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
-printhms.ln : printhms.c autogrid.h
+printhms.ln : printhms.cpp autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
-prHMSfixed.ln : prHMSfixed.c autogrid.h
+prHMSfixed.ln : prHMSfixed.cpp autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
-printdate.ln : printdate.c autogrid.h
+printdate.ln : printdate.cpp autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
-banner.ln : banner.c autogrid.h
+banner.ln : banner.cpp autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
-gpfparser.ln : gpfparser.c autogrid.h gpftoken.h
+gpfparser.ln : gpfparser.cpp autogrid.h gpftoken.h
 	$(LINT) $(LINTFLAGS) $?
 
-parsetypes.ln : parsetypes.c autogrid.h
+parsetypes.ln : parsetypes.cpp autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
-strindex.ln : strindex.c autogrid.h
+strindex.ln : strindex.cpp autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
 
