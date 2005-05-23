@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.c,v 1.27 2005/05/23 17:59:56 rhuey Exp $
+  $Id: main.c,v 1.28 2005/05/23 18:58:52 rhuey Exp $
 */
 
 
@@ -925,6 +925,8 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             gridmap[i].is_covalent = FALSE;
             gridmap[i].is_hbonder = FALSE;
             gridmap[i].map_index = i;
+            /* need to set this gridmap[i].type = ligand_types[i];*/
+            strcpy(gridmap[i].type, ligand_types[i]); 
             found_parm = apm_find(ligand_types[i]);
             gridmap[i].atom_type = found_parm->map_index;
             gridmap[i].solpar_probe = found_parm->solpar;
