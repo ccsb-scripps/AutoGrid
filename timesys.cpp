@@ -2,9 +2,15 @@
 
 #include <stdio.h>
 #include <sys/types.h>
+
+#ifndef _WIN32
 #include <sys/times.h>
-#include <time.h>
 #include <unistd.h>
+#else
+#include "times.h"
+#endif
+
+#include <time.h>
 #include "autogrid.h"
 
 extern  FILE    *logFile;

@@ -1,10 +1,20 @@
 /* main.c */
 /*
-  $Id: main.cpp,v 1.29 2005/05/23 22:16:19 gillet Exp $
+  $Id: main.cpp,v 1.30 2005/05/23 23:37:09 gillet Exp $
 */
 
 
 #include <sys/types.h>
+#ifndef _WIN32
+#include <sys/times.h>
+#include <unistd.h>
+#include <sys/param.h>
+#else
+#include "times.h"
+#include "util.h"
+#endif
+
+
 
 #include <math.h>
 #include <stdio.h>

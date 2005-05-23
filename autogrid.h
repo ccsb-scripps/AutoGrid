@@ -1,6 +1,6 @@
 /* autogrid.h */
 /*
-  $Id: autogrid.h,v 1.10 2005/05/23 22:16:19 gillet Exp $
+  $Id: autogrid.h,v 1.11 2005/05/23 23:37:09 gillet Exp $
 */
 
 #include "autocomm.h"
