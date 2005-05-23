@@ -1,5 +1,5 @@
 /*
-  $Id: printhms.cpp,v 1.2 2004/11/23 22:07:45 lindy Exp $
+  $Id: printhms.cpp,v 1.3 2005/05/23 22:16:19 gillet Exp $
 */
 
 #include <stdio.h>

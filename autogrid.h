@@ -1,6 +1,6 @@
 /* autogrid.h */
 /*
-  $Id: autogrid.h,v 1.9 2005/05/12 21:50:01 rhuey Exp $
+  $Id: autogrid.h,v 1.10 2005/05/23 22:16:19 gillet Exp $
 */
 
 #include "autocomm.h"
@@ -56,6 +56,12 @@
 #define sq(a)               ( (a) * (a) )
 #define hypotenuse(x,y,z)   ( sqrt( (x)*(x) + (y)*(y) + (z)*(z) )  )
 #define sq_hyp(x,y,z)       ( (x)*(x) + (y)*(y) + (z)*(z) )
+// we do not want to have a redefinition of the following macro max,min
+#ifdef _WIN32
+#undef min
+#undef max
+#endif
+
 #define max(x,y)            ( ((x) > (y)) ? (x) : (y) )
 #define min(x,y)            ( ((x) < (y)) ? (x) : (y) )
 #define angstrom(i)         ( ( (double) (i) ) / A_DIVISOR )

@@ -3,8 +3,13 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/times.h>
-extern	float	idct;
+#include <time.h>
 #include <unistd.h>
+#include "autogrid.h"
+
+extern  FILE    *logFile;
+extern	float	idct;
+
 /*----------------------------------------------------------------------------*/
 
 void timesys( Clock       duration,

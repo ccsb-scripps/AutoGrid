@@ -1,5 +1,9 @@
 /* prototypes.h */
+
+#ifndef _WIN32
 #include <sys/times.h>
+#endif
+
 #include <sys/types.h>
 #include <stdio.h>
 #include "parameters.h"
