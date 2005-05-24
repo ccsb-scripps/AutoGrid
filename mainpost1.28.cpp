@@ -1,20 +1,19 @@
 /* main.c */
 /*
-  $Id: mainpost1.28.cpp,v 1.31 2005/05/23 23:44:35 gillet Exp $
+  $Id: mainpost1.28.cpp,v 1.32 2005/05/24 00:08:46 gillet Exp $
 */
 
 
 #include <sys/types.h>
 #ifndef _WIN32
 #include <sys/times.h>
-#include <unistd.h>
+#include <unistd.h> /* long sysconf(int name) */
 #include <sys/param.h>
 #else
 #include "times.h"
+#include <Winsock2.h>
 #include "util.h"
 #endif
-
-
 
 #include <math.h>
 #include <stdio.h>
@@ -23,7 +22,9 @@
 #include <stdlib.h>
 #include <time.h>
 #include <ctype.h> /* tolower */
+
 #include <stddef.h> 
+#include <ctype.h> 
 
 
 /* the BOINC API header file */
@@ -116,7 +117,9 @@ int main( int argc,  char **argv )
 /*  for associative dictionary storing parameters by autogrid 'type'  */
 FILE * dataFile;
 char dataline[100];
-static ParameterEntry thisparm; /*see  atom_parameter_manager.c */
+//ENTRY item; 
+/*see  atom_parameter_manager.c */
+static ParameterEntry thisparm;
 ParameterEntry * newparm;
 ParameterEntry * found_parm;
 char param_filename[MAX_CHARS];
@@ -399,9 +402,10 @@ if (clktck == 0) {
         (void) fprintf( logFile, "\"CLOCKS_PER_SEC\" command failed in \"main.c\"\n");
         exit(-1);
     } else {
-        idct = 1. / (float)clktck;
+        idct = (float)1. / (float)clktck;
     }
 }
+
 #else
 if (clktck == 0) {
     if ( (clktck = sysconf(_SC_CLK_TCK)) < 0) {
@@ -467,10 +471,11 @@ banner( version_num);
 (void) fprintf( logFile, "This file was created at:\t\t\t");
 printdate( logFile, 1);
 
+#ifndef _WIN32
 if (gethostname( host_name, MAX_CHARS ) == 0) {
     (void) fprintf( logFile, "                   using:\t\t\t\"%s\"\n", host_name);
 }
-
+#endif
 /******************************************************************************/
 
 /* Read in the grid parameter file...  */
@@ -944,8 +949,6 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             gridmap[i].is_covalent = FALSE;
             gridmap[i].is_hbonder = FALSE;
             gridmap[i].map_index = i;
-            /* need to set this gridmap[i].type = ligand_types[i];*/
-            strcpy(gridmap[i].type, ligand_types[i]); 
             found_parm = apm_find(ligand_types[i]);
             gridmap[i].atom_type = found_parm->map_index;
             gridmap[i].solpar_probe = found_parm->solpar;
@@ -1094,7 +1097,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                 (void) fflush( logFile);
             }
         } else {
-            (void) fprintf( logFile, "%s key not found\n", found_parm->autogrid_type);
+            (void) fprintf( logFile, "%s key not found\n", thisparm.autogrid_type);
         };
         (void) fflush( logFile);
         break; /* end solvation parameter */
@@ -2502,6 +2505,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
 }
 
 #endif
+
 /*
  * EOF
  */ 

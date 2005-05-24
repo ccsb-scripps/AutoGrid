@@ -1,6 +1,11 @@
 #include <stdio.h>
 #include <sys/types.h>
+#ifndef _WIN32
 #include <sys/time.h>
+#else
+#include "times.h"
+#endif
+
 #include <time.h>
 
 #include "autogrid.h"
