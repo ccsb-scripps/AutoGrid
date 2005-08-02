@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: mainpost1.28.cpp,v 1.32 2005/05/24 00:08:46 gillet Exp $
+  $Id: mainpost1.28.cpp,v 1.33 2005/08/02 22:37:23 garrett Exp $
 */
 
 
