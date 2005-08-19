@@ -19,7 +19,8 @@ OBJS = main.o \
        banner.o \
        gpfparser.o \
        parsetypes.o \
-       atom_parameter_manager.o 
+       atom_parameter_manager.o \
+	   distdepdiel.o 
 
 LNS = \
       main.ln \
@@ -34,7 +35,8 @@ LNS = \
       gpfparser.ln \
       parsetypes.ln \
       strindex.ln \
-      atom_parameter_manager.ln
+      atom_parameter_manager.ln\
+	  distdepdiel.ln
 
 
 CC = g++
@@ -154,6 +156,8 @@ convertmap.o : convertmap.cpp
 
 atom_parameter_manager.o : atom_parameter_manager.cpp parameters.h
 
+distdepdiel.o : distdepdiel.cpp distdepdiel.h
+
 
 #
 # lcheck dependencies...
@@ -195,6 +199,11 @@ parsetypes.ln : parsetypes.cpp autogrid.h
 strindex.ln : strindex.cpp autogrid.h
 	$(LINT) $(LINTFLAGS) $?
 
+atom_parameter_manager.ln : atom_parameter_manager.cpp parameters.h
+	$(LINT) $(LINTFLAGS) $?
+
+distdepdiel.ln : distdepdiel.cpp distdepdiel.h
+	$(LINT) $(LINTFLAGS) $?
 
 #
 # Remove objects, lint files, cores, etc.
