@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: mainpost1.28.cpp,v 1.33 2005/08/02 22:37:23 garrett Exp $
+  $Id: mainpost1.28.cpp,v 1.34 2005/08/19 00:36:41 garrett Exp $
 */
 
 
@@ -39,6 +39,7 @@
 #include "autogrid.h"
 #include "autoglobal.h"
 #include "autocomm.h"
+#include "distdepdiel.h"
 
 extern float idct;
 
@@ -311,6 +312,7 @@ double version_num = 4.00;
 double temp_vol, temp_solpar;
 double temp_hbond_enrg, hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
 double rmin, Hramp;
+double factor=332.0L;  /* Used to convert between calories and SI units */
 
 /*int num_rec_types = 0;*/
 
@@ -1214,22 +1216,11 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         (void) sscanf( GPF_line, "%*s %lf", &diel);
         if (diel < 0.) {
             /* negative... */
-            (void) fprintf( logFile, "\nUsing *distance-dependent* dielectric function of Mehler and Solmajer, Prot.Eng.4, 903-910.\n\n");
             dddiel = TRUE;
-            /*____________________________________________________________________________
-             * Distance-dependent dielectric ewds: Mehler and Solmajer, Prot Eng 4, 903-910.
-             *____________________________________________________________________________*/
-            lambda   = 0.003627;
-            epsilon0 = 78.4;
-            A        = (-8.5525);
-            B        = epsilon0 - A;
-            rk       = 7.7839;
-            lambda_B = (-lambda) * B;
+            /* calculate ddd of Mehler & Solmajer */
+            (void) fprintf( logFile, "\nUsing *distance-dependent* dielectric function of Mehler and Solmajer, Prot.Eng.4, 903-910.\n\n");
             for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
-                epsilon[indx_r] = A + B / (1. + rk*exp(lambda_B*angstrom(indx_r)));
-            }
-            if (epsilon[0] < APPROX_ZERO) {
-                epsilon[0] = 1.;
+                epsilon[indx_r] = calc_ddd_Mehler_Solmajer( angstrom(indx_r), APPROX_ZERO );
             }
             (void) fprintf( logFile, "  d   Dielectric\n ___  __________\n");
             for (i = 0;  i <= 500;  i += 10) {
@@ -1238,12 +1229,9 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             }
             (void) fprintf( logFile, "\n");
             for (i = 1;  i < MAX_DIST;  i++) {
-                epsilon[i] = 332.0 / epsilon[i];
-                /* -diel: weight from free energy survey */
-                /*3/9/2005: do NOT apply it here*/
-                /*epsilon[i] *= -diel;*/
-                /* Really, LHS should be "inv_epsilon[i]", but this way saves memory... */
+                epsilon[i] = factor / epsilon[i];
             }
+
         } else {
             /* positive or zero... */
             dddiel = FALSE;
@@ -1251,7 +1239,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                 diel = 40.;
             }
             (void) fprintf( logFile, "Using a *constant* dielectric of:  %.2f\n", diel);
-            invdielcal = 332. / diel;
+            invdielcal = factor / diel;
         }
         break;
 
