@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.cpp,v 1.34 2005/08/19 00:36:41 garrett Exp $
+  $Id: main.cpp,v 1.35 2005/09/09 16:06:07 rhuey Exp $
 */
 
 
@@ -121,7 +121,6 @@ char dataline[100];
 //ENTRY item; 
 /*see  atom_parameter_manager.c */
 static ParameterEntry thisparm;
-ParameterEntry * newparm;
 ParameterEntry * found_parm;
 char param_filename[MAX_CHARS];
 
@@ -335,6 +334,7 @@ int problem_wrt = FALSE;
 int xA, xB;
 int hbondflag[MAX_MAPS];
 
+int this_hbond_type = 0;  //why is this used???
 
 #define INIT_NUM_GRID_PTS -1
 int num_grid_points_per_map = INIT_NUM_GRID_PTS;
@@ -357,6 +357,17 @@ Clock      grd_end;
 struct tms tms_grd_start;
 struct tms tms_grd_end;
 
+
+for (i=0; i<MAX_MAPS; i++) {
+    /* initialize to "" */
+    strcpy(ligand_types[i], "");
+}
+for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
+    /* initialize to "" */
+    strcpy(receptor_types[i], "");
+    receptor_atom_type_count[i]=0;
+}
+
 #ifdef BOINC
     int flags = 0;
     int rc;
@@ -376,7 +387,7 @@ struct tms tms_grd_end;
     options.handle_process_control = false;
     options.send_status_msgs = true;// only the worker programs (i.e. model) sends status msgs
     options.direct_process_action = true;// monitor handles suspend/quit, but app/model doesn't
-    // Initialisation of Boinc 
+    // Initialization of Boinc 
     rc =  boinc_init_options(options); //return 0 for success
     if( rc ){
       fprintf(stderr,"BOINC_ERROR: boinc_init_options() failed \n");
@@ -899,6 +910,37 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         /* Check to see if there is enough memory to store these map objects */
         gridmap = (MapObject *)malloc(sizeof(MapObject) * num_maps);
 
+        // Initialize the gridmap MapObject
+        for (i=0; i<num_maps; i++) {
+            gridmap[i].atom_type = 0; /*corresponds to receptor numbers????*/
+            gridmap[i].map_index = 0;
+            gridmap[i].is_covalent = 0;
+            gridmap[i].is_hbonder = 0;
+            gridmap[i].map_fileptr = (FILE *)NULL;
+            strcpy(gridmap[i].map_filename, "");
+            strcpy(gridmap[i].type,""); /*eg HD or OA or NA or N*/
+            gridmap[i].constant = 0.0L; /*this will become obsolete*/
+            gridmap[i].energy_max = 0.0L;
+            gridmap[i].energy_min = 0.0L;
+            gridmap[i].energy = 0.0L;
+            gridmap[i].vol_probe = 0.0L;
+            gridmap[i].solpar_probe = 0.0L;
+            gridmap[i].Rij = 0.0L;
+            gridmap[i].epsij = 0.0L;
+            gridmap[i].hbond = NON; /*hbonding character: */
+            gridmap[i].Rij_hb = 0.0L;
+            gridmap[i].epsij_hb = 0.0L;
+            /*per gridmap[i].receptor type parameters, ordered as in receptor_types*/
+            for (j=0; j<NUM_RECEPTOR_TYPES; j++) {
+                gridmap[i].nbp_r[NUM_RECEPTOR_TYPES] = 0.0L; /*radius of energy-well minimum*/
+                gridmap[i].nbp_eps[NUM_RECEPTOR_TYPES] = 0.0L;/*depth of energy-well minimum*/
+                gridmap[i].xA[NUM_RECEPTOR_TYPES] =0; /*generally 12*/
+                gridmap[i].xB[NUM_RECEPTOR_TYPES] =0; /*6 for non-hbonders 10 for h-bonders*/
+                gridmap[i].hbonder[NUM_RECEPTOR_TYPES] =0;
+            } // j
+        } // i
+
+
         /* Check to see if the number of grid points requested will be
          * feasible; give warning if not enough memory. */
         if (num_grid_points_per_map != INIT_NUM_GRID_PTS) {
@@ -1228,6 +1270,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                 (void) fprintf( logFile, "%4.1lf%9.2lf\n", ri, epsilon[i]);
             }
             (void) fprintf( logFile, "\n");
+            /* convert epsilon to 1 / epsilon */
             for (i = 1;  i < MAX_DIST;  i++) {
                 epsilon[i] = factor / epsilon[i];
             }
@@ -1303,11 +1346,33 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                     &thisparm.solpar,
                     &thisparm.Rij_hb,
                     &thisparm.epsij_hb,
-                    &thisparm.hbond,
+                    //&thisparm.hbond, ???why use this_hbond_type???
+                    &this_hbond_type,
                     &thisparm.rec_index,
                     &thisparm.map_index,
                     &thisparm.bond_index);
-                    
+
+            switch(this_hbond_type) {
+                default:
+                case 0:
+                    thisparm.hbond = NON;
+                    break;
+                case 1:
+                    thisparm.hbond = DS;
+                    break;
+                case 2:
+                    thisparm.hbond = D1;
+                    break;
+                case 3:
+                    thisparm.hbond = AS;
+                    break;
+                case 4:
+                    thisparm.hbond = A1;
+                    break;
+                case 5:
+                    thisparm.hbond = A2;
+                    break;
+            }
             if (nfields<2) continue; /*skip lines without enough info*/
             apm_enter(thisparm.autogrid_type, thisparm);
 #ifdef DEBUG
@@ -1316,7 +1381,6 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
            } /*end of scan a new parameter line*/
         }
         break;
-
 
 
 /******************************************************************************/
