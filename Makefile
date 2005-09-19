@@ -118,6 +118,8 @@ WARN = # Default warning level.
 # WARN = -woff all # For no warnings.
 # WARN = -fullwarn -ansiE -ansiW # For full warnings during compilation.
 
+%.o : %.cpp
+	$(CC) -c $(CFLAGS) $< -o $@
 
 autogrid4 : $(OBJS)
 	@echo $(EXE) on `date` using' >>> ' `hostname` ' <<<' >> LATEST_MAKE
