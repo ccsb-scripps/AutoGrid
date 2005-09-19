@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.cpp,v 1.36 2005/09/19 23:13:44 garrett Exp $
+  $Id: main.cpp,v 1.37 2005/09/19 23:20:07 garrett Exp $
 */
 
 
@@ -1261,6 +1261,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             dddiel = TRUE;
             /* calculate ddd of Mehler & Solmajer */
             (void) fprintf( logFile, "\nUsing *distance-dependent* dielectric function of Mehler and Solmajer, Prot.Eng.4, 903-910.\n\n");
+            epsilon[0] = 1.0;
             for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
                 epsilon[indx_r] = calc_ddd_Mehler_Solmajer( angstrom(indx_r), APPROX_ZERO );
             }
