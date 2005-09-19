@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.cpp,v 1.37 2005/09/19 23:20:07 garrett Exp $
+  $Id: main.cpp,v 1.38 2005/09/19 23:49:42 garrett Exp $
 */
 
 
@@ -131,7 +131,6 @@ char param_filename[MAX_CHARS];
 /*each type is now at most two characters plus '\0'*/
 /* currently ligand_atom_types is sparse... 
  * some types are not set*/
-/*FIX THIS: initialize to "" */
 char ligand_types[MAX_MAPS][3];
 
 /*array of ptrs used to parse input line*/
@@ -181,13 +180,11 @@ FloatOrDouble *dummy_map;
 /*variables for RECEPTOR:*/
 /*each type is now at most two characters, eg 'NA\0'*/
 /*NB: these are sparse arrays, some entries are not set */
-/*FIX THIS: initialize to "" */
 char receptor_types[NUM_RECEPTOR_TYPES][3];
 /* number of different receptor atom types*/
 int receptor_types_ct = 0;
 /* array of numbers of each type */
 /*NB: this is a sparse int array, some entries are 0*/
-/*FIX THIS: initialize to 0*/
 int receptor_atom_type_count[NUM_RECEPTOR_TYPES];
 
 /*array of ptrs used to parse input line*/
@@ -657,20 +654,6 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                     }
                 }
 
-                /*FIX THIS***
-                 * ?????????*/
-
-                /*if (atom_name[0] == 'L') {
-                    (void) fprintf( logFile, "\tWARNING: lone pair atom type found; will be treated as atom type %d, \"%c\"\n", METAL + 1, receptor_atom_type_string[METAL]);*/
-                    /* Treat Lone Pair centres as if they were a Metal...  */
-                /*    atom_type[ia] = METAL;
-                } else {*/
-                    /*
-                     * The default atom type is 'X',
-                     * atom_type[ia] = UNKNOWN;
-                     */
-                  /*  atom_type[ia] = get_atom_type(atom_name, receptor_atom_type_string);
-                }*/
                 /* Tell the user what you thought this atom was... */
                 (void) fprintf( logFile, "  was atom type \"%s\" assigned %d. atom_type->%d\n", found_parm->autogrid_type, found_parm->rec_index, atom_type[ia]);
                 /*(void) fprintf( logFile, "  was assigned atom type %d, \"%c\".\n", atom_type[ia] + 1, receptor_atom_type_string[atom_type[ia]]);*/
@@ -723,7 +706,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
         (void) fprintf( logFile, "____\t____\t___________________\n");
         (void) fflush( logFile);
         /*2. CHANGE HERE: need to count number of each receptor_type*/
-        for (ia = 0;  ia < NUM_RECEPTOR_TYPES;  ia++) {
+        for (ia = 0;  ia < receptor_types_ct;  ia++) {
             i = 0;
             if(receptor_atom_type_count[ia]!=0){
                 (void) fprintf( logFile, " %d\t %s\t\t%6d\n", (ia), receptor_types[ia], receptor_atom_type_count[ia]);
@@ -973,22 +956,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             (void) fprintf(logFile, "%s\n", message);
             exit(-1);
         }
-        /*FIX THIS:
-         *
-         * !!!*/
 
-        /* Check number of ligand atom maps requested * /
-        if (num_maps > MAX_MAPS) {
-            / * Too many maps requested * /
-            (void) sprintf(message, "\n%s: ERROR:  The number of ligand atom maps requested (%d) plus 1 for the electrostatics map, is too many;  this program can only calculate %d maps.  Change the definition of \"MAX_MAPS\" in \"autocomm.h\".\n", programname, num_atom_maps, MAX_MAPS);
-            (void) fprintf(stderr, "%s\n", message);
-            (void) fprintf(logFile, "%s\n", message);
-            (void) sprintf(message, "\n%s:  Unsuccessful completion.\n\n", programname);
-            (void) fprintf(stderr, "%s\n", message);
-            (void) fprintf(logFile, "%s\n", message);
-            exit(-1);
-        }
-        */
         for (i = 0;  i < num_atom_maps;  i++) {
             gridmap[i].is_covalent = FALSE;
             gridmap[i].is_hbonder = FALSE;
@@ -1009,13 +977,8 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             (void) fprintf(logFile, " setting ij parms for map %d \n",i);
             (void) fprintf(logFile, "for gridmap[%d], type->%s,Rij->%6.4f, epsij->%6.4f, hbond->%d\n",i,found_parm->autogrid_type, gridmap[i].Rij, gridmap[i].epsij,gridmap[i].hbond);
 #endif
-            //for (j=0; j<NUM_RECEPTOR_TYPES;j++){
-            for (j=0; j<receptor_types_ct;j++){
-                /*SET THIS UP HERE!!!!*/
+            for (j=0; j<receptor_types_ct; j++){
                 found_parm = apm_find(receptor_types[j]);
-                //strcpy(thisparm.autogrid_type, receptor_types[j]);
-                //item.key = thisparm.autogrid_type;
-
                 gridmap[i].nbp_r[j] = (gridmap[i].Rij + found_parm->Rij)/2.;
                 gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij * found_parm->epsij);
                 /*apply the vdW forcefield parameter/weight here */
@@ -1061,13 +1024,13 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
                 (void) fprintf(logFile, "vs receptor_type[%d]:type->%s, hbond->%d ",j,found_parm->autogrid_type, (int)found_parm->hbond);
                 (void) fprintf(logFile, "nbp_r->%6.4f, nbp_eps->%6.4f,xB=%d,hbonder=%d\n",gridmap[i].nbp_r[j], gridmap[i].nbp_eps[j],gridmap[i].xB[j], gridmap[i].hbonder[j]);
 #endif
-              //};
             }; /*initialize energy parms for each possible receptor type*/
         } /*for each map*/
         (void) fprintf( logFile, "\nAtom names for ligand_types 1-%d and for ligand-atom affinity grid maps :\n", num_atom_maps);
         for (i = 0;  i < num_atom_maps;  i++) {
             (void) fprintf( logFile, "\t\t\t%d->%s\n", gridmap[i].map_index, ligand_types[i]);
-            /*FIX THIS!!!*/
+
+            /*FIX THIS!!! Covalent Atom Types are not yet supported with the new AG4/AD4 atom typing mechanism... */
             /*if (gridmap[i].atom_type == COVALENTTYPE) {
               gridmap[i].is_covalent = TRUE;
               (void) fprintf( logFile, "\nAtom type number %d will be used to calculate a covalent affinity grid map\n\n", i + 1);
@@ -1487,27 +1450,24 @@ for (ia=0; ia<num_atom_maps; ia++){
             } /*for each distance*/ 
             energy_lookup[i][0][ia]    = EINTCLAMP;
             energy_lookup[i][MD_1][ia] = 0.;
-        /*PRINT OUT INITIAL VALUES before smoothing here
-        (void) fprintf( logFile, "before smoothing\n  r ");
-        for (iat = 0;  iat < receptor_types_ct;  iat++) {
-            (void) fprintf( logFile, "    %s    ", receptor_types[iat]);
-        } 
-        (void) fprintf( logFile, "\n ___");
-        for (iat = 0;  iat < receptor_types_ct;  iat++) {
-            (void) fprintf( logFile, " ________");
-        }
-        (void) fprintf( logFile, "\n");
-        for (j = 0;  j <= 500;  j += 10) {
-            (void) fprintf( logFile, "%4.1lf", angstrom(j));
+            /*PRINT OUT INITIAL VALUES before smoothing here
+            (void) fprintf( logFile, "before smoothing\n  r ");
             for (iat = 0;  iat < receptor_types_ct;  iat++) {
-                (void) fprintf( logFile, (energy_lookup[iat][j][ia]<100000.)?"%9.2lf":"%9.2lg", energy_lookup[iat][j][ia]);
+                (void) fprintf( logFile, "    %s    ", receptor_types[iat]);
             } 
+            (void) fprintf( logFile, "\n ___");
+            for (iat = 0;  iat < receptor_types_ct;  iat++) {
+                (void) fprintf( logFile, " ________");
+            }
             (void) fprintf( logFile, "\n");
-        } 
-        (void) fprintf( logFile, "\n");*/
-
-
-
+            for (j = 0;  j <= 500;  j += 10) {
+                (void) fprintf( logFile, "%4.1lf", angstrom(j));
+                for (iat = 0;  iat < receptor_types_ct;  iat++) {
+                    (void) fprintf( logFile, (energy_lookup[iat][j][ia]<100000.)?"%9.2lf":"%9.2lg", energy_lookup[iat][j][ia]);
+                } 
+                (void) fprintf( logFile, "\n");
+            } 
+            (void) fprintf( logFile, "\n");*/
 
             /* smooth with min function */ /* GPF_MAP */
             if (i_smooth > 0) {
