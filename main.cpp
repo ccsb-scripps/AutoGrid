@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.cpp,v 1.35 2005/09/09 16:06:07 rhuey Exp $
+  $Id: main.cpp,v 1.36 2005/09/19 23:13:44 garrett Exp $
 */
 
 
@@ -932,11 +932,11 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
             gridmap[i].epsij_hb = 0.0L;
             /*per gridmap[i].receptor type parameters, ordered as in receptor_types*/
             for (j=0; j<NUM_RECEPTOR_TYPES; j++) {
-                gridmap[i].nbp_r[NUM_RECEPTOR_TYPES] = 0.0L; /*radius of energy-well minimum*/
-                gridmap[i].nbp_eps[NUM_RECEPTOR_TYPES] = 0.0L;/*depth of energy-well minimum*/
-                gridmap[i].xA[NUM_RECEPTOR_TYPES] =0; /*generally 12*/
-                gridmap[i].xB[NUM_RECEPTOR_TYPES] =0; /*6 for non-hbonders 10 for h-bonders*/
-                gridmap[i].hbonder[NUM_RECEPTOR_TYPES] =0;
+                gridmap[i].nbp_r[j] = 0.0L; /*radius of energy-well minimum*/
+                gridmap[i].nbp_eps[j] = 0.0L;/*depth of energy-well minimum*/
+                gridmap[i].xA[j] =0; /*generally 12*/
+                gridmap[i].xB[j] =0; /*6 for non-hbonders 10 for h-bonders*/
+                gridmap[i].hbonder[j] =0;
             } // j
         } // i
 
