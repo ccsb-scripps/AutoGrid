@@ -1,20 +1,25 @@
-/* timesys.c */
+/*
 
-#include <stdio.h>
-#include <sys/types.h>
+ $Id: timesys.cpp,v 1.6 2005/09/27 22:58:40 garrett Exp $
+
+ */
 
 #ifndef _WIN32
-#include <sys/times.h>
-#include <unistd.h>
+#   include <sys/times.h>
+#   include <unistd.h>
 #else
-#include "times.h"
+#   include "times.h"
 #endif
 
-#include <time.h>
-#include "autogrid.h"
+#ifdef HAVE_CONFIG_H
+#   include <config.h>
+#endif
+
+#include <stdio.h>
+#include "timesys.h"
 
 extern  FILE    *logFile;
-extern	float	idct;
+extern	FloatOrDouble	idct;
 
 /*----------------------------------------------------------------------------*/
 
@@ -25,10 +30,8 @@ void timesys( Clock       duration,
 /*----------------------------------------------------------------------------*/
 
 {
-	fprintf( logFile, "%.2f %.2f %.2f rus\n",   (float) duration * idct,
-                         (float)(end->tms_utime  - start->tms_utime) * idct,
-                         (float)(end->tms_stime  - start->tms_stime) * idct );
+	fprintf( logFile, "Real= %.2f,  CPU= %.2f,  System= %.2f\n",     (FloatOrDouble)duration * idct,
+                         (FloatOrDouble)(end->tms_utime  - start->tms_utime) * idct,
+                         (FloatOrDouble)(end->tms_stime  - start->tms_stime) * idct );
 }
-/*----------------------------------------------------------------------------*/
-/* EOF.                                                                       */
-/*----------------------------------------------------------------------------*/
+/* EOF */

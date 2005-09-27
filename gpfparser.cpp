@@ -4,6 +4,7 @@
 #include <string.h>
 #include <ctype.h>
 
+#include "gpftoken.h"
 #include "autogrid.h"
 
 int gpfparser( char line[LINE_LEN] )

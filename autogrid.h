@@ -1,6 +1,6 @@
 /* autogrid.h */
 /*
-  $Id: autogrid.h,v 1.11 2005/05/23 23:37:09 gillet Exp $
+  $Id: autogrid.h,v 1.12 2005/09/27 22:58:39 garrett Exp $
 */
 
 #include "autocomm.h"
@@ -34,10 +34,9 @@
 
 #define MAX_DIST     16384   /* Maximum distance in 100ths of an Angstrom.    */
                              /*  = 163.84 Angstroms                           */
-#define MAX_ATOMS    32768   /* Maximum number of atoms in macromolecule.     */
+#define AG_MAX_ATOMS    32768   /* Maximum number of atoms in macromolecule.     */
 /*    32768 = 2^15	*/
 /*    int 16-bit two's complement ranges 0-32767, 0 to (2^15 - 1)	*/
-#define MAX_ATOM_TYPES    20   /* Maximum number of atom types     */
 
 #define ORDERED 	0
 #define CYLINDRICAL 	1
@@ -54,7 +53,7 @@
 /*----------------------------------------------------------------------------*/
 
 #define sq(a)               ( (a) * (a) )
-#define hypotenuse(x,y,z)   ( sqrt( (x)*(x) + (y)*(y) + (z)*(z) )  )
+/* #define hypotenuse(x,y,z)   ( sqrt( (x)*(x) + (y)*(y) + (z)*(z) )  ) */
 #define sq_hyp(x,y,z)       ( (x)*(x) + (y)*(y) + (z)*(z) )
 // we do not want to have a redefinition of the following macro max,min
 #ifdef _WIN32
@@ -66,7 +65,7 @@
 #define min(x,y)            ( ((x) < (y)) ? (x) : (y) )
 #define angstrom(i)         ( ( (double) (i) ) / A_DIVISOR )
 #define lookup(r)           ( (int) ( (r) * A_DIVISOR ) )
-#define equal(a,b,n)        ( strncmp(a,b,(n)) == 0 )
+/* #define equal(a,b,n)        ( strncmp(a,b,(n)) == 0 ) */
 
 /*----------------------------------------------------------------------------*/
 /* Prototypes,                                                                */

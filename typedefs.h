@@ -34,5 +34,13 @@
     typedef float FloatOrDouble;
 #endif
 
+#ifdef USE_VELOCITY_ENGINE
+typedef union
+{
+	vector float vec;
+	float		 elements[4];
+} Float4;
+#endif
+
 #endif
 /* EOF */

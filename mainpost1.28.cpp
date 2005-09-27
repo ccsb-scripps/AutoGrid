@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: mainpost1.28.cpp,v 1.38 2005/09/19 23:49:42 garrett Exp $
+  $Id: mainpost1.28.cpp,v 1.39 2005/09/27 22:58:40 garrett Exp $
 */
 
 
@@ -490,7 +490,7 @@ if (gethostname( host_name, MAX_CHARS ) == 0) {
 
 /* Read in the grid parameter file...  */
 
-while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
+while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
 /******************************************************************************/
 
@@ -1359,7 +1359,7 @@ while( fgets( GPF_line, LINE_LEN, GPF_fileptr) != NULL ) {
 
 (void) fprintf( logFile, "\n>>> Closing the grid parameter file (GPF)... <<<\n\n");
 (void) fprintf( logFile, UnderLine);
-(void) fclose( GPF_fileptr);
+(void) fclose( GPF );
 
 if ( ! floating_grid ) {
     (void) fprintf( logFile, "\n\nNo Floating Grid was requested.\n");
@@ -1372,7 +1372,7 @@ if ( ! floating_grid ) {
 (void) fprintf( AVS_fld_fileptr, "#NELEMENTS %d %d %d\n", nelements[X], nelements[Y], nelements[Z]);
 (void) fprintf( AVS_fld_fileptr, "#CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
 (void) fprintf( AVS_fld_fileptr, "#MACROMOLECULE %s\n", receptor_filename);
-(void) fprintf( AVS_fld_fileptr, "#GRID_PARAMETER_FILE %s\n#\n", GPF_filename);
+(void) fprintf( AVS_fld_fileptr, "#GRID_PARAMETER_FILE %s\n#\n", grid_param_fn );
 (void) fprintf( AVS_fld_fileptr, "ndim=3\t\t\t# number of dimensions in the field\n");
 (void) fprintf( AVS_fld_fileptr, "dim1=%d\t\t\t# number of x-elements\n", n1[X]);
 (void) fprintf( AVS_fld_fileptr, "dim2=%d\t\t\t# number of y-elements\n", n1[Y]);
@@ -1955,7 +1955,7 @@ for (k = 0;  k < num_atom_maps + 1;  k++) {
  *____________________________________________________________________________*/
 /*change num_atom_maps +1 to num_atom_maps + 2 for new dsolvPE map*/
 for (k = 0;  k < num_atom_maps+2;  k++) {
-    (void) fprintf( gridmap[k].map_fileptr, "GRID_PARAMETER_FILE %s\n", GPF_filename);
+    (void) fprintf( gridmap[k].map_fileptr, "GRID_PARAMETER_FILE %s\n", grid_param_fn );
     (void) fprintf( gridmap[k].map_fileptr, "GRID_DATA_FILE %s\n", AVS_fld_filename);
     (void) fprintf( gridmap[k].map_fileptr, "MACROMOLECULE %s\n", receptor_filename);
     (void) fprintf( gridmap[k].map_fileptr, "SPACING %.3lf\n", spacing);
@@ -1963,7 +1963,7 @@ for (k = 0;  k < num_atom_maps+2;  k++) {
     (void) fprintf( gridmap[k].map_fileptr, "CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
 }
 if (floating_grid) {
-    (void) fprintf( floating_grid_fileptr, "GRID_PARAMETER_FILE %s\n", GPF_filename);
+    (void) fprintf( floating_grid_fileptr, "GRID_PARAMETER_FILE %s\n", grid_param_fn );
     (void) fprintf( floating_grid_fileptr, "GRID_DATA_FILE %s\n", AVS_fld_filename);
     (void) fprintf( floating_grid_fileptr, "MACROMOLECULE %s\n", receptor_filename);
     (void) fprintf( floating_grid_fileptr, "SPACING %.3lf\n", spacing);

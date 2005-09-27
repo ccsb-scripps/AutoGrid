@@ -1,6 +1,11 @@
+#ifndef _AUTOGLOBAL
+#define _AUTOGLOBAL
+
 #include <sys/types.h>
 #include <string.h>
 #include <stdio.h>
+
+#include "structs.h"
 
 /******************************************************************************/
 /*      Name: autoglobal.h                                                    */
@@ -39,29 +44,88 @@ char    AutoDockHelp[] = "           -p parameter_filename\n           -l log_fi
 char    AutoGridHelp[] = "-p parameter_filename\n-l log_filename\n-o (old PDBQ format)\n-d (increment debug level)\n-u (display this message)\n";
 
 char    dock_param_fn[MAX_CHARS];
-char    GPF_filename[MAX_CHARS];
+char    grid_param_fn[MAX_CHARS];
 
 int     command_mode = FALSE;
 int     debug = 0;
-int	ElecMap = 0;
+int	    ElecMap = 0;
+int	    DesolvMap = 0;
 int     ignore_errors = FALSE;
-int     keepresnum = 0;
+int     keepresnum = 1;
 int     oldpdbq = FALSE;
 int     parse_tors_mode = FALSE;
-
-float	idct = 1.;
+int	    true_ligand_atoms = 0;
 
 FILE    *command_in_fp;
 FILE    *command_out_fp;
 FILE    *parFile;
-FILE    *GPF_fileptr;
+FILE    *GPF;
 FILE    *logFile;
 
+#ifdef USE_DOUBLE
+FloatOrDouble	idct = 1.0L;
+#else
+FloatOrDouble	idct = 1.0;
+#endif
+
+Linear_FE_Model AD3;
+Linear_FE_Model AD4_wrt_3;
+Linear_FE_Model AD4;
+
+/*
+// AutoDock 3 Linear Free Energy Model Coefficients wrt AD2
+AD3.coeff_vdW     = 0.1485L;
+AD3.coeff_hbond   = 0.0656L;
+AD3.coeff_estat   = 0.1146L;
+AD3.coeff_desolv  = 0.1711L;
+AD3.coeff_tors    = 0.3113L;
+
+// AutoDock 3 Linear Free Energy Model Standard Errors wrt AD2
+AD3.stderr_vdW    = 0.0237L;
+AD3.stderr_hbond  = 0.0558L;
+AD3.stderr_estat  = 0.0238L;
+AD3.stderr_desolv = 0.1035L;
+AD3.stderr_tors   = 0.0910L;
+
+// AutoDock 4 Linear Free Energy Model Coefficients wrt AD3
+AD4_wrt_3.coeff_vdW    = 1.002L;
+AD4_wrt_3.coeff_hbond  = 1.931L;
+AD4_wrt_3.coeff_estat  = 1.229L;
+AD4_wrt_3.coeff_desolv = 0.122L;
+AD4_wrt_3.coeff_tors   = 0.290L;
+
+// AutoDock 4 Linear Free Energy Model Standard Errors wrt AD3
+AD4_wrt_3.stderr_vdW    = 0.059L;
+AD4_wrt_3.stderr_hbond  = 0.329L;
+AD4_wrt_3.stderr_estat  = 0.173L;
+AD4_wrt_3.stderr_desolv = 0.026L;
+AD4_wrt_3.stderr_tors   = 0.041L;
+
+// AutoDock 4 Linear Free Energy Model Coefficients wrt AD2
+AD4.coeff_vdW    = AD4_wrt_3.coeff_vdW    * AD3.coeff_vdW;
+AD4.coeff_hbond  = AD4_wrt_3.coeff_hbond  * AD3.coeff_hbond;
+AD4.coeff_estat  = AD4_wrt_3.coeff_estat  * AD3.coeff_estat;
+AD4.coeff_desolv = AD4_wrt_3.coeff_desolv * 1.0L;
+AD4.coeff_tors   = AD4_wrt_3.coeff_tors   * AD3.coeff_tors;
+
+// AD4 FE
+//        coeff
+// vdW    0.148797
+// hbond  0.1266736
+// estat  0.1408434
+// desolv 0.122
+// tors   0.090277
+
+*/
+
+FILE    *stateFile;
+int     write_stateFile = FALSE;
 /*
 ** struct  Quat {
-**             float angle;
-**             float vec[XYZ];
+**             FloatOrDouble angle;
+**             FloatOrDouble vec[SPACE];
 **             };
 */
 
+#endif /*_AUTOGLOBAL*/
 /* EOF */

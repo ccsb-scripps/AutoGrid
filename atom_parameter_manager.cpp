@@ -1,7 +1,8 @@
 #define MAXKEY (256*256)
 #include <stdlib.h>
 #include <string.h>
-#include "parameters.h" // needed for ParameterEntry structure
+#include "structs.h" // needed for ParameterEntry structure
+#include "atom_parameter_manager.h"
 typedef ParameterEntry PE;
 static PE *dictionary[MAXKEY];
 static unsigned int hash(const char key[]) {

@@ -3,10 +3,17 @@
 #include "autogrid.h"
 
 /*----------------------------------------------------------------------------*/
-/* Copyright: (C) Garrett Morris, TSRI                                        */
+
 int strindex( char s[], char t[])
+
 /*----------------------------------------------------------------------------*/
+
+/******************************************************************************/
+/*      Name: strindex                                                        */
+/*  Function: return index of t in s, -1 if none.                             */
+/* Copyright: (C) Garrett Morris, TSRI                                        */
 /*----------------------------------------------------------------------------*/
+/*    Author: Garrett Morris, The Scripps Research Institute                  */
 /*      Date: 30/11/92                                                        */
 /*----------------------------------------------------------------------------*/
 /*    Inputs: s,t                                                             */
@@ -14,7 +21,7 @@ int strindex( char s[], char t[])
 /*   Globals: none.                                                           */
 /*----------------------------------------------------------------------------*/
 /* Modification Record                                                        */
-/*      Date: 30/11/92                                                        */
+/* Date     Inits   Comments                                                  */
 /* 30/11/92 GMM     Entered code.                                             */
 /******************************************************************************/
 
@@ -22,11 +29,11 @@ int strindex( char s[], char t[])
     int i,c1,c2;
 
     for (i=0; s[i] != '\0'; i++) {
-/* 30/11/92 GMM     Entered code.                                             */
+        for (c1=i, c2=0; s[c1]==t[c2] && t[c2]!='\0'; c1++, c2++)
             ;
         if (c2>0 && t[c2]=='\0')
             return( i );
-    int i,c1,c2;
+    }
     return( -1 );
 }
 /* EOF */

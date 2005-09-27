@@ -1,24 +1,33 @@
 /*
-  $Id: printhms.cpp,v 1.3 2005/05/23 22:16:19 gillet Exp $
+
+ $Id: printhms.cpp,v 1.4 2005/09/27 22:58:40 garrett Exp $
+
 */
 
-#include <stdio.h>
-#include "autogrid.h"
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 
+/* printhms.cc */
+
+    #include <stdio.h>
+    #include "printhms.h"
 
 extern FILE *logFile;
 
-void printhms( float t )
+void printhms( FloatOrDouble t )
 
 {
-    int   h, m;
-    float T, s;
-    float hrs = 3600., min = 60.;
+    int   h,
+          m;
+    FloatOrDouble T, s;
+    FloatOrDouble min = 60.,
+	  hrs = 3600.;
 
-    h = (int) (t/hrs);
-    T = t - h*hrs;
-    m = (int) (T/min);
-    s = T - m*min;
+    h = (int)(t/hrs);
+    T = t - ((FloatOrDouble)h)*hrs;
+    m = (int)(T/min);
+    s = T - ((FloatOrDouble)m)*min;
 
     if (h == 0) {
         if (m == 0)
