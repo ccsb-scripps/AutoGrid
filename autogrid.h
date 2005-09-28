@@ -1,6 +1,6 @@
 /* autogrid.h */
 /*
-  $Id: autogrid.h,v 1.12 2005/09/27 22:58:39 garrett Exp $
+  $Id: autogrid.h,v 1.13 2005/09/28 18:04:30 rhuey Exp $
 */
 
 #include "autocomm.h"
@@ -65,7 +65,7 @@
 #define min(x,y)            ( ((x) < (y)) ? (x) : (y) )
 #define angstrom(i)         ( ( (double) (i) ) / A_DIVISOR )
 #define lookup(r)           ( (int) ( (r) * A_DIVISOR ) )
-/* #define equal(a,b,n)        ( strncmp(a,b,(n)) == 0 ) */
+#define equal(a,b,n)        ( strncmp(a,b,(n)) == 0 )
 
 /*----------------------------------------------------------------------------*/
 /* Prototypes,                                                                */
