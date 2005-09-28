@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.cpp,v 1.39 2005/09/27 22:58:40 garrett Exp $
+  $Id: main.cpp,v 1.40 2005/09/28 18:14:05 rhuey Exp $
 */
 
 
@@ -265,19 +265,14 @@ FILE *receptor_fileptr,
      *floating_grid_fileptr;
 
 /*initialize ff values*/
-double FE_coeff_vdW    = 0.14880;
-double FE_coeff_hbond  = 0.12667;
-double FE_coeff_estat  = 0.14084;
-double FE_coeff_desolv = 0.122;
-double FE_coeff_tors   = 0.090277;
+double FE_coeff_vdW    = 0.1560;
+double FE_coeff_hbond  = 0.0974;
+double FE_coeff_estat  = 0.1465;
+double FE_coeff_desolv = 0.1159;
+double FE_coeff_tors   = 0.0854;
 /*for NEW3 desolvation terms*/
 double solpar_q = .01097;  /*unweighted value restored 3:9:05 */
 /*double solpar_q = 0.0013383; =.01097 * 0.122*/
-
-
-/*for NEW3 desolvation terms*/
-/*double solpar_q = 0.0013383; =.01097 * 0.122*/
-/*double solpar_q = 0.001118; */
 
 double A, epsilon0, rk, lambda, B, lambda_B;
 double q_tot = 0.0;
