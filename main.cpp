@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.cpp,v 1.40 2005/09/28 18:14:05 rhuey Exp $
+  $Id: main.cpp,v 1.41 2005/09/28 22:26:16 rhuey Exp $
 */
 
 
@@ -191,18 +191,18 @@ int receptor_atom_type_count[NUM_RECEPTOR_TYPES];
 char * receptor_atom_types[NUM_RECEPTOR_TYPES];
 
 
-/* MAX_ATOMS */
-double charge[MAX_ATOMS];
-double vol[MAX_ATOMS];
-double solpar[MAX_ATOMS];
+/* AG_MAX_ATOMS */
+double charge[AG_MAX_ATOMS];
+double vol[AG_MAX_ATOMS];
+double solpar[AG_MAX_ATOMS];
 /*integers are simpler!*/
-int atom_type[MAX_ATOMS];
-hbond_type hbond[MAX_ATOMS];
-int disorder[MAX_ATOMS];
-int rexp[MAX_ATOMS];
-double coord[MAX_ATOMS][XYZ];
-double rvector[MAX_ATOMS][XYZ];
-double rvector2[MAX_ATOMS][XYZ];
+int atom_type[AG_MAX_ATOMS];
+hbond_type hbond[AG_MAX_ATOMS];
+int disorder[AG_MAX_ATOMS];
+int rexp[AG_MAX_ATOMS];
+double coord[AG_MAX_ATOMS][XYZ];
+double rvector[AG_MAX_ATOMS][XYZ];
+double rvector2[AG_MAX_ATOMS][XYZ];
 
 /*canned atom type number*/
 int hydrogen, carbon, arom_carbon, oxygen, nitrogen; 
@@ -670,11 +670,11 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 ia++;
 
                 /* Check that there aren't too many atoms... */
-                if (ia > MAX_ATOMS) {
+                if (ia > AG_MAX_ATOMS) {
                     (void) fprintf( logFile, "Error      : Sorry, AutoGrid cannot continue.\n");
                     (void) fprintf( logFile, "           : Too many atoms in receptor input file %s;\n", receptor_filename);
-                    (void) fprintf( logFile, "           : -- the maximum number of atoms, MAX_ATOMS, allowed is %d.\n", MAX_ATOMS);
-                    (void) fprintf( logFile, "Suggestion : Increase the value in the \"#define MAX_ATOMS %d\" line", MAX_ATOMS);
+                    (void) fprintf( logFile, "           : -- the maximum number of atoms, AG_MAX_ATOMS, allowed is %d.\n", AG_MAX_ATOMS);
+                    (void) fprintf( logFile, "Suggestion : Increase the value in the \"#define AG_MAX_ATOMS %d\" line", AG_MAX_ATOMS);
                     (void) fprintf( logFile, "           : in the source file \"autogrid.h\", and re-compile AutoGrid.\n");
                     (void) fflush( logFile);
                     exit(-1);
