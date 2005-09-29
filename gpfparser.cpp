@@ -6,6 +6,7 @@
 
 #include "gpftoken.h"
 #include "autogrid.h"
+#include "constants.h"
 
 int gpfparser( char line[LINE_LEN] )
 
