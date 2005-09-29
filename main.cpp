@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: main.cpp,v 1.41 2005/09/28 22:26:16 rhuey Exp $
+  $Id: main.cpp,v 1.42 2005/09/29 04:21:25 garrett Exp $
 */
 
 
@@ -42,6 +42,8 @@
 #include "distdepdiel.h"
 
 extern float idct;
+
+#define round3dp(x) ((round((x)*1000.0L))/1000.0L) // Required to round %.3f consistently on different platforms
 
 
 /* fopen rewrite to either use BOINC api or normal system call */
@@ -2372,7 +2374,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     if (fabs(gridmap[k].energy) < PRECISION) {
                         fprintf_retval = fprintf(gridmap[k].map_fileptr, "0.\n");
                     } else {
-                        fprintf_retval = fprintf(gridmap[k].map_fileptr, "%.3f\n", (float)gridmap[k].energy);
+                        fprintf_retval = fprintf(gridmap[k].map_fileptr, "%.3f\n", (float)round3dp(gridmap[k].energy));
                     }
                     if (fprintf_retval < 0) {
                         problem_wrt = TRUE;
@@ -2383,7 +2385,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 gridmap[k].energy_min = min(gridmap[k].energy_min, gridmap[k].energy);
             }
             if (floating_grid) {
-                if ((!problem_wrt)&&(fprintf(floating_grid_fileptr, "%.3f\n", (float)r_min) < 0)) {
+                if ((!problem_wrt)&&(fprintf(floating_grid_fileptr, "%.3f\n", (float)round3dp(r_min)) < 0)) {
                     problem_wrt = TRUE;
                 }
             }
