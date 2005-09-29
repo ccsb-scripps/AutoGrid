@@ -126,6 +126,12 @@ autogrid4 : $(OBJS)
 	@echo 'Flags: '$(CC) $(LINK) $(LIB) >> LATEST_MAKE
 	$(CC) $(LINK) -o $@ $(OBJS) $(LIB)
 
+testag : autogrid4 Tests/test_autogrid4.py
+	@echo " "
+	@echo "Running the unit tests on autogrid4"
+	@echo " "
+	cd Tests; python test_autogrid4.py; cd ..
+
 convertmap : convertmap.o
 	$(CC) $(OPT) -o $@ convertmap.o $(LIB)
 
