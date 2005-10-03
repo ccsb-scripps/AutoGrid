@@ -48,7 +48,8 @@ LIB = -lm # SGI, Sun, Linux, MacOS X
 # LIB = -lm -lc # Alpha, Convex.
 # LIB = -lm -lg++ # HP, Gnu.
 
-CFLAGS = $(DBUG) $(OPT) -I../autodock $(WARN) $(PROF) # SGI, HP, Alpha, Sun, Convex, Linux, MacOS X
+CFLAGS = $(DBUG) $(OPT) $(WARN) $(PROF) # SGI, HP, Alpha, Sun, Convex, Linux, MacOS X
+CFLAGS += -fno-rtti 
 
 OLIMIT = # SGI, Convex, Linux, MacOS X, -g debugging
 # OLIMIT = -Olimit 2048 # Sun, Hewlett-Packard, DEC Alpha
@@ -114,7 +115,7 @@ DBUG = -DNDEBUG # No debugging and no assert code.
 PROF = # No profiling.
 # PROF = -p # Profiling.
 
-WARN = # Default warning level.
+WARN = -Wall -Weffc++ # Default warning level.
 # WARN = -woff all # For no warnings.
 # WARN = -fullwarn -ansiE -ansiW # For full warnings during compilation.
 
