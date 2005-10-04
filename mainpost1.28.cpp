@@ -1,6 +1,6 @@
 /* main.c */
 /*
-  $Id: mainpost1.28.cpp,v 1.42 2005/09/29 04:21:25 garrett Exp $
+  $Id: mainpost1.28.cpp,v 1.43 2005/10/04 00:39:28 garrett Exp $
 */
 
 
@@ -958,6 +958,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             gridmap[i].is_covalent = FALSE;
             gridmap[i].is_hbonder = FALSE;
             gridmap[i].map_index = i;
+            strcpy(gridmap[i].type, ligand_types[i]); /*eg HD or OA or NA or N*/
             found_parm = apm_find(ligand_types[i]);
             gridmap[i].atom_type = found_parm->map_index;
             gridmap[i].solpar_probe = found_parm->solpar;
@@ -1025,7 +1026,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         } /*for each map*/
         (void) fprintf( logFile, "\nAtom names for ligand_types 1-%d and for ligand-atom affinity grid maps :\n", num_atom_maps);
         for (i = 0;  i < num_atom_maps;  i++) {
-            (void) fprintf( logFile, "\t\t\t%d->%s\n", gridmap[i].map_index, ligand_types[i]);
+            (void) fprintf( logFile, "\t\t\t%d->%s\n", gridmap[i].map_index, gridmap[i].type);
 
             /*FIX THIS!!! Covalent Atom Types are not yet supported with the new AG4/AD4 atom typing mechanism... */
             /*if (gridmap[i].atom_type == COVALENTTYPE) {
@@ -1435,7 +1436,7 @@ for (ia=0; ia<num_atom_maps; ia++){
 
         (void) fprintf( logFile, "\n             %9.1lf       %9.1lf \n", cA, cB);
         (void) fprintf( logFile, "    E    =  -----------  -  -----------\n");
-        (void) fprintf( logFile, "     %s, %s         %2d              %2d\n", ligand_types[ia], receptor_types[i], xA, xB);
+        (void) fprintf( logFile, "     %s, %s         %2d              %2d\n", gridmap[ia].type, receptor_types[i], xA, xB);
         (void) fprintf( logFile, "                r               r \n\n");
         /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
         (void) fprintf( logFile, "calculating energy table %d->%s, %d->%s\n",ia, gridmap[ia].type,i, receptor_types[i]);
@@ -2424,7 +2425,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 (void) fprintf(logFile, "___\t____\t_____________\t_____________\n");
 
 for (i = 0;  i < num_atom_maps;  i++) {
-    (void) fprintf( logFile, " %d\t %s\t  %6.2lf\t%6.2le\n", i + 1, ligand_types[i], gridmap[i].energy_min, gridmap[i].energy_max);
+    (void) fprintf( logFile, " %d\t %s\t  %6.2lf\t%6.2le\n", i + 1, gridmap[i].type, gridmap[i].energy_min, gridmap[i].energy_max);
     /*(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%6.2le\n", i + 1, gridmap[i].atom_type, gridmap[i].energy_min, gridmap[i].energy_max);*/
 }
 
