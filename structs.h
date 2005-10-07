@@ -115,7 +115,7 @@ typedef struct atom
   /* Coord  coords;			        / * transformed point */
   /* Coord  coords0;			    / * untransformed point, original PDB coords */
   double    coords[3];			    /* transformed point */
-  double    coords0[0];			    /* untransformed point, original PDB coords */
+//  double    coords0[0];			    /* untransformed point, original PDB coords */
   Boole     has_charge;			    /* TRUE if the atom has a charge */
   /* Charge q;			            /  * partial atomic charge */
 
