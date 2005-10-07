@@ -1,8 +1,9 @@
 /* constants.h */
 
-#ifndef _AUTOCOMM
+#ifndef CONSTANTS_H
+#define CONSTANTS_H
+
 #include "autocomm.h" /* PI, TWOPI. */
-#endif
 
 /******************************************************************************
  *      Name: constants.h                                                     *
@@ -109,9 +110,9 @@
 #define TOR_ARG_LIST        &sInit.tor[0], &sInit.tor[1], &sInit.tor[2], &sInit.tor[3], &sInit.tor[4], &sInit.tor[5], &sInit.tor[6], &sInit.tor[7], &sInit.tor[8], &sInit.tor[9], &sInit.tor[10], &sInit.tor[11], &sInit.tor[12], &sInit.tor[13], &sInit.tor[14], &sInit.tor[15], &sInit.tor[16], &sInit.tor[17], &sInit.tor[18], &sInit.tor[19], &sInit.tor[20], &sInit.tor[21], &sInit.tor[22], &sInit.tor[23], &sInit.tor[24], &sInit.tor[25], &sInit.tor[26], &sInit.tor[27], &sInit.tor[28], &sInit.tor[29], &sInit.tor[30], &sInit.tor[31]
 
 
-#define ENERGY_CUTOFF 500.    /* Arbitrary intermolecular cutoff, above 
+#define ENERGY_CUTOFF 500.    /* Arbitrary intermolecular cutoff, above
                                  which intramolecular energy is not calculated. */
-#define HI_NRG_JUMP_FACTOR 2. /* Scale up the range of random jumps by this when the 
+#define HI_NRG_JUMP_FACTOR 2. /* Scale up the range of random jumps by this when the
                                  last energy was higher than ENERGY_CUTOFF. */
 
 #ifdef USE_8A_NBCUTOFF
@@ -173,7 +174,7 @@
 /* Prevent internal electrostatic energy calculation from blowing up! */
 
 #define RMIN_ELEC 0.5         /* if atoms closer than this in Angstroms, clamp distance in internal elec. calc.*/
-#define RMIN_ELEC2  (RMIN_ELEC * RMIN_ELEC) /* if atoms closer than this, clamp square 
+#define RMIN_ELEC2  (RMIN_ELEC * RMIN_ELEC) /* if atoms closer than this, clamp square
                                                of distance in internal elec. calc.*/
 
 /* Set reasonable limits on Rij and epsilon-ij values*/
@@ -201,7 +202,7 @@
 #define NROWS 16
 
 /* Output frequency in GAs */
- 
+
 #define OUTLEV0_GENS 30000 /* output every 30,000 generations */
 #define OUTLEV1_GENS 100 /* output every 100 generations */
 #define OUTLEV2_GENS 1 /* output every generation */
@@ -209,8 +210,8 @@
 #endif  /* CONSTANTS */
 
 
-/*----------------------------------------------------------------------------* 
- * Macros,                                                                    * 
+/*----------------------------------------------------------------------------*
+ * Macros,                                                                    *
  *----------------------------------------------------------------------------*/
 
 #ifndef MACROS
@@ -235,7 +236,7 @@
 
 /*
  * #define        RedFac(s0,sN,N)                expf( logf((sN)/(s0)) / ((N)-1))
- * N.B. You must compile with ANSI (-Aa on HPPA) in order to use expf 
+ * N.B. You must compile with ANSI (-Aa on HPPA) in order to use expf
  * and logf, otherwise FloatOrDoubles are automatically promoted to doubles.
  */
 #define        RedFac(s0,sN,N)    exp( log((sN)/(s0)) / ((N)-1))
@@ -278,17 +279,17 @@
 /* BoundedNdiel never returns an index greater than (NDIEL - 1). */
 #define BoundedNdiel(i)           (((i) > NDIEL_1) ? NDIEL_1 : (i))
 
-#define is_out_grid(x,y,z) (((x)<=(xlo)) || ((x)>=(xhi)) || ((y)<=(ylo)) || ((y)>=(yhi)) || ((z)<=(zlo)) || ((z)>=(zhi))) 
+#define is_out_grid(x,y,z) (((x)<=(xlo)) || ((x)>=(xhi)) || ((y)<=(ylo)) || ((y)>=(yhi)) || ((z)<=(zlo)) || ((z)>=(zhi)))
 
 #define is_out_grid_info(x,y,z) (((x)<=(info->lo[X])) || ((x)>=(info->hi[X])) || ((y)<=(info->lo[Y])) || ((y)>=(info->hi[Y])) || ((z)<=(info->lo[Z])) || ((z)>=(info->hi[Z])))
 
 
-/*----------------------------------------------------------------------------* 
- * Random numbers,                                                            * 
+/*----------------------------------------------------------------------------*
+ * Random numbers,                                                            *
  *----------------------------------------------------------------------------*/
 
 #ifdef HARDWARE_RNG // HARDWARE_RNG = hardware random number generator
-/* 
+/*
  *  local_random is >= 0.0 and <1.0
  */
 #ifdef __ppc__
@@ -301,7 +302,7 @@
 #define seed_random(t)      srand48( (FourByteLong)(t) )
 #define local_random()      drand48()
 #endif
-#else 
+#else
 // This is platform-independent RNG-based.
 #include "ranlib.h"
 #define seed_random(t)      setall( (FourByteLong)(t), (FourByteLong)(t) ); initgn(-1)
@@ -326,8 +327,8 @@
 #endif  /* MACROS */
 
 
-/*----------------------------------------------------------------------------* 
- * Debugging,                                                                 * 
+/*----------------------------------------------------------------------------*
+ * Debugging,                                                                 *
 .*----------------------------------------------------------------------------*/
 
 #ifndef DEBUG_STUFF
@@ -352,8 +353,8 @@
 #endif /* DEBUG_STUFF */
 
 
-/*----------------------------------------------------------------------------* 
- * For system timings,                                                        * 
+/*----------------------------------------------------------------------------*
+ * For system timings,                                                        *
  *----------------------------------------------------------------------------*/
 
 #ifndef sgi
@@ -383,21 +384,21 @@
 #define _PDB_FORMATS
 
 
-/*----------------------------------------------------------------------------* 
- * Format for output                                                          * 
+/*----------------------------------------------------------------------------*
+ * Format for output                                                          *
  *----------------------------------------------------------------------------*/
 
-/* 
+/*
  * PDB
- * 
- * Standard PDB v2.1 format with segID, element and charge: 
+ *
+ * Standard PDB v2.1 format with segID, element and charge:
  */
 /* serial, name, altLoc, resName, chainID, resSeq, iCode, x, y, z, occupancy, tempFactor, segID, element, charge */
-#define FORMAT_PDB2_ATOM       "ATOM  %5d %4s%1s%3s %1s%4d%1s   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%2s" 
+#define FORMAT_PDB2_ATOM       "ATOM  %5d %4s%1s%3s %1s%4d%1s   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%2s"
 
-/* 
+/*
  * PDBQ
- * 
+ *
  * Note: the initial %s is the prefix
  * ""          gives normal PDBQ.
  * "DOCKED: "  gives DOCKED prefix.
@@ -408,14 +409,15 @@
 #define FORMAT_PDBQ_ATOM_RANKRUN_STR      "ATOM  %5d  %.13s    %8.3f%8.3f%8.3f%6d%6d    %+6.2f %8.3f\n"
 #define FORMAT_PDBQ_ATOM_RUN_NUM          "ATOM  %5d  %.8s%5d    %8.3f%8.3f%8.3f%6d%+6.2f    %6.3f\n"
 
-/* 
+/*
  * PDBQT
  */
 /* serial, name, altLoc, resName, chainID, resSeq, iCode, x, y, z, occupancy, tempFactor, segID, atom_type, "" */
-#define FORMAT_PDBQT_ATOM       "ATOM  %5d %4s%1s%3s %1s%4d%1s   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%2s" 
+#define FORMAT_PDBQT_ATOM       "ATOM  %5d %4s%1s%3s %1s%4d%1s   %8.3f%8.3f%8.3f%6.2f%6.2f      %4s%2s%2s"
 
 #endif /* _PDB_FORMATS */
 
-/*----------------------------------------------------------------------------* 
- * End of file                                                                * 
+#endif   // CONSTANTS_H
+/*----------------------------------------------------------------------------*
+ * End of file                                                                *
  *----------------------------------------------------------------------------*/
