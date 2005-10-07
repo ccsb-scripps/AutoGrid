@@ -1,9 +1,8 @@
 /*
-  $Id: check_size.cpp,v 1.6 2005/05/23 22:16:19 gillet Exp $
+  $Id: check_size.cpp,v 1.6.6.1 2005/10/07 22:56:21 alther Exp $
 */
 
-#include <iostream>
-#include <math.h>
+#include <stdlib.h>
 #include "autogrid.h"
 
 
@@ -11,14 +10,14 @@ extern char *programname;
 extern FILE *logFile;
 
 /*----------------------------------------------------------------------------*/
-int check_size(int nelements, 
+int check_size(int nelements,
 	       char axischar)
 
 /*----------------------------------------------------------------------------*/
 
 /******************************************************************************/
 /*      Name: check_size                                                      */
-/*  Function: Checks that number of grid elements is valid.                   */ 
+/*  Function: Checks that number of grid elements is valid.                   */
 /* Copyright: (C) 1994, TSRI                                                  */
 /*----------------------------------------------------------------------------*/
 /*    Author: Garrett Morris, The Scripps Research Institute                  */
@@ -54,7 +53,7 @@ int check_size(int nelements,
 
     return nelements;
 }
- 
+
 /*----------------------------------------------------------------------------*/
 /* EOF.                                                                       */
 /*----------------------------------------------------------------------------*/
