@@ -1,12 +1,12 @@
 /* distdepdiel.cpp */
 /*
-  $Id: distdepdiel.cpp,v 1.1.6.1 2005/09/30 22:43:35 alther Exp $
+  $Id: distdepdiel.cpp,v 1.1.6.2 2005/10/07 22:58:25 alther Exp $
 */
 
 #ifdef __INTEL_COMPILER
-#include <mathimf.h>
+   #include <mathimf.h>
 #else
-#include <math.h>
+   #include <math.h>
 #endif
 
 #include "distdepdiel.h"
