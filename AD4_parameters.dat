@@ -1,4 +1,4 @@
-# $Id: AD4_parameters.dat,v 1.4 2005/09/28 18:08:55 rhuey Exp $
+# $Id: AD4_parameters.dat,v 1.5 2005/10/28 18:22:45 rhuey Exp $
 # AutoDock Parameters - Version 1.0
 
 #
@@ -9,7 +9,7 @@ FE_coeff_vdW    0.1560
 FE_coeff_hbond  0.0974
 FE_coeff_estat  0.1465
 FE_coeff_desolv 0.1159
-FE_coeff_tors   0.0854
+FE_coeff_tors   0.2744
 
 # - Unweighted vdW and Unweighted hbond Well Depths
 #
