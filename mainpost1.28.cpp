@@ -1,6 +1,6 @@
-/* main.c */
+/* AutoGrid */
 /*
-  $Id: mainpost1.28.cpp,v 1.43 2005/10/04 00:39:28 garrett Exp $
+  $Id: mainpost1.28.cpp,v 1.44 2005/12/12 22:50:56 garrett Exp $
 */
 
 
@@ -40,6 +40,7 @@
 #include "autoglobal.h"
 #include "autocomm.h"
 #include "distdepdiel.h"
+#include "read_parameter_library.h"
 
 extern float idct;
 
@@ -124,7 +125,8 @@ char dataline[100];
 /*see  atom_parameter_manager.c */
 static ParameterEntry thisparm;
 ParameterEntry * found_parm;
-char param_filename[MAX_CHARS];
+char FN_parameter_library[MAX_CHARS];  // the AD4 parameters .dat file name
+int parameter_library_found = 0;
 
 
 
@@ -483,6 +485,15 @@ if (gethostname( host_name, MAX_CHARS ) == 0) {
     (void) fprintf( logFile, "                   using:\t\t\t\"%s\"\n", host_name);
 }
 #endif
+
+
+//______________________________________________________________________________
+//
+// Read in default parameters
+//
+setup_parameter_library(-1);
+
+
 /******************************************************************************/
 
 /* Read in the grid parameter file...  */
@@ -1267,13 +1278,13 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 /******************************************************************************/
 
     case GPF_PARAM_FILE:
-        /*open and read the parm_data.dat file*/
+        /* open and read the AD4 parameters .dat file */
 
-        (void) sscanf( GPF_line, "%*s %s ", param_filename);
-        /*flag that data from a parameter file are available*/
+        parameter_library_found = sscanf( GPF_line, "%*s %s ", FN_parameter_library);
 
-        if ((dataFile = ag_fopen(param_filename, "r"))==NULL){
-             fprintf(stderr,"Sorry, I can't find or open %s\n",param_filename);
+        if ((dataFile = ag_fopen(FN_parameter_library, "r"))==NULL){
+            /* data from parameter file are not available */
+             fprintf(stderr,"Sorry, I can't find or open %s\n", FN_parameter_library);
              exit(911);
         }
 
