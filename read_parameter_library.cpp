@@ -1,4 +1,4 @@
-/* $Id: read_parameter_library.cpp,v 1.1 2005/12/12 22:55:09 garrett Exp $ */
+/* $Id: read_parameter_library.cpp,v 1.2 2005/12/12 23:01:28 garrett Exp $ */
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -7,7 +7,7 @@
 #include "autocomm.h"
 #include "constants.h"
 #include "parameters.h"
-#include "openfile.h"
+// #include "openfile.h"
 #include "parse_param_line.h"
 #include "atom_parameter_manager.h"
 #include "partokens.h"
