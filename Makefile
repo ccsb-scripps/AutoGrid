@@ -20,7 +20,9 @@ OBJS = main.o \
        gpfparser.o \
        parsetypes.o \
        atom_parameter_manager.o \
-	   distdepdiel.o 
+       read_parameter_library.o \
+       parse_param_line.o \
+       distdepdiel.o 
 
 LNS = \
       main.ln \
@@ -36,7 +38,9 @@ LNS = \
       parsetypes.ln \
       strindex.ln \
       atom_parameter_manager.ln\
-	  distdepdiel.ln
+      read_parameter_library.ln \
+      parse_param_line.ln \
+      distdepdiel.ln
 
 
 CC = g++
@@ -136,7 +140,7 @@ convertmap : convertmap.o
 	$(CC) $(OPT) -o $@ convertmap.o $(LIB)
 
 
-main.o : main.cpp autogrid.h autoglobal.h  banner.cpp gpfparser.cpp gpftoken.h parsetypes.cpp
+main.o : main.cpp autogrid.h autoglobal.h  banner.cpp gpfparser.cpp gpftoken.h parsetypes.cpp default_parameters.h read_parameter_library.cpp read_parameter_library.h 
 
 check_size.o : check_size.cpp autogrid.h
 
@@ -164,7 +168,16 @@ convertmap.o : convertmap.cpp
 
 atom_parameter_manager.o : atom_parameter_manager.cpp parameters.h
 
+read_parameter_library.o : read_parameter_library.cpp autocomm.h default_parameters.h partokens.h
+
+parse_param_line.o : parse_param_line.cpp parse_param_line.h partokens.h
+
 distdepdiel.o : distdepdiel.cpp distdepdiel.h
+
+default_parameters.h : AD4_parameters.dat paramdat2h.csh
+	rm -f $@
+	./paramdat2h.csh > tmp-paramdat
+	mv -f tmp-paramdat $@
 
 
 #
