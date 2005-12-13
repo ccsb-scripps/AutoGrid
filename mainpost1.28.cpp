@@ -1,6 +1,6 @@
 /* AutoGrid */
 /*
-  $Id: mainpost1.28.cpp,v 1.44 2005/12/12 22:50:56 garrett Exp $
+  $Id: mainpost1.28.cpp,v 1.45 2005/12/13 02:10:12 garrett Exp $
 */
 
 
@@ -43,6 +43,7 @@
 #include "read_parameter_library.h"
 
 extern float idct;
+extern Linear_FE_Model AD4;
 
 #define round3dp(x) ((round((x)*1000.0L))/1000.0L) // Required to round %.3f consistently on different platforms
 
@@ -268,12 +269,6 @@ FILE *receptor_fileptr,
      *xyz_fileptr,
      *floating_grid_fileptr;
 
-/*initialize ff values*/
-double FE_coeff_vdW    = 0.1560;
-double FE_coeff_hbond  = 0.0974;
-double FE_coeff_estat  = 0.1465;
-double FE_coeff_desolv = 0.1159;
-double FE_coeff_tors   = 0.0854;
 /*for NEW3 desolvation terms*/
 double solpar_q = .01097;  /*unweighted value restored 3:9:05 */
 /*double solpar_q = 0.0013383; =.01097 * 0.122*/
@@ -331,6 +326,8 @@ int xA, xB;
 int hbondflag[MAX_MAPS];
 
 int this_hbond_type = 0;  //why is this used???
+
+int outlev = -1;
 
 #define INIT_NUM_GRID_PTS -1
 int num_grid_points_per_map = INIT_NUM_GRID_PTS;
@@ -468,10 +465,11 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
+(void) fprintf(logFile, "                             $Revision: 1.45 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
-(void) fprintf(logFile, "Maximum number of maps that can be computed = %d (defined by MAX_MAPS in \"autocomm.h\").\n\n", MAX_MAPS);
+(void) fprintf(logFile, "\nMaximum number of maps that can be computed = %d (defined by MAX_MAPS in \"autocomm.h\").\n\n\n", MAX_MAPS);
 
 
 /*
@@ -480,6 +478,7 @@ banner( version_num);
 (void) fprintf( logFile, "This file was created at:\t\t\t");
 printdate( logFile, 1);
 
+
 #ifndef _WIN32
 if (gethostname( host_name, MAX_CHARS ) == 0) {
     (void) fprintf( logFile, "                   using:\t\t\t\"%s\"\n", host_name);
@@ -487,11 +486,13 @@ if (gethostname( host_name, MAX_CHARS ) == 0) {
 #endif
 
 
+(void) fprintf( logFile, "\n\n");
+
 //______________________________________________________________________________
 //
 // Read in default parameters
 //
-setup_parameter_library(-1);
+setup_parameter_library(outlev);
 
 
 /******************************************************************************/
@@ -550,7 +551,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         /* read in the receptor filename */
 
         (void) sscanf( GPF_line, "%*s %s", receptor_filename);
-        (void) fprintf( logFile, "Receptor Input File :\t%s\n\nAtom Type Assignments:\n\n", receptor_filename);
+        (void) fprintf( logFile, "\nReceptor Input File :\t%s\n\nReceptor Atom Type Assignments:\n\n", receptor_filename);
 
         /* try to open receptor file */
         if ( (receptor_fileptr = ag_fopen(receptor_filename, "r")) == NULL ) {
@@ -577,7 +578,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 atom_name[4] = '\0';
 
                 /* Output the serial number of this atom... */
-                (void) fprintf( logFile, "Atom no. %d,  \"%s\" ", ia + 1, atom_name);
+                (void) fprintf( logFile, "Atom no. %2d, \"%s\"", ia + 1, atom_name);
                 (void) fflush( logFile);
 
                 /* Read in this receptor atom's coordinates,partial charges, and
@@ -663,8 +664,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 }
 
                 /* Tell the user what you thought this atom was... */
-                (void) fprintf( logFile, "  was atom type \"%s\" assigned %d. atom_type->%d\n", found_parm->autogrid_type, found_parm->rec_index, atom_type[ia]);
-                /*(void) fprintf( logFile, "  was assigned atom type %d, \"%c\".\n", atom_type[ia] + 1, receptor_atom_type_string[atom_type[ia]]);*/
+                (void) fprintf( logFile, " was assigned atom type \"%s\" (%d).\n", found_parm->autogrid_type, found_parm->rec_index, atom_type[ia]);
                 (void) fflush( logFile);
 
                 /* Count the number of each atom type */
@@ -991,7 +991,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 gridmap[i].nbp_r[j] = (gridmap[i].Rij + found_parm->Rij)/2.;
                 gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij * found_parm->epsij);
                 /*apply the vdW forcefield parameter/weight here */
-                gridmap[i].nbp_eps[j] *= FE_coeff_vdW;
+                // This was removed because "setup_p_l" does this for us... gridmap[i].nbp_eps[j] *= FE_coeff_vdW;
                 gridmap[i].xA[j] = 12;
                 /*setup hbond dependent stuff*/
                 gridmap[i].xB[j] = 6;
@@ -1008,7 +1008,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                     gridmap[i].nbp_eps[j] = gridmap[i].epsij_hb;
 
                     /*apply the hbond forcefield parameter/weight here */
-                    gridmap[i].nbp_eps[j] *= FE_coeff_hbond;
+                    // This was removed because "setup_p_l" does this for us... gridmap[i].nbp_eps[j] *= FE_coeff_hbond;
 #ifdef DEBUG
                     (void) fprintf(logFile, "set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
 #endif
@@ -1024,7 +1024,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                     gridmap[i].nbp_eps[j] = found_parm->epsij_hb;
 
                     /*apply the hbond forcefield parameter/weight here */
-                    gridmap[i].nbp_eps[j] *= FE_coeff_hbond;
+                    // This was removed because "setup_p_l" does this for us... gridmap[i].nbp_eps[j] *= FE_coeff_hbond;
 #ifdef DEBUG
                     (void) fprintf(logFile, "2: set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
 #endif
@@ -1035,9 +1035,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 #endif
             }; /*initialize energy parms for each possible receptor type*/
         } /*for each map*/
-        (void) fprintf( logFile, "\nAtom names for ligand_types 1-%d and for ligand-atom affinity grid maps :\n", num_atom_maps);
+        (void) fprintf( logFile, "\nAtom type names for ligand atom types 1-%d used for ligand-atom affinity grid maps:\n\n", num_atom_maps);
         for (i = 0;  i < num_atom_maps;  i++) {
-            (void) fprintf( logFile, "\t\t\t%d->%s\n", gridmap[i].map_index, gridmap[i].type);
+            (void) fprintf( logFile, "\t\t\tAtom type number %d corresponds to atom type name \"%s\".\n", gridmap[i].map_index, gridmap[i].type);
 
             /*FIX THIS!!! Covalent Atom Types are not yet supported with the new AG4/AD4 atom typing mechanism... */
             /*if (gridmap[i].atom_type == COVALENTTYPE) {
@@ -1045,7 +1045,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
               (void) fprintf( logFile, "\nAtom type number %d will be used to calculate a covalent affinity grid map\n\n", i + 1);
             }*/
         }
-        (void) fprintf( logFile, " respectively.\n");
+        (void) fprintf( logFile, "\n\n");
         (void) fflush( logFile);
         break;
 
@@ -1155,7 +1155,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
             exit(-1);
         }
-        (void) fprintf( logFile, "\n\nOutput File %d   %s\n\n", (map_index + 1), gridmap[map_index].map_filename);
+        (void) fprintf( logFile, "\nOutput Grid Map %d:   %s\n\n", (map_index + 1), gridmap[map_index].map_filename);
         (void) fflush( logFile);
 
         break;
@@ -1170,7 +1170,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
             exit(-1);
         }
-        (void) fprintf( logFile, "\nElectrostatics File: %s\n\n", gridmap[elecPE].map_filename);
+        (void) fprintf( logFile, "\nOutput Electrostatic Potential Energy Grid Map: %s\n\n", gridmap[elecPE].map_filename);
         break;
 
 /******************************************************************************/
@@ -1183,7 +1183,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
             exit(-1);
         }
-        (void) fprintf( logFile, "\nDesolvation File: %s\n\n", gridmap[dsolvPE].map_filename);
+        (void) fprintf( logFile, "\nOutput Desolvation Free Energy Grid Map: %s\n\n", gridmap[dsolvPE].map_filename);
         break;
 /******************************************************************************/
 
@@ -1210,7 +1210,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
     case GPF_SMOOTH:
         (void) sscanf( GPF_line, "%*s %lf", &r_smooth);
-        (void) fprintf( logFile, "\nPotentials will be smoothed by: %.3lf\n\n", r_smooth);
+        (void) fprintf( logFile, "\nPotentials will be smoothed by: %.3lf Angstrom\n\n", r_smooth);
         /* Angstrom is divided by A_DIVISOR in look-up table. */
         /* Typical value of r_smooth is 0.5 Angstroms */
         /* so i_smooth = 0.5 * 100. / 2 = 25 */
@@ -1282,77 +1282,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
         parameter_library_found = sscanf( GPF_line, "%*s %s ", FN_parameter_library);
 
-        if ((dataFile = ag_fopen(FN_parameter_library, "r"))==NULL){
-            /* data from parameter file are not available */
-             fprintf(stderr,"Sorry, I can't find or open %s\n", FN_parameter_library);
-             exit(911);
-        }
+        read_parameter_library(FN_parameter_library, outlev);
 
-        while( fgets(dataline, sizeof(dataline), dataFile)!=NULL){
-            char * commentbegin;
-            int nfields;
-            /*terminate line at commentbegin*/
-            
-            commentbegin = strchr(dataline, '#');
-            if (commentbegin!=NULL) *commentbegin = '\0';
-            /*NB: scanf doesn't try to write missing fields*/
-            /*WISH LIST:
-             * read autogrid_type into a temporary string and test 
-             * that it's not too long*/
-            /*check for FF_coeff lines*/
-            if (strncmp(dataline, "FE_coeff_vdW", 12)==0) {
-                sscanf(dataline, "%*s %lf", &FE_coeff_vdW);
-            } else if (strncmp(dataline, "FE_coeff_hbond", 14)==0) {
-                sscanf(dataline, "%*s %lf", &FE_coeff_hbond);
-            } else if (strncmp(dataline, "FE_coeff_estat", 14)==0) {
-                sscanf(dataline, "%*s %lf", &FE_coeff_estat);
-            } else if (strncmp(dataline, "FE_coeff_desolv", 15)==0) {
-                sscanf(dataline, "%*s %lf", &FE_coeff_desolv);
-            } else if (strncmp(dataline, "FE_coeff_tors", 13)==0) {
-                sscanf(dataline, "%*s %lf", &FE_coeff_tors);
-            } else { /*skip 'atom_parm' at start of line*/
-            nfields = sscanf(dataline, "%*s %s %lf %lf %lf %lf %lf %lf %d %d %d %d",
-                    thisparm.autogrid_type,
-                    &thisparm.Rij,
-                    &thisparm.epsij,
-                    &thisparm.vol,
-                    &thisparm.solpar,
-                    &thisparm.Rij_hb,
-                    &thisparm.epsij_hb,
-                    //&thisparm.hbond, ???why use this_hbond_type???
-                    &this_hbond_type,
-                    &thisparm.rec_index,
-                    &thisparm.map_index,
-                    &thisparm.bond_index);
-
-            switch(this_hbond_type) {
-                default:
-                case 0:
-                    thisparm.hbond = NON;
-                    break;
-                case 1:
-                    thisparm.hbond = DS;
-                    break;
-                case 2:
-                    thisparm.hbond = D1;
-                    break;
-                case 3:
-                    thisparm.hbond = AS;
-                    break;
-                case 4:
-                    thisparm.hbond = A1;
-                    break;
-                case 5:
-                    thisparm.hbond = A2;
-                    break;
-            }
-            if (nfields<2) continue; /*skip lines without enough info*/
-            apm_enter(thisparm.autogrid_type, thisparm);
-#ifdef DEBUG
-            printf("%-6s%7.2f%8.3f%8.3f%8.3f %8.3f%8.3f %d %d %d\n",thisparm.autogrid_type, thisparm.Rij, thisparm.epsij, thisparm.vol, thisparm.solpar,  thisparm.Rij_hb, thisparm.epsij_hb, thisparm.hbond, thisparm.rec_index, thisparm.map_index);
-#endif
-           } /*end of scan a new parameter line*/
-        }
         break;
 
 
@@ -1417,6 +1348,9 @@ if (floating_grid) {
  boinc_fraction_done(0.1);
 #endif
 
+(void) fprintf( logFile, "\n\nCalculating Pairwise Interaction Energies\n");
+(void) fprintf( logFile,   "=========================================\n\n");
+
 /**************************************************
  * do the map stuff here: 
  * set up xA, xB, npb_r, npb_eps and hbonder 
@@ -1450,7 +1384,7 @@ for (ia=0; ia<num_atom_maps; ia++){
         (void) fprintf( logFile, "     %s, %s         %2d              %2d\n", gridmap[ia].type, receptor_types[i], xA, xB);
         (void) fprintf( logFile, "                r               r \n\n");
         /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
-        (void) fprintf( logFile, "calculating energy table %d->%s, %d->%s\n",ia, gridmap[ia].type,i, receptor_types[i]);
+        (void) fprintf( logFile, "Calculating energies for %s-%s interactions.\n", gridmap[ia].type, receptor_types[i] );
         for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
             r  = angstrom(indx_r);
             rA = pow( r, dxA);
@@ -1495,7 +1429,7 @@ for (ia=0; ia<num_atom_maps; ia++){
        /*
         * Print out a table, of distance versus energy...
         */ /* GPF_MAP */
-        (void) fprintf( logFile, "after smoothing\n  r ");
+        (void) fprintf( logFile, "\n\nFinding the lowest pairwise interaction energy within %.1f Angstrom (\"smoothing\").\n\n  r ", r_smooth);
         for (iat = 0;  iat < receptor_types_ct;  iat++) {
             (void) fprintf( logFile, "    %s    ", receptor_types[iat]);
             /*(void) fprintf( logFile, "    %c    ", receptor_atom_type_string[iat]);*/
@@ -1526,7 +1460,7 @@ for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
      r  = angstrom(indx_r);
      /* sol_fn[indx_r] = exp(-sq(r)/(2.*sigma*sigma)); */
      sol_fn[indx_r] = exp( sq(r) * minus_inv_two_sigma_sqd);
-     sol_fn[indx_r] *= FE_coeff_desolv;
+     sol_fn[indx_r] *= AD4.coeff_desolv;
 }
 
 /**************************************************
@@ -2084,13 +2018,13 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     /*gridmap[elecPE].energy += charge[ia] * inv_r * epsilon[indx_r];*/
 
                     /*apply the estat forcefield coefficient/weight here */
-                    gridmap[elecPE].energy += charge[ia] * inv_rmax * epsilon[indx_r] * FE_coeff_estat;
+                    gridmap[elecPE].energy += charge[ia] * inv_rmax * epsilon[indx_r] * AD4.coeff_estat;
 
                     
                 } else {
                     /* Constant dielectric... */
                     /*gridmap[elecPE].energy += charge[ia] * inv_r * invdielcal;*/
-                    gridmap[elecPE].energy += charge[ia] * inv_rmax * invdielcal * FE_coeff_estat;
+                    gridmap[elecPE].energy += charge[ia] * inv_rmax * invdielcal * AD4.coeff_estat;
                 }
 
                 /*
@@ -2433,16 +2367,15 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 (void) fprintf(logFile, "\nGrid\tAtom\tMinimum   \tMaximum\n");
 (void) fprintf(logFile, "Map \tType\tEnergy    \tEnergy \n");
 (void) fprintf(logFile, "\t\t(kcal/mol)\t(kcal/mol)\n");
-(void) fprintf(logFile, "___\t____\t_____________\t_____________\n");
+(void) fprintf(logFile, "____\t____\t_____________\t_____________\n");
 
 for (i = 0;  i < num_atom_maps;  i++) {
-    (void) fprintf( logFile, " %d\t %s\t  %6.2lf\t%6.2le\n", i + 1, gridmap[i].type, gridmap[i].energy_min, gridmap[i].energy_max);
-    /*(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%6.2le\n", i + 1, gridmap[i].atom_type, gridmap[i].energy_min, gridmap[i].energy_max);*/
+    (void) fprintf( logFile, " %d\t %s\t  %6.2lf\t%9.2le\n", i + 1, gridmap[i].type, gridmap[i].energy_min, gridmap[i].energy_max);
 }
 
-(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%6.2le\tElectrostatic Potential\n", num_atom_maps + 1, 'e', gridmap[elecPE].energy_min, gridmap[i].energy_max);
+(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%9.2le\tElectrostatic Potential\n", num_atom_maps + 1, 'e', gridmap[elecPE].energy_min, gridmap[i].energy_max);
 
-(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%6.2le\tDesolvation Potential\n", num_atom_maps + 2, 'd', gridmap[dsolvPE].energy_min, gridmap[i+1].energy_max);
+(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%9.2le\tDesolvation Potential\n", num_atom_maps + 2, 'd', gridmap[dsolvPE].energy_min, gridmap[i+1].energy_max);
 (void) fprintf( logFile, "\n\n * Note:  Every pairwise-atomic interaction was clamped at %.2f\n\n", EINTCLAMP);
 
 /*
