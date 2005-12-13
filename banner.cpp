@@ -48,16 +48,16 @@ void banner( double version_num )
 (void) fprintf(logFile,"                 |        David S. Goodsell, TSRI       |\n");
 (void) fprintf(logFile,"                 |         Arthur J. Olson, TSRI        |\n");
 (void) fprintf(logFile,"                 |                                      |\n");
-(void) fprintf(logFile,"                 |           (c) 2004, TSRI             |\n");
+(void) fprintf(logFile,"                 |        (c) 1989-2005, TSRI           |\n");
 (void) fprintf(logFile,"                 |   The Scripps Research Institute     |\n");
 (void) fprintf(logFile,"                 |______________________________________|\n");
 (void) fprintf(logFile,"\n");
 (void) fprintf(logFile,"                  ______________________________________ \n");
 (void) fprintf(logFile,"                 |                                      |\n");
-(void) fprintf(logFile,"                 | Calculation of Non-Bond and Electro- |\n");
-(void) fprintf(logFile,"                 | static Energy Grid Maps for AutoDock |\n");
-(void) fprintf(logFile,"                 |   Including Solvation Free Energy    |\n");
-(void) fprintf(logFile,"                 |       and Optional Disordered-H      |\n");
+(void) fprintf(logFile,"                 | Calculation of van der Waals, H-Bond,|\n");
+(void) fprintf(logFile,"                 |   Electrostatic Potential Energy, &  |\n");
+(void) fprintf(logFile,"                 |   Desolvation Free Energy Grid Maps  |\n");
+(void) fprintf(logFile,"                 |             for AutoDock             |\n");
 (void) fprintf(logFile,"                 |______________________________________|\n");
 (void) fprintf(logFile,"\n");
 
