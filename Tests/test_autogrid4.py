@@ -1,10 +1,10 @@
 #
 # 
 #
-# $Id: test_autogrid4.py,v 1.2 2005/05/13 17:14:59 rhuey Exp $
+# $Id: test_autogrid4.py,v 1.3 2005/12/13 01:35:10 garrett Exp $
 #
 """
-
+Test AutoGrid.
 """
 
 
@@ -14,9 +14,9 @@ import unittest
 from string import split, strip
 
 built_maps = False
+built_maps_no_parameter_library = False
 
 class Autogrid4_hsg1_sm_test(unittest.TestCase):
-    
     
     def setUp(self):
         """Set up for autogrid4 tests.
@@ -137,5 +137,39 @@ class Autogrid4_hsg1_sm_test(unittest.TestCase):
         self.compare_autogrid4_maps("hsg1_sm", 'OA')
 
 
+class Autogrid4_hsg1_sm_no_parameter_library_test(Autogrid4_hsg1_sm_test):
+
+    def setUp(self):
+        """Set up for autogrid4 tests.
+        Locate the autogrid binary now during setUp.
+        """
+        global built_maps_no_parameter_library
+        self.autogrid = "../autogrid4"
+
+        if not built_maps_no_parameter_library:
+            # Make sure you remove all the products of AutoGrid from
+            # any previous tests.
+            command = "rm -f hsg1_sm.*map*"
+            os.system(command)
+            print "removed prior maps;",
+            gpf_filename = 'hsg1_sm_no_parameter_file.gpf'
+            glg_filename = 'hsg1_sm.glg'
+            # run autogrid4
+            cmd_str = "%s -p %s -l %s" % \
+                  (self.autogrid, gpf_filename, glg_filename)
+            print "compute new maps:\n", cmd_str
+            (i,o,e) = os.popen3(cmd_str) # trap all the outputs
+            ###print 'waiting...'
+            os.wait() # for the child process to finish
+            ###print "after wait"
+            built_maps_no_parameter_library = True
+
 if __name__ == '__main__':
-    unittest.main()
+    test_cases = [
+        'Autogrid4_hsg1_sm_test',
+        'Autogrid4_hsg1_sm_no_parameter_library_test'
+    ]
+    unittest.main( argv=([__name__,] + test_cases))  # non-verbose output
+    # optional:  for verbose output, use this:
+    # unittest.main( argv=([__name__, '-v'] + test_cases)) # verbose output
+
