@@ -1,6 +1,6 @@
 /* banner.c */
 /*
- * $Id: banner.cpp,v 1.10 2005/12/13 02:04:05 garrett Exp $
+ * $Id: banner.cpp,v 1.11 2005/12/13 02:15:49 garrett Exp $
  */
 
 #include <stdio.h>
@@ -65,7 +65,6 @@ void banner( double version_num )
 (void) fprintf(logFile,"\n");
 (void) fprintf(logFile,"\n");
 (void) fprintf(logFile,"\n");
-(void) fprintf(logFile,"$Revision: 1.10 $\n");
 (void) fprintf(logFile,"\n");
 
 }
