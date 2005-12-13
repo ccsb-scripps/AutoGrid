@@ -1,6 +1,6 @@
 /* AutoGrid */
 /*
-  $Id: mainpost1.28.cpp,v 1.45 2005/12/13 02:10:12 garrett Exp $
+  $Id: mainpost1.28.cpp,v 1.46 2005/12/13 02:12:29 garrett Exp $
 */
 
 
@@ -465,7 +465,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                             $Revision: 1.45 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.46 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
