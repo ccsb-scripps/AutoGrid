@@ -1,8 +1,14 @@
 #
 # Makefile to build AutoGrid from Object files.
 #
-# (c) 1994-2004, TSRI
+# $Revision: 1.15 $
+#
+# (c) 1994-2005, TSRI
 # Garrett M. Morris, Ruth Huey, David S. Goodsell
+#
+
+#
+# $Id: Makefile,v 1.15 2005/12/13 01:37:30 garrett Exp $
 #
 
 EXE = .
