@@ -1,4 +1,7 @@
 /* banner.c */
+/*
+ * $Id: banner.cpp,v 1.10 2005/12/13 02:04:05 garrett Exp $
+ */
 
 #include <stdio.h>
 #include "autogrid.h"
@@ -39,26 +42,30 @@ void banner( double version_num )
 (void) fprintf(logFile,"\n");
 
 (void) fprintf(logFile,"\n");
-(void) fprintf(logFile,"                  ______________________________________ \n");
-(void) fprintf(logFile,"                 |                                      |\n");
-(void) fprintf(logFile,"                 |            AutoGrid %3.2lf             |\n",version_num);
-(void) fprintf(logFile,"                 |                                      |\n");
-(void) fprintf(logFile,"                 |        Garrett M. Morris, TSRI       |\n");
-(void) fprintf(logFile,"                 |            Ruth Huey, TSRI           |\n");
-(void) fprintf(logFile,"                 |        David S. Goodsell, TSRI       |\n");
-(void) fprintf(logFile,"                 |         Arthur J. Olson, TSRI        |\n");
-(void) fprintf(logFile,"                 |                                      |\n");
-(void) fprintf(logFile,"                 |        (c) 1989-2005, TSRI           |\n");
-(void) fprintf(logFile,"                 |   The Scripps Research Institute     |\n");
-(void) fprintf(logFile,"                 |______________________________________|\n");
+(void) fprintf(logFile,"                ______________________________________ \n");
+(void) fprintf(logFile,"               |                                      |\n");
+(void) fprintf(logFile,"               |            AutoGrid %3.2lf             |\n",version_num);
+(void) fprintf(logFile,"               |                                      |\n");
+(void) fprintf(logFile,"               |        Garrett M. Morris, TSRI       |\n");
+(void) fprintf(logFile,"               |            Ruth Huey, TSRI           |\n");
+(void) fprintf(logFile,"               |        David S. Goodsell, TSRI       |\n");
+(void) fprintf(logFile,"               |         Arthur J. Olson, TSRI        |\n");
+(void) fprintf(logFile,"               |                                      |\n");
+(void) fprintf(logFile,"               |        (c) 1989-2005, TSRI           |\n");
+(void) fprintf(logFile,"               |   The Scripps Research Institute     |\n");
+(void) fprintf(logFile,"               |______________________________________|\n");
 (void) fprintf(logFile,"\n");
-(void) fprintf(logFile,"                  ______________________________________ \n");
-(void) fprintf(logFile,"                 |                                      |\n");
-(void) fprintf(logFile,"                 | Calculation of van der Waals, H-Bond,|\n");
-(void) fprintf(logFile,"                 |   Electrostatic Potential Energy, &  |\n");
-(void) fprintf(logFile,"                 |   Desolvation Free Energy Grid Maps  |\n");
-(void) fprintf(logFile,"                 |             for AutoDock             |\n");
-(void) fprintf(logFile,"                 |______________________________________|\n");
+(void) fprintf(logFile,"                ______________________________________ \n");
+(void) fprintf(logFile,"               |                                      |\n");
+(void) fprintf(logFile,"               | Calculation of van der Waals, H-Bond,|\n");
+(void) fprintf(logFile,"               |   Electrostatic Potential Energy, &  |\n");
+(void) fprintf(logFile,"               |   Desolvation Free Energy Grid Maps  |\n");
+(void) fprintf(logFile,"               |             for AutoDock             |\n");
+(void) fprintf(logFile,"               |______________________________________|\n");
+(void) fprintf(logFile,"\n");
+(void) fprintf(logFile,"\n");
+(void) fprintf(logFile,"\n");
+(void) fprintf(logFile,"$Revision: 1.10 $\n");
 (void) fprintf(logFile,"\n");
 
 }
