@@ -1,5 +1,5 @@
-npts 5 5 5                          # num.grid points in xyz
 parameter_file AD4_parameters.dat   # force field default parm file
+npts 4 4 4                          # num.grid points in xyz
 gridfld hsg1_sm.maps.fld            # grid_data_file
 spacing 0.375                       # spacing(A)
 receptor_types A C HD N NA OA SA    # receptor atom types
