@@ -1,8 +1,8 @@
-# $Id: AD4_parameters.dat,v 1.6 2006/06/09 20:04:45 garrett Exp $
+# $Id: AD4_parameters.dat,v 1.7 2006/07/10 23:13:28 garrett Exp $
 
 # AutoDock Linear Free Energy Model Coefficients and Energetic Parameters
 #                        Version 1.0
-#                     $Revision: 1.6 $
+#                     $Revision: 1.7 $
 
 # AutoDock 4 free energy coefficients with respect to original (AD2) energetic parameters
 #
@@ -14,7 +14,7 @@ FE_coeff_estat  0.1465
 FE_coeff_desolv 0.1159
 FE_coeff_tors   0.2744
 
-# AutoDock 4 Energetic Parameters
+# AutoDock 4 Energy Parameters
 
 # - Atomic solvation volumes and parameters
 # - Unweighted vdW and Unweighted H-bond Well Depths
@@ -57,7 +57,7 @@ atom_par A      4.00  0.150  33.5103  -0.00052  0.0  0.0  0  -1  -1  0	# Non H-b
 atom_par N      3.50  0.160  22.4493  -0.00162  0.0  0.0  0  -1  -1  1	# Non H-bonding Nitrogen
 atom_par NA     3.50  0.160  22.4493  -0.00162  1.9  5.0  4  -1  -1  1	# Acceptor 1 H-bond Nitrogen
 atom_par NS     3.50  0.160  22.4493  -0.00162  1.9  5.0  3  -1  -1  1	# Acceptor S Spherical Nitrogen
-atom_par OA     3.20  0.200  17.1573  -0.00251  1.9  5.0  3  -1  -1  2	# Acceptor 2 H-bonds Oxygen
+atom_par OA     3.20  0.200  17.1573  -0.00251  1.9  5.0  5  -1  -1  2	# Acceptor 2 H-bonds Oxygen
 atom_par OS     3.20  0.200  17.1573  -0.00251  1.9  5.0  3  -1  -1  2	# Acceptor S Spherical Oxygen
 atom_par F      3.09  0.080  15.4480  -0.00110  0.0  0.0  0  -1  -1  4	# Non H-bonding Fluorine
 atom_par Mg     1.30  0.875   1.5600  -0.00110  0.0  0.0  0  -1  -1  4	# Non H-bonding Magnesium
