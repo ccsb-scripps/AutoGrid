@@ -85,7 +85,7 @@
 #define MAX_TORS_IN_ROTAMER 8 /* Maximum number of torsions in rotamer. */
 #define MAX_TOR_CON  8        /* Maximum number of constraints per torsion. */
 
-/* Note, torsion constraints will allocate (MAX_TORS *MAX_TOR_CON *2) FloatOrDoubles */
+/* Note, torsion constraints will allocate (MAX_TORS *MAX_TOR_CON *2) Reals */
 
 #define NTORDIVS     256      /* Integer # angular divisions in torsion profiles*/
 #define NTORDIVS_2   128      /* Integer half of NTORDIVS */
@@ -97,7 +97,7 @@
 #define Rad2Div(radians) ((int)((radians)*ONE_RAD_IN_DIVS) + NTORDIVS_2)
 
 /* Convert index to angle */
-#define Div2Rad(divs) (((FloatOrDouble)((divs) - NTORDIVS_2))/ONE_RAD_IN_DIVS)
+#define Div2Rad(divs) (((Real)((divs) - NTORDIVS_2))/ONE_RAD_IN_DIVS)
 
 #define TORBARMAX    65535    /* Torsion barrier-energy maximum value */
 #define DEFHWDTH     10.      /* Default half-width (deg)for torsion-constraints*/
@@ -236,7 +236,7 @@
 /*
  * #define        RedFac(s0,sN,N)                expf( logf((sN)/(s0)) / ((N)-1))
  * N.B. You must compile with ANSI (-Aa on HPPA) in order to use expf 
- * and logf, otherwise FloatOrDoubles are automatically promoted to doubles.
+ * and logf, otherwise Reals are automatically promoted to doubles.
  */
 #define        RedFac(s0,sN,N)    exp( log((sN)/(s0)) / ((N)-1))
 
@@ -253,7 +253,7 @@
 
 
 /* index_to_Ang converts from an array index to a distance */
-#define index_to_Ang(i)           ( ( (FloatOrDouble) (i) ) * INV_A_DIV )
+#define index_to_Ang(i)           ( ( (Real) (i) ) * INV_A_DIV )
 
 /* Ang_to_index converts from a distance to an array index */
 #define Ang_to_index(r)           ( (int) ( (r) * A_DIV ) )
@@ -262,7 +262,7 @@
 #define BoundedAng_to_index(r)    ((((int)((r)*A_DIV)) > NEINT_1) ? NEINT_1 : ((int)((r)*A_DIV))
 
 /* index_to_SqAng converts from an array index to the square of a distance */
-#define index_to_SqAng(i)         ( ( (FloatOrDouble) (i) ) * INV_SQA_DIV )
+#define index_to_SqAng(i)         ( ( (Real) (i) ) * INV_SQA_DIV )
 
 /* SqAng_to_index converts from the square of a distance to an array index */
 #define SqAng_to_index(r2)        ( (int) ( (r2) * SQA_DIV ) )
@@ -366,15 +366,15 @@
 #define _CONST_INT
 
 /*
- * const int and const FloatOrDouble are allowed by the SGI "CC" compiler
+ * const int and const Real are allowed by the SGI "CC" compiler
  */
 
 #ifdef sgi
 #define CONST_INT const int
-#define CONST_FLOAT const FloatOrDouble
+#define CONST_FLOAT const Real
 #else /* Not on an SGI */
 #define CONST_INT int
-#define CONST_FLOAT FloatOrDouble
+#define CONST_FLOAT Real
 #endif /*sgi*/
 
 #endif /* _CONST_INT */

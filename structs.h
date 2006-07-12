@@ -82,11 +82,11 @@ typedef struct state
 
 typedef struct molecule
 {
-  FloatOrDouble     crdpdb[MAX_ATOMS][SPACE];	    /* original coordinates of atoms */
-  FloatOrDouble     crd[MAX_ATOMS][SPACE];      	/* current coordinates of atoms */
+  Real     crdpdb[MAX_ATOMS][SPACE];	    /* original coordinates of atoms */
+  Real     crd[MAX_ATOMS][SPACE];      	/* current coordinates of atoms */
   char              atomstr[MAX_ATOMS][MAX_CHARS];	/* strings describing atoms, from PDB file, cols,1-30. */
   int               natom;			                /* number of atoms in molecule */
-  FloatOrDouble     vt[MAX_TORS][SPACE];        	/* vectors  of torsions */
+  Real     vt[MAX_TORS][SPACE];        	/* vectors  of torsions */
   int               tlist[MAX_TORS][MAX_ATOMS];	    /* torsion list of movable atoms */
   State             S;		                    	/* state of molecule */
 } Molecule;
@@ -209,10 +209,10 @@ typedef struct linear_FE_model
 
 typedef struct energy_tables
 {
-    FloatOrDouble e_vdW_Hb[NEINT][ATOM_MAPS][ATOM_MAPS];  // vdW & Hb energies
-    FloatOrDouble sol_fn[NEINT];                            // distance-dependent desolvation function
-    FloatOrDouble epsilon_fn[NDIEL];                        // distance-dependent dielectric function
-    FloatOrDouble r_epsilon_fn[NDIEL];                      // r * distance-dependent dielectric function
+    Real e_vdW_Hb[NEINT][ATOM_MAPS][ATOM_MAPS];  // vdW & Hb energies
+    Real sol_fn[NEINT];                            // distance-dependent desolvation function
+    Real epsilon_fn[NDIEL];                        // distance-dependent dielectric function
+    Real r_epsilon_fn[NDIEL];                      // r * distance-dependent dielectric function
 } EnergyTables;
 
 

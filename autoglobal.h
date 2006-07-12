@@ -63,9 +63,9 @@ FILE    *GPF;
 FILE    *logFile;
 
 #ifdef USE_DOUBLE
-FloatOrDouble	idct = 1.0L;
+Real	idct = 1.0L;
 #else
-FloatOrDouble	idct = 1.0;
+Real	idct = 1.0;
 #endif
 
 Linear_FE_Model AD3;
@@ -122,8 +122,8 @@ FILE    *stateFile;
 int     write_stateFile = FALSE;
 /*
 ** struct  Quat {
-**             FloatOrDouble angle;
-**             FloatOrDouble vec[SPACE];
+**             Real angle;
+**             Real vec[SPACE];
 **             };
 */
 

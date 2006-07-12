@@ -1,5 +1,5 @@
 #ifndef PRINTHMS
 #define PRINTHMS
 #include "typedefs.h"
-void  printhms( FloatOrDouble t );
+void  printhms( Real t );
 #endif

@@ -29,9 +29,9 @@
 #endif
 
 #ifdef USE_DOUBLE
-    typedef double FloatOrDouble;
+    typedef double Real;
 #else
-    typedef float FloatOrDouble;
+    typedef float Real;
 #endif
 
 #ifdef USE_VELOCITY_ENGINE

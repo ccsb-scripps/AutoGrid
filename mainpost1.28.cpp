@@ -1,6 +1,6 @@
 /* AutoGrid */
 /*
-  $Id: mainpost1.28.cpp,v 1.47 2006/07/12 17:17:13 rhuey Exp $
+  $Id: mainpost1.28.cpp,v 1.48 2006/07/12 21:24:12 garrett Exp $
 */
 
 
@@ -180,7 +180,7 @@ char * maptypeptr; /*ptr for current map->type*/
 MapObject *gridmap; /* was statically assigned  MapObject gridmap[MAX_MAPS]; */
 
 /* needed to make regression tests work between platforms*/
-FloatOrDouble *dummy_map;
+Real *dummy_map;
 
 /*variables for RECEPTOR:*/
 /*each type is now at most two characters, eg 'NA\0'*/
@@ -465,7 +465,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.47 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.48 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -937,7 +937,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         /* Check to see if the number of grid points requested will be
          * feasible; give warning if not enough memory. */
         if (num_grid_points_per_map != INIT_NUM_GRID_PTS) {
-            dummy_map = (FloatOrDouble *)malloc(sizeof(FloatOrDouble) * (num_maps * num_grid_points_per_map));
+            dummy_map = (Real *)malloc(sizeof(Real) * (num_maps * num_grid_points_per_map));
             if (!dummy_map) {
                 /* Too many maps requested */
                 (void) sprintf(message, "\n%s: WARNING:  There will not be enough memory to store these grid maps in AutoDock; \ntry reducing the number of ligand atom types (you have %d including electrostatics) \nor reducing the size of the grid maps (you asked for %d x %d x %d grid points); \n or try running AutoDock on a machine with more RAM than this one.\n", programname, num_maps, n1[X], n1[Y], n1[Z]);

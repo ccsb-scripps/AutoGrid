@@ -1,6 +1,6 @@
 /*
 
- $Id: printhms.cpp,v 1.4 2005/09/27 22:58:40 garrett Exp $
+ $Id: printhms.cpp,v 1.5 2006/07/12 21:24:12 garrett Exp $
 
 */
 
@@ -15,19 +15,19 @@
 
 extern FILE *logFile;
 
-void printhms( FloatOrDouble t )
+void printhms( Real t )
 
 {
     int   h,
           m;
-    FloatOrDouble T, s;
-    FloatOrDouble min = 60.,
+    Real T, s;
+    Real min = 60.,
 	  hrs = 3600.;
 
     h = (int)(t/hrs);
-    T = t - ((FloatOrDouble)h)*hrs;
+    T = t - ((Real)h)*hrs;
     m = (int)(T/min);
-    s = T - ((FloatOrDouble)m)*min;
+    s = T - ((Real)m)*min;
 
     if (h == 0) {
         if (m == 0)
