@@ -1,6 +1,6 @@
 /* AutoGrid */
 /*
-  $Id: mainpost1.28.cpp,v 1.46 2005/12/13 02:12:29 garrett Exp $
+  $Id: mainpost1.28.cpp,v 1.47 2006/07/12 17:17:13 rhuey Exp $
 */
 
 
@@ -465,7 +465,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.46 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.47 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -600,7 +600,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 found_parm = apm_find(thisparm.autogrid_type);
                 if (found_parm != NULL){
                     if (found_parm->rec_index<0){
+                        strcpy(receptor_types[receptor_types_ct], found_parm->autogrid_type);
                         found_parm->rec_index = receptor_types_ct++;
+
                     }
                     atom_type[ia] = found_parm->rec_index;
                     solpar[ia] = found_parm->solpar;
