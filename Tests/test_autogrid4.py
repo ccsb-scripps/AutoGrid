@@ -1,7 +1,7 @@
 #
 # 
 #
-# $Id: test_autogrid4.py,v 1.3 2005/12/13 01:35:10 garrett Exp $
+# $Id: test_autogrid4.py,v 1.4 2006/07/12 17:14:39 rhuey Exp $
 #
 """
 Test AutoGrid.
@@ -15,6 +15,8 @@ from string import split, strip
 
 built_maps = False
 built_maps_no_parameter_library = False
+built_maps_no_receptor_types = False #parse all the receptor types from receptor input file
+built_maps_minus_two_types = False  #parse two extra the receptor types from receptor input file
 
 class Autogrid4_hsg1_sm_test(unittest.TestCase):
     
@@ -30,13 +32,13 @@ class Autogrid4_hsg1_sm_test(unittest.TestCase):
             # any previous tests.
             command = "rm -f hsg1_sm.*map*"
             os.system(command)
-            print "removed prior maps;",
+            #print "removed prior maps;",
             gpf_filename = 'hsg1_sm.gpf'
             glg_filename = 'hsg1_sm.glg'
             # run autogrid4
             cmd_str = "%s -p %s -l %s" % \
                   (self.autogrid, gpf_filename, glg_filename)
-            print "compute new maps:\n", cmd_str
+            #print "compute new maps:\n", cmd_str
             (i,o,e) = os.popen3(cmd_str) # trap all the outputs
             ###print 'waiting...'
             os.wait() # for the child process to finish
@@ -52,7 +54,7 @@ class Autogrid4_hsg1_sm_test(unittest.TestCase):
     def run_cmd(self, cmd_str):
         global built_maps
         (i,o,e) = os.popen3(cmd_str) # trap all the outputs
-        print 'calculating maps...'
+        #print 'calculating maps...'
         os.wait() # for the child process to finish
         built_maps = True
 
@@ -151,23 +153,83 @@ class Autogrid4_hsg1_sm_no_parameter_library_test(Autogrid4_hsg1_sm_test):
             # any previous tests.
             command = "rm -f hsg1_sm.*map*"
             os.system(command)
-            print "removed prior maps;",
+            #print "removed prior maps;",
             gpf_filename = 'hsg1_sm_no_parameter_file.gpf'
             glg_filename = 'hsg1_sm.glg'
             # run autogrid4
             cmd_str = "%s -p %s -l %s" % \
                   (self.autogrid, gpf_filename, glg_filename)
-            print "compute new maps:\n", cmd_str
+            #print "compute new maps:\n", cmd_str
             (i,o,e) = os.popen3(cmd_str) # trap all the outputs
             ###print 'waiting...'
             os.wait() # for the child process to finish
             ###print "after wait"
             built_maps_no_parameter_library = True
 
+
+class Autogrid4_hsg1_sm_no_receptor_types_test(Autogrid4_hsg1_sm_test):
+
+    def setUp(self):
+        """Set up for autogrid4 tests.
+        Locate the autogrid binary now during setUp.
+        """
+        global built_maps_no_receptor_types
+        self.autogrid = "../autogrid4"
+
+        if not built_maps_no_receptor_types:
+            # Make sure you remove all the products of AutoGrid from
+            # any previous tests.
+            command = "rm -f hsg1_sm.*map*"
+            os.system(command)
+            #print "removed prior maps;",
+            gpf_filename = 'hsg1_no_receptor_types.gpf'
+            glg_filename = 'hsg1_sm.glg'
+            # run autogrid4
+            cmd_str = "%s -p %s -l %s" % \
+                  (self.autogrid, gpf_filename, glg_filename)
+            #print "compute new maps:\n", cmd_str
+            (i,o,e) = os.popen3(cmd_str) # trap all the outputs
+            #print 'waiting...'
+            os.wait() # for the child process to finish
+            #print "after wait"
+            built_maps_no_receptor_types = True
+
+
+class Autogrid4_hsg1_sm_minus_two_types_test(Autogrid4_hsg1_sm_test):
+
+    def setUp(self):
+        """Set up for autogrid4 tests.
+        Locate the autogrid binary now during setUp.
+        """
+        global built_maps_minus_two_types
+        self.autogrid = "../autogrid4"
+
+        if not built_maps_minus_two_types:
+            # Make sure you remove all the products of AutoGrid from
+            # any previous tests.
+            command = "rm -f hsg1_sm.*map*"
+            os.system(command)
+            #print "removed prior maps;",
+            gpf_filename = 'hsg1_no_receptor_types.gpf'
+            glg_filename = 'hsg1_sm.glg'
+            # run autogrid4
+            cmd_str = "%s -p %s -l %s" % \
+                  (self.autogrid, gpf_filename, glg_filename)
+            #print "compute new maps:\n", cmd_str
+            (i,o,e) = os.popen3(cmd_str) # trap all the outputs
+            #print 'waiting...'
+            os.wait() # for the child process to finish
+            #print "after wait"
+            built_maps_minus_two_types = True
+
+
+
 if __name__ == '__main__':
     test_cases = [
         'Autogrid4_hsg1_sm_test',
-        'Autogrid4_hsg1_sm_no_parameter_library_test'
+        'Autogrid4_hsg1_sm_no_parameter_library_test',
+        'Autogrid4_hsg1_sm_no_receptor_types_test',
+        'Autogrid4_hsg1_sm_minus_two_types_test',
     ]
     unittest.main( argv=([__name__,] + test_cases))  # non-verbose output
     # optional:  for verbose output, use this:
