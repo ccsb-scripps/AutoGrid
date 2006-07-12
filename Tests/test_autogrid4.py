@@ -1,7 +1,7 @@
 #
 # 
 #
-# $Id: test_autogrid4.py,v 1.4 2006/07/12 17:14:39 rhuey Exp $
+# $Id: test_autogrid4.py,v 1.5 2006/07/12 17:37:23 rhuey Exp $
 #
 """
 Test AutoGrid.
@@ -15,8 +15,8 @@ from string import split, strip
 
 built_maps = False
 built_maps_no_parameter_library = False
-built_maps_no_receptor_types = False #parse all the receptor types from receptor input file
-built_maps_minus_two_types = False  #parse two extra the receptor types from receptor input file
+built_maps_no_receptor_types = False #parse all the receptor types from the receptor input file
+built_maps_minus_two_types = False  #parse two extra receptor types from the receptor input file
 
 class Autogrid4_hsg1_sm_test(unittest.TestCase):
     
@@ -90,7 +90,6 @@ class Autogrid4_hsg1_sm_test(unittest.TestCase):
                 self.assertAlmostEquals(c_num, py_num, precision)
 
 
-
     def test_hsg1_estat(self):
         """test_hsg1 estat case"""
         # compare resulting map with saved map
@@ -137,6 +136,7 @@ class Autogrid4_hsg1_sm_test(unittest.TestCase):
         """test_hsg1 OA case"""
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'OA')
+
 
 
 class Autogrid4_hsg1_sm_no_parameter_library_test(Autogrid4_hsg1_sm_test):
