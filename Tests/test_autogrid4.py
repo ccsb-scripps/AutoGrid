@@ -1,7 +1,7 @@
 #
 # 
 #
-# $Id: test_autogrid4.py,v 1.5 2006/07/12 17:37:23 rhuey Exp $
+# $Id: test_autogrid4.py,v 1.6 2006/07/13 15:30:17 rhuey Exp $
 #
 """
 Test AutoGrid.
@@ -14,9 +14,14 @@ import unittest
 from string import split, strip
 
 built_maps = False
+#no parameter library keyword 
 built_maps_no_parameter_library = False
-built_maps_no_receptor_types = False #parse all the receptor types from the receptor input file
-built_maps_minus_two_types = False  #parse two extra receptor types from the receptor input file
+#parse all the receptor types from the receptor input file
+built_maps_no_receptor_types = False 
+#parse two extra receptor types from the receptor input file
+built_maps_minus_two_types = False  
+#no receptor types, ligand_types keyword preceeds receptor filename
+built_maps_ligand_types_before_receptor = False 
 
 class Autogrid4_hsg1_sm_test(unittest.TestCase):
     
@@ -223,6 +228,34 @@ class Autogrid4_hsg1_sm_minus_two_types_test(Autogrid4_hsg1_sm_test):
             built_maps_minus_two_types = True
 
 
+class Autogrid4_ligand_types_before_receptor_test(Autogrid4_hsg1_sm_test):
+
+    def setUp(self):
+        """Set up for autogrid4 tests.
+        Locate the autogrid binary now during setUp.
+        """
+        global built_maps_minus_two_types
+        self.autogrid = "../autogrid4"
+
+        if not built_maps_minus_two_types:
+            # Make sure you remove all the products of AutoGrid from
+            # any previous tests.
+            command = "rm -f hsg1_sm.*map*"
+            os.system(command)
+            #print "removed prior maps;",
+            gpf_filename = 'hsg1_ligand_types_before_receptor.gpf'
+            glg_filename = 'hsg1_sm.glg'
+            # run autogrid4
+            cmd_str = "%s -p %s -l %s" % \
+                  (self.autogrid, gpf_filename, glg_filename)
+            #print "compute new maps:\n", cmd_str
+            (i,o,e) = os.popen3(cmd_str) # trap all the outputs
+            #print 'waiting...'
+            os.wait() # for the child process to finish
+            #print "after wait"
+            built_maps_ligand_types_before_receptor = True
+
+
 
 if __name__ == '__main__':
     test_cases = [
@@ -230,6 +263,7 @@ if __name__ == '__main__':
         'Autogrid4_hsg1_sm_no_parameter_library_test',
         'Autogrid4_hsg1_sm_no_receptor_types_test',
         'Autogrid4_hsg1_sm_minus_two_types_test',
+        'Autogrid4_ligand_types_before_receptor_test',
     ]
     unittest.main( argv=([__name__,] + test_cases))  # non-verbose output
     # optional:  for verbose output, use this:
