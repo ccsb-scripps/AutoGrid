@@ -15,4 +15,4 @@ map hsg1_sm.NA.map                  # atom-specific affinity map
 map hsg1_sm.OA.map                  # atom-specific affinity map
 elecmap hsg1_sm.e.map               # electrostatic potential map
 dsolvmap hsg1_sm.d.map              # desolvation potential map
-dielectric -0.1146                  # <0, distance-dep.diel;>0, constant
+dielectric -l                       # <0, distance-dep.diel;>0, constant
