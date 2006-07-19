@@ -1,7 +1,7 @@
 #
 # 
 #
-# $Id: test_autogrid4.py,v 1.6 2006/07/13 15:30:17 rhuey Exp $
+# $Id: test_autogrid4.py,v 1.7 2006/07/19 17:33:20 rhuey Exp $
 #
 """
 Test AutoGrid.
@@ -99,48 +99,64 @@ class Autogrid4_hsg1_sm_test(unittest.TestCase):
         """test_hsg1 estat case"""
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'e')
+        command = "rm -f hsg1_sm.e.map"
+        os.system(command)
 
 
     def test_hsg1_dsolv(self):
         """test_hsg1 dsolv case"""
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'd')
+        command = "rm -f hsg1_sm.d.map"
+        os.system(command)
 
 
     def test_hsg1_A(self):
         """test_hsg1 A case"""
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'A')
+        command = "rm -f hsg1_sm.A.map"
+        os.system(command)
 
 
     def test_hsg1_C(self):
         """test_hsg1 C case"""
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'C')
+        command = "rm -f hsg1_sm.C.map"
+        os.system(command)
  
 
     def test_hsg1_N(self):
         """test_hsg1 N case"""
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'N')
+        command = "rm -f hsg1_sm.N.map"
+        os.system(command)
 
 
     def test_hsg1_HD(self):
         """test_hsg1 HD case"""
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'HD')
+        command = "rm -f hsg1_sm.HD.map"
+        os.system(command)
 
 
     def test_hsg1_NA(self):
         """test_hsg1 NA case"""
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'NA')
+        command = "rm -f hsg1_sm.NA.map"
+        os.system(command)
 
 
     def test_hsg1_OA(self):
         """test_hsg1 OA case"""
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'OA')
+        command = "rm -f hsg1_sm.OA.map"
+        os.system(command)
 
 
 
@@ -228,32 +244,32 @@ class Autogrid4_hsg1_sm_minus_two_types_test(Autogrid4_hsg1_sm_test):
             built_maps_minus_two_types = True
 
 
-class Autogrid4_ligand_types_before_receptor_test(Autogrid4_hsg1_sm_test):
+#class Autogrid4_ligand_types_before_receptor_test(Autogrid4_hsg1_sm_test):
 
-    def setUp(self):
-        """Set up for autogrid4 tests.
-        Locate the autogrid binary now during setUp.
-        """
-        global built_maps_minus_two_types
-        self.autogrid = "../autogrid4"
+#    def setUp(self):
+#        """Set up for autogrid4 tests.
+#        Locate the autogrid binary now during setUp.
+#        """
+#        global built_maps_ligand_types_before_receptor
+#        self.autogrid = "../autogrid4"
 
-        if not built_maps_minus_two_types:
-            # Make sure you remove all the products of AutoGrid from
-            # any previous tests.
-            command = "rm -f hsg1_sm.*map*"
-            os.system(command)
-            #print "removed prior maps;",
-            gpf_filename = 'hsg1_ligand_types_before_receptor.gpf'
-            glg_filename = 'hsg1_sm.glg'
-            # run autogrid4
-            cmd_str = "%s -p %s -l %s" % \
-                  (self.autogrid, gpf_filename, glg_filename)
-            #print "compute new maps:\n", cmd_str
-            (i,o,e) = os.popen3(cmd_str) # trap all the outputs
-            #print 'waiting...'
-            os.wait() # for the child process to finish
-            #print "after wait"
-            built_maps_ligand_types_before_receptor = True
+#        if not built_maps_ligand_types_before_receptor:
+#            # Make sure you remove all the products of AutoGrid from
+#            # any previous tests.
+#            command = "rm -f hsg1_sm.*map*"
+#            os.system(command)
+#            #print "removed prior maps;",
+#            gpf_filename = 'hsg1_ligand_types_before_receptor.gpf'
+#            glg_filename = 'hsg1_sm.glg'
+#            # run autogrid4
+#            cmd_str = "%s -p %s -l %s" % \
+#                  (self.autogrid, gpf_filename, glg_filename)
+#            #print "compute new maps:\n", cmd_str
+#            (i,o,e) = os.popen3(cmd_str) # trap all the outputs
+#            #print 'waiting...'
+#            os.wait() # for the child process to finish
+#            #print "after wait"
+#            built_maps_ligand_types_before_receptor = True
 
 
 
@@ -263,7 +279,7 @@ if __name__ == '__main__':
         'Autogrid4_hsg1_sm_no_parameter_library_test',
         'Autogrid4_hsg1_sm_no_receptor_types_test',
         'Autogrid4_hsg1_sm_minus_two_types_test',
-        'Autogrid4_ligand_types_before_receptor_test',
+        #'Autogrid4_ligand_types_before_receptor_test',
     ]
     unittest.main( argv=([__name__,] + test_cases))  # non-verbose output
     # optional:  for verbose output, use this:
