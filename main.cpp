@@ -1,6 +1,6 @@
 /* AutoGrid */
 /*
-  $Id: main.cpp,v 1.48 2006/07/12 21:24:12 garrett Exp $
+  $Id: main.cpp,v 1.49 2006/07/19 17:31:57 rhuey Exp $
 */
 
 
@@ -465,7 +465,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.48 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.49 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1469,6 +1469,18 @@ for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
  * Loop over all RECEPTOR atoms to
  * calculate bond vectors for directional H-bonds
  **************************************************/
+ //setup the canned atom types here....
+//at this point set up hydrogen, carbon, oxygen and nitrogen
+hydrogen = get_rec_index("HD");
+nonHB_hydrogen = get_rec_index("H");
+carbon = get_rec_index("C");
+arom_carbon = get_rec_index("A");
+oxygen = get_rec_index("OA");
+nitrogen = get_rec_index("NA");
+nonHB_nitrogen = get_rec_index("N");
+sulphur = get_rec_index("SA");
+nonHB_sulphur = get_rec_index("S");
+
 
 /*7:CHANGE HERE: scan the 'map_index' from the input*/
 for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
