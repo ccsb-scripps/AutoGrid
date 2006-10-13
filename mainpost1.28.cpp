@@ -1,6 +1,6 @@
 /* AutoGrid */
 /*
-  $Id: mainpost1.28.cpp,v 1.49 2006/07/19 17:31:57 rhuey Exp $
+  $Id: mainpost1.28.cpp,v 1.50 2006/10/13 01:19:30 garrett Exp $
 */
 
 
@@ -465,7 +465,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.49 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.50 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1502,57 +1502,59 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
     if ((int)hbond[ia] == 2) { /*D1 hydrogen bond donor*/
 
         for ( ib = from; ib <= to; ib++) {       /*** ib = i_receptor_atom_b ***/
-            /*
-             * =>  NH-> or OH->
-             */
-            /*if ((atom_type[ib] == nitrogen) || (atom_type[ib]==nonHB_nitrogen) ||(atom_type[ib] == oxygen)||(atom_type[ib] == sulphur)||(atom_type[ib]==nonHB_sulphur)) {*/
-    
+            if (ib != ia) {
                 /*
-                 * Calculate the square of the N-H or O-H bond distance, rd2,
-                 *                            ib-ia  ib-ia
+                 * =>  NH-> or OH->
                  */
-                for (i = 0;  i < XYZ;  i++) {
-                    d[i] = coord[ia][i] - coord[ib][i];
-                }
-                rd2 = sq( d[X] ) + sq( d[Y] ) + sq( d[Z]);
-                /*
-                 * If ia & ib are less than 1.3 A apart -- they are covalently bonded,
-                 */
-                if (rd2 < 1.90) { /*INCREASED for H-S bonds*/
-                    if (rd2 < APPROX_ZERO) {
-                        if (rd2 == 0.) {
-                            (void) fprintf (stderr, "WARNING! While calculating an H-O or H-N bond vector...\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
-                            (void) fprintf (logFile, "WARNING! While calculating an H-O or H-N bond vector...\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
-                        }
-                        rd2 = APPROX_ZERO;
-                    }
-                    inv_rd = 1./sqrt(rd2);
+                /*if ((atom_type[ib] == nitrogen) || (atom_type[ib]==nonHB_nitrogen) ||(atom_type[ib] == oxygen)||(atom_type[ib] == sulphur)||(atom_type[ib]==nonHB_sulphur)) {*/
+        
                     /*
-                     * N-H: Set exponent rexp to 2 for m/m H-atom,
-                     */
-                    /*if (atom_type[ib] == nitrogen) rexp[ia] = 2;*/
-                    if ((atom_type[ib] != oxygen)&&(atom_type[ib] != sulphur)) rexp[ia] = 2;
-
-                    /*
-                     * O-H: Set exponent rexp to 4 for m/m H-atom,
-                     * and flag disordered hydroxyls
-                     */
-                    if ((atom_type[ib] == oxygen)||(atom_type[ib] == sulphur)) {
-                        rexp[ia] = 4;
-                        if (disorder_h == TRUE) disorder[ia] = TRUE;
-                    }
-                    /*
-                     * Normalize the vector from ib to ia, N->H or O->H...
+                     * Calculate the square of the N-H or O-H bond distance, rd2,
+                     *                            ib-ia  ib-ia
                      */
                     for (i = 0;  i < XYZ;  i++) {
-                        rvector[ia][i] = d[i] * inv_rd;
+                        d[i] = coord[ia][i] - coord[ib][i];
                     }
+                    rd2 = sq( d[X] ) + sq( d[Y] ) + sq( d[Z]);
                     /*
-                     * First O-H/N-H H-bond-donor found; Go on to next atom,
+                     * If ia & ib are less than 1.3 A apart -- they are covalently bonded,
                      */
-                    break;
-                } /* Found covalent bond. */
-            /*}  Found NH or OH in receptor. */
+                    if (rd2 < 1.90) { /*INCREASED for H-S bonds*/
+                        if (rd2 < APPROX_ZERO) {
+                            if (rd2 == 0.) {
+                                (void) fprintf (stderr, "WARNING! While calculating an H-O or H-N bond vector...\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                                (void) fprintf (logFile, "WARNING! While calculating an H-O or H-N bond vector...\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                            }
+                            rd2 = APPROX_ZERO;
+                        }
+                        inv_rd = 1./sqrt(rd2);
+                        /*
+                         * N-H: Set exponent rexp to 2 for m/m H-atom,
+                         */
+                        /*if (atom_type[ib] == nitrogen) rexp[ia] = 2;*/
+                        if ((atom_type[ib] != oxygen)&&(atom_type[ib] != sulphur)) rexp[ia] = 2;
+
+                        /*
+                         * O-H: Set exponent rexp to 4 for m/m H-atom,
+                         * and flag disordered hydroxyls
+                         */
+                        if ((atom_type[ib] == oxygen)||(atom_type[ib] == sulphur)) {
+                            rexp[ia] = 4;
+                            if (disorder_h == TRUE) disorder[ia] = TRUE;
+                        }
+                        /*
+                         * Normalize the vector from ib to ia, N->H or O->H...
+                         */
+                        for (i = 0;  i < XYZ;  i++) {
+                            rvector[ia][i] = d[i] * inv_rd;
+                        }
+                        /*
+                         * First O-H/N-H H-bond-donor found; Go on to next atom,
+                         */
+                        break;
+                    } /* Found covalent bond. */
+                /*}  Found NH or OH in receptor. */
+            }
         } /* Finished scanning for the NH or OH in receptor. */
 
     /*
