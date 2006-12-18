@@ -1,6 +1,6 @@
 /* AutoGrid */
 /*
-  $Id: main.cpp,v 1.50 2006/10/13 01:19:30 garrett Exp $
+  $Id: main.cpp,v 1.51 2006/12/18 08:34:28 garrett Exp $
 */
 
 
@@ -32,7 +32,7 @@
 
 #include "diagnostics.h"
 #include "boinc_api.h" 
-#include "filesys.h" 		// boinc_fopen(), etc... */
+#include "filesys.h"                 // boinc_fopen(), etc... */
 
 #endif
 
@@ -465,7 +465,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.50 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.51 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1381,20 +1381,22 @@ for (ia=0; ia<num_atom_maps; ia++){
             dxA = (double) xA;
             dxB = (double) xB;
 
-        (void) fprintf( logFile, "\n             %9.1lf       %9.1lf \n", cA, cB);
-        (void) fprintf( logFile, "    E    =  -----------  -  -----------\n");
-        (void) fprintf( logFile, "     %s, %s         %2d              %2d\n", gridmap[ia].type, receptor_types[i], xA, xB);
-        (void) fprintf( logFile, "                r               r \n\n");
-        /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
-        (void) fprintf( logFile, "Calculating energies for %s-%s interactions.\n", gridmap[ia].type, receptor_types[i] );
-        for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
-            r  = angstrom(indx_r);
-            rA = pow( r, dxA);
-            rB = pow( r, dxB);
-            energy_lookup[i][indx_r][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
+            (void) fprintf( logFile, "\n             %9.1lf       %9.1lf \n", cA, cB);
+            (void) fprintf( logFile, "    E    =  -----------  -  -----------\n");
+            (void) fprintf( logFile, "     %s, %s         %2d              %2d\n", gridmap[ia].type, receptor_types[i], xA, xB);
+            (void) fprintf( logFile, "                r               r \n\n");
+            /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
+            (void) fprintf( logFile, "Calculating energies for %s-%s interactions.\n", gridmap[ia].type, receptor_types[i] );
+
+            for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
+                r  = angstrom(indx_r);
+                rA = pow( r, dxA);
+                rB = pow( r, dxB);
+                energy_lookup[i][indx_r][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
             } /*for each distance*/ 
             energy_lookup[i][0][ia]    = EINTCLAMP;
             energy_lookup[i][MD_1][ia] = 0.;
+
             /*PRINT OUT INITIAL VALUES before smoothing here
             (void) fprintf( logFile, "before smoothing\n  r ");
             for (iat = 0;  iat < receptor_types_ct;  iat++) {
@@ -1425,8 +1427,8 @@ for (ia=0; ia<num_atom_maps; ia++){
                 for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
                     energy_lookup[i][indx_r][ia] = energy_smooth[indx_r];
                 }
-                } /* end smoothing */
-            } /* for i in receptor types: build energy table for this map */
+            } /* endif smoothing */
+        } /* for i in receptor types: build energy table for this map */
 
        /*
         * Print out a table, of distance versus energy...
@@ -1776,117 +1778,117 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 **        to (ia+5)th m/m-atom
 ** determine number of atoms bonded to the oxygen
 */
-	nbond = 0;
-	for ( ib = from; ib <= to; ib++) {
-	    if ( ib != ia ) {
-		rd2 = 0.;
+        nbond = 0;
+        for ( ib = from; ib <= to; ib++) {
+            if ( ib != ia ) {
+                rd2 = 0.;
 
-		for (i = 0;  i < XYZ;  i++) {
-		    dc[i] = coord[ia][i] - coord[ib][i];
-		    rd2 += sq( dc[i] );
-		}
+                for (i = 0;  i < XYZ;  i++) {
+                    dc[i] = coord[ia][i] - coord[ib][i];
+                    rd2 += sq( dc[i] );
+                }
 
-		/*
-		    for (i = 0;  i < XYZ;  i++) {
-			rd2 += sq(coord[ia][i] - coord[ib][i]);
-		    }
-		*/
-		if (((rd2 < 2.89) && ((atom_type[ib] != hydrogen)&&(atom_type[ib]!=nonHB_hydrogen))) || 
-		    ((rd2 < 1.69) && ((atom_type[ib] == hydrogen)||(atom_type[ib]==nonHB_hydrogen)))) {
-	        if (nbond == 2) {
-			    nbond = 3;
-			    i3 = ib;
-		    }
-		    if (nbond == 1) {
-			    nbond = 2;
-			    i2 = ib;
-		    }
-		    if (nbond == 0) {
-			    nbond = 1;
-			    i1 = ib;
-		    }
-		}
-	    } /* ( ib != ia ) */
-	} /*ib-loop*/
+                /*
+                    for (i = 0;  i < XYZ;  i++) {
+                        rd2 += sq(coord[ia][i] - coord[ib][i]);
+                    }
+                */
+                if (((rd2 < 2.89) && ((atom_type[ib] != hydrogen)&&(atom_type[ib]!=nonHB_hydrogen))) || 
+                    ((rd2 < 1.69) && ((atom_type[ib] == hydrogen)||(atom_type[ib]==nonHB_hydrogen)))) {
+                    if (nbond == 2) {
+                        nbond = 3;
+                        i3 = ib;
+                    }
+                    if (nbond == 1) {
+                        nbond = 2;
+                        i2 = ib;
+                    }
+                    if (nbond == 0) {
+                        nbond = 1;
+                        i1 = ib;
+                    }
+                }
+            } /* ( ib != ia ) */
+        } /*ib-loop*/
 
-	/* if no bonds, something is wrong */
+        /* if no bonds, something is wrong */
 
-	if (nbond == 0) {
-	    (void) fprintf( logFile, "WARNING! nitrogen with no bonded atoms, atom serial number %d\n",ia);
-	}
+        if (nbond == 0) {
+            (void) fprintf( logFile, "WARNING! nitrogen with no bonded atoms, atom serial number %d\n",ia);
+        }
 
-	/* one bond: Azide Nitrogen :N=C-X */
+        /* one bond: Azide Nitrogen :N=C-X */
 
-	if (nbond == 1) {
+        if (nbond == 1) {
 
-	    /* calculate normalized N=C bond vector rvector[ia][] */
+            /* calculate normalized N=C bond vector rvector[ia][] */
 
-	    rd2 = 0.;
-	    for (i = 0;  i < XYZ;  i++) {
-		    rvector[ia][i] = coord[ia][i]-coord[i1][i];
-		    rd2 += sq(rvector[ia][i]);
-	    }
-	    if (rd2 < APPROX_ZERO) {
-		    if ((rd2 == 0.) && (warned == 'F')) {
-		        (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
-		        (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
-		        warned = 'T';
-		    }
-		    rd2 = APPROX_ZERO;
-	    }
-	    inv_rd = 1./sqrt(rd2);
-	    for (i = 0;  i < XYZ;  i++) {
-		    rvector[ia][i] *= inv_rd;
-	    }
-	} /* endif nbond==1 */
+            rd2 = 0.;
+            for (i = 0;  i < XYZ;  i++) {
+                    rvector[ia][i] = coord[ia][i]-coord[i1][i];
+                    rd2 += sq(rvector[ia][i]);
+            }
+            if (rd2 < APPROX_ZERO) {
+                    if ((rd2 == 0.) && (warned == 'F')) {
+                        (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        warned = 'T';
+                    }
+                    rd2 = APPROX_ZERO;
+            }
+            inv_rd = 1./sqrt(rd2);
+            for (i = 0;  i < XYZ;  i++) {
+                    rvector[ia][i] *= inv_rd;
+            }
+        } /* endif nbond==1 */
 
-	/* two bonds: X1-N=X2 */
-	if (nbond == 2) {
-		/* normalized vector from Nitrogen to midpoint between X1 and X2 */
+        /* two bonds: X1-N=X2 */
+        if (nbond == 2) {
+                /* normalized vector from Nitrogen to midpoint between X1 and X2 */
 
-		rd2 = 0.;
-		for (i = 0;  i < XYZ;  i++) {
-		    rvector[ia][i] = coord[ia][i]-(coord[i2][i]+coord[i1][i])/2.;
-		    rd2 += sq(rvector[ia][i]);
-		}
-		if (rd2 < APPROX_ZERO) {
-		    if ((rd2 == 0.) && (warned == 'F')) {
-			(void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
-			(void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
-			warned = 'T';
-		    }
-		    rd2 = APPROX_ZERO;
-		}
-		inv_rd = 1./sqrt(rd2);
-		for (i = 0;  i < XYZ;  i++) {
-		    rvector[ia][i] *= inv_rd;
-		}
+                rd2 = 0.;
+                for (i = 0;  i < XYZ;  i++) {
+                    rvector[ia][i] = coord[ia][i]-(coord[i2][i]+coord[i1][i])/2.;
+                    rd2 += sq(rvector[ia][i]);
+                }
+                if (rd2 < APPROX_ZERO) {
+                    if ((rd2 == 0.) && (warned == 'F')) {
+                        (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        warned = 'T';
+                    }
+                    rd2 = APPROX_ZERO;
+                }
+                inv_rd = 1./sqrt(rd2);
+                for (i = 0;  i < XYZ;  i++) {
+                    rvector[ia][i] *= inv_rd;
+                }
 
-	}  /* end two bonds for nitrogen*/
+        }  /* end two bonds for nitrogen*/
 
-	/* three bonds: X1,X2,X3 */
-	if (nbond == 3) {
-		/* normalized vector from Nitrogen to midpoint between X1, X2, and X3 */
+        /* three bonds: X1,X2,X3 */
+        if (nbond == 3) {
+                /* normalized vector from Nitrogen to midpoint between X1, X2, and X3 */
 
-		rd2 = 0.;
-		for (i = 0;  i < XYZ;  i++) {
-		    rvector[ia][i] = coord[ia][i]-(coord[i1][i]+coord[i2][i]+coord[i3][i])/3.;
-		    rd2 += sq(rvector[ia][i]);
-		}
-		if (rd2 < APPROX_ZERO) {
-		    if ((rd2 == 0.) && (warned == 'F')) {
-			(void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
-			(void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
-			warned = 'T';
-		    }
-		    rd2 = APPROX_ZERO;
-		}
-		inv_rd = 1./sqrt(rd2);
-		for (i = 0;  i < XYZ;  i++) {
-		    rvector[ia][i] *= inv_rd;
-		}
+                rd2 = 0.;
+                for (i = 0;  i < XYZ;  i++) {
+                    rvector[ia][i] = coord[ia][i]-(coord[i1][i]+coord[i2][i]+coord[i3][i])/3.;
+                    rd2 += sq(rvector[ia][i]);
+                }
+                if (rd2 < APPROX_ZERO) {
+                    if ((rd2 == 0.) && (warned == 'F')) {
+                        (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        warned = 'T';
+                    }
+                    rd2 = APPROX_ZERO;
+                }
+                inv_rd = 1./sqrt(rd2);
+                for (i = 0;  i < XYZ;  i++) {
+                    rvector[ia][i] *= inv_rd;
+                }
 
-	}  /* end three bonds for Nitrogen */
+        }  /* end three bonds for Nitrogen */
     /* endNEW directional N Acceptor */
 
 
@@ -1977,7 +1979,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
             }
             
             /* Initialize Min Hbond variables  for each new point*/
-            for (map_index = 0; map_index < num_atom_maps; map_index++){	
+            for (map_index = 0; map_index < num_atom_maps; map_index++){        
                 hbondmin[map_index] = 999999.;
                 hbondmax[map_index] = -999999.;
                 hbondflag[map_index] = FALSE;
@@ -2060,7 +2062,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 racc = 1.;
                 rdon = 1.;
 /* NEW2 Hramp ramps in Hbond acceptor probes */
-		        Hramp = 1.;
+                        Hramp = 1.;
 /* END NEW2 Hramp ramps in Hbond acceptor probes */
 
 
@@ -2120,7 +2122,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                    Hramp = 0.5-0.5*cos(theta * 120./90.);
                 } /* ia test */
  /* END NEW2 calculate dot product of bond vector with bond vector of best hbond */
-	
+        
                     }
                     /* endif (atom_type[ia] == hydrogen) */
                     /* NEW Directional N acceptor */
@@ -2288,16 +2290,16 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                                 }
                             } else if ((gridmap[map_index].hbond==4) /*A1*/
                               &&(hbond[ia]==1||hbond[ia]==2)) { /*DS,D1*/
-	                                hbondmin[map_index] = min( hbondmin[map_index],energy_lookup[atom_type[ia]][indx_r][map_index] * (racc+(1.-racc)*rsph));
-				                    hbondmax[map_index] = max( hbondmax[map_index],energy_lookup[atom_type[ia]][indx_r][map_index] * (racc+(1.-racc)*rsph));
-				                    hbondflag[map_index] = TRUE;
+                                        hbondmin[map_index] = min( hbondmin[map_index],energy_lookup[atom_type[ia]][indx_r][map_index] * (racc+(1.-racc)*rsph));
+                                                    hbondmax[map_index] = max( hbondmax[map_index],energy_lookup[atom_type[ia]][indx_r][map_index] * (racc+(1.-racc)*rsph));
+                                                    hbondflag[map_index] = TRUE;
                             } else if ((gridmap[map_index].hbond==1||gridmap[map_index].hbond==2)                                       && (hbond[ia]>2)){/*DS,D1 vs AS,A1,A2*/
 
                                 /*  PROBE is H-BOND DONOR, */
                                 temp_hbond_enrg = energy_lookup[atom_type[ia]][indx_r][map_index] * (rdon + (1. - rdon)*rsph);
                                 hbondmin[map_index] = min( hbondmin[map_index], temp_hbond_enrg);
-			                    hbondmax[map_index] = max( hbondmax[map_index], temp_hbond_enrg);
-				                hbondflag[map_index] = TRUE;
+                                            hbondmax[map_index] = max( hbondmax[map_index], temp_hbond_enrg);
+                                                hbondflag[map_index] = TRUE;
                             } else {
                                 /*  hbonder PROBE-ia cannot form a H-bond..., */
                                 gridmap[map_index].energy += energy_lookup[atom_type[ia]][indx_r][map_index];
@@ -2317,9 +2319,9 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
             gridmap[dsolvPE].energy += solpar_q * vol[ia] * sol_fn[indx_r];
             }/* ia loop, over all receptor atoms... */
             for (map_index = 0; map_index < num_atom_maps; map_index++) {
-			    if (hbondflag[map_index]) {
-				    gridmap[map_index].energy += hbondmin[map_index]; 
-				    gridmap[map_index].energy += hbondmax[map_index];
+                            if (hbondflag[map_index]) {
+                                    gridmap[map_index].energy += hbondmin[map_index]; 
+                                    gridmap[map_index].energy += hbondmax[map_index];
                 };
             }
 
@@ -2419,7 +2421,7 @@ timesyshms( job_end - job_start, &tms_job_start, &tms_job_end);
  boinc_fraction_done(1.);
 #endif
 
-#ifdef BOINC	
+#ifdef BOINC        
    
     boinc_finish(0);       /* should not return */
 #endif
