@@ -1,7 +1,7 @@
 #
 # 
 #
-# $Id: test_autogrid4.py,v 1.7 2006/07/19 17:33:20 rhuey Exp $
+# $Id: test_autogrid4.py,v 1.8 2006/12/19 18:38:01 garrett Exp $
 #
 """
 Test AutoGrid.
@@ -23,7 +23,7 @@ built_maps_minus_two_types = False
 #no receptor types, ligand_types keyword preceeds receptor filename
 built_maps_ligand_types_before_receptor = False 
 
-class Autogrid4_hsg1_sm_test(unittest.TestCase):
+class AutoGrid4_hsg1_sm_test(unittest.TestCase):
     
     def setUp(self):
         """Set up for autogrid4 tests.
@@ -160,7 +160,7 @@ class Autogrid4_hsg1_sm_test(unittest.TestCase):
 
 
 
-class Autogrid4_hsg1_sm_no_parameter_library_test(Autogrid4_hsg1_sm_test):
+class AutoGrid4_hsg1_sm_no_parameter_library_test(AutoGrid4_hsg1_sm_test):
 
     def setUp(self):
         """Set up for autogrid4 tests.
@@ -188,7 +188,7 @@ class Autogrid4_hsg1_sm_no_parameter_library_test(Autogrid4_hsg1_sm_test):
             built_maps_no_parameter_library = True
 
 
-class Autogrid4_hsg1_sm_no_receptor_types_test(Autogrid4_hsg1_sm_test):
+class AutoGrid4_hsg1_sm_no_receptor_types_test(AutoGrid4_hsg1_sm_test):
 
     def setUp(self):
         """Set up for autogrid4 tests.
@@ -216,7 +216,7 @@ class Autogrid4_hsg1_sm_no_receptor_types_test(Autogrid4_hsg1_sm_test):
             built_maps_no_receptor_types = True
 
 
-class Autogrid4_hsg1_sm_minus_two_types_test(Autogrid4_hsg1_sm_test):
+class AutoGrid4_hsg1_sm_minus_two_types_test(AutoGrid4_hsg1_sm_test):
 
     def setUp(self):
         """Set up for autogrid4 tests.
@@ -244,7 +244,7 @@ class Autogrid4_hsg1_sm_minus_two_types_test(Autogrid4_hsg1_sm_test):
             built_maps_minus_two_types = True
 
 
-#class Autogrid4_ligand_types_before_receptor_test(Autogrid4_hsg1_sm_test):
+#class AutoGrid4_ligand_types_before_receptor_test(AutoGrid4_hsg1_sm_test):
 
 #    def setUp(self):
 #        """Set up for autogrid4 tests.
@@ -275,13 +275,14 @@ class Autogrid4_hsg1_sm_minus_two_types_test(Autogrid4_hsg1_sm_test):
 
 if __name__ == '__main__':
     test_cases = [
-        'Autogrid4_hsg1_sm_test',
-        'Autogrid4_hsg1_sm_no_parameter_library_test',
-        'Autogrid4_hsg1_sm_no_receptor_types_test',
-        'Autogrid4_hsg1_sm_minus_two_types_test',
-        #'Autogrid4_ligand_types_before_receptor_test',
+        'AutoGrid4_hsg1_sm_test',
+        'AutoGrid4_hsg1_sm_no_parameter_library_test',
+        'AutoGrid4_hsg1_sm_no_receptor_types_test',
+        'AutoGrid4_hsg1_sm_minus_two_types_test',
+        #'AutoGrid4_ligand_types_before_receptor_test',
     ]
     unittest.main( argv=([__name__,] + test_cases))  # non-verbose output
     # optional:  for verbose output, use this:
     # unittest.main( argv=([__name__, '-v'] + test_cases)) # verbose output
 
+# EOF
