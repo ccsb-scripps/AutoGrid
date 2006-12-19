@@ -1,6 +1,6 @@
 /* AutoGrid */
 /*
-  $Id: mainpost1.28.cpp,v 1.51 2006/12/18 08:34:28 garrett Exp $
+  $Id: mainpost1.28.cpp,v 1.52 2006/12/19 18:37:06 garrett Exp $
 */
 
 
@@ -16,6 +16,7 @@
 #endif
 
 #include <math.h>
+#include <assert.h>
 #include <stdio.h>
 #include <search.h>
 #include <string.h>
@@ -47,6 +48,46 @@ extern Linear_FE_Model AD4;
 
 #define round3dp(x) ((round((x)*1000.0L))/1000.0L) // Required to round %.3f consistently on different platforms
 
+// print_error() is used with error_level where:
+// error_level = one of the following:
+#define FATAL_ERROR -2
+#define ERROR -1
+#define WARNING  0
+#define INFORMATION 1
+#define SUGGESTION 2
+
+void print_error( FILE *fileptr, int error_level, char message[LINE_LEN] ) 
+    // print an error or informational message to a file-pointer or
+    // standard error
+{
+    char output_message[LINE_LEN];
+    char tag[LINE_LEN];
+
+    switch ( error_level ) {
+        case ERROR:
+        case FATAL_ERROR:
+            strcpy( tag, "ERROR" );
+            break;
+        case WARNING:
+            strcpy( tag, "WARNING" );
+            break;
+        default:
+        case INFORMATION:
+            strcpy( tag, "INFORMATION" );
+            break;
+        case SUGGESTION:
+            strcpy( tag, "SUGGESTION" );
+            break;
+    }
+
+    (void) sprintf( output_message, "\n%s: %s:  %s\n", programname, tag, message);
+    (void) fprintf( stderr, "%s\n", output_message);
+    (void) fprintf( logFile, "%s\n", output_message);
+
+    if (error_level == FATAL_ERROR) {
+        exit( error_level );
+    }
+}
 
 /* fopen rewrite to either use BOINC api or normal system call */
 FILE *ag_fopen(const char *path, const char *mode)
@@ -186,7 +227,10 @@ Real *dummy_map;
 /*each type is now at most two characters, eg 'NA\0'*/
 /*NB: these are sparse arrays, some entries are not set */
 char receptor_types[NUM_RECEPTOR_TYPES][3];
-/* number of different receptor atom types*/
+/* number of different receptor atom types declared on receptor_types line in GPF */
+//int receptor_types_gpf_ct = 0;
+int has_receptor_types_in_gpf = 0;
+/* number of different receptor atom types actually found in receptor PDBQT */
 int receptor_types_ct = 0;
 /* array of numbers of each type */
 /*NB: this is a sparse int array, some entries are 0*/
@@ -465,7 +509,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.51 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.52 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -511,9 +555,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
     case -1:
         (void) fprintf( logFile, "GPF> %s", GPF_line);
-        (void) sprintf( message, "%s: WARNING: Unrecognized keyword in grid parameter file.\n", programname);
-        (void) fprintf( logFile, "%s", message);
-        (void) fprintf( stderr,  "%s", message);
+        print_error( logFile, WARNING, "Unrecognized keyword in grid parameter file.\n" );
         continue;  /* while fgets GPF_line... */
 
     case GPF_NULL:
@@ -555,11 +597,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
         /* try to open receptor file */
         if ( (receptor_fileptr = ag_fopen(receptor_filename, "r")) == NULL ) {
-            (void) fprintf( stderr, "\n%s: can't find or open receptor-file %s\n", programname, receptor_filename);
-            (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
-            (void) fprintf( logFile, "\n%s: can't find or open receptor-file %s\n", programname, receptor_filename);
-            (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-            exit(-1);
+            (void) sprintf( message, "can't find or open receptor PDBQT file \"%s\".\n", receptor_filename);
+            print_error( logFile, ERROR, message );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
         }
 
         /* start to read in the lines of the receptor file */
@@ -598,11 +638,12 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 //printf("new type is: %s\n", &line[77]);
                 (void) sscanf(&line[77], "%s", thisparm.autogrid_type);
                 found_parm = apm_find(thisparm.autogrid_type);
-                if (found_parm != NULL){
-                    if (found_parm->rec_index<0){
-                        strcpy(receptor_types[receptor_types_ct], found_parm->autogrid_type);
+                if ( found_parm != NULL ) {
+                    (void) fprintf ( logFile, "DEBUG: found_parm->rec_index = %d", found_parm->rec_index );
+                    if ( found_parm->rec_index < 0 ) {
+                        strcpy( receptor_types[ receptor_types_ct ], found_parm->autogrid_type );
                         found_parm->rec_index = receptor_types_ct++;
-
+                        (void) fprintf ( logFile, "DEBUG: found_parm->rec_index => %d", found_parm->rec_index );
                     }
                     atom_type[ia] = found_parm->rec_index;
                     solpar[ia] = found_parm->solpar;
@@ -686,17 +727,34 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
                 /* Check that there aren't too many atoms... */
                 if (ia > AG_MAX_ATOMS) {
-                    (void) fprintf( logFile, "Error      : Sorry, AutoGrid cannot continue.\n");
-                    (void) fprintf( logFile, "           : Too many atoms in receptor input file %s;\n", receptor_filename);
-                    (void) fprintf( logFile, "           : -- the maximum number of atoms, AG_MAX_ATOMS, allowed is %d.\n", AG_MAX_ATOMS);
-                    (void) fprintf( logFile, "Suggestion : Increase the value in the \"#define AG_MAX_ATOMS %d\" line", AG_MAX_ATOMS);
-                    (void) fprintf( logFile, "           : in the source file \"autogrid.h\", and re-compile AutoGrid.\n");
+                    (void) sprintf( message, "Too many atoms in receptor PDBQT file %s;", receptor_filename );
+                    print_error( logFile, ERROR, message );
+                    (void) sprintf( message, "-- the maximum number of atoms, AG_MAX_ATOMS, allowed is %d.", AG_MAX_ATOMS );
+                    print_error( logFile, ERROR, message );
+                    (void) sprintf( message, "Increase the value in the \"#define AG_MAX_ATOMS %d\" line", AG_MAX_ATOMS );
+                    print_error( logFile, SUGGESTION, message );
+                    print_error( logFile, SUGGESTION, "in the source file \"autogrid.h\", and re-compile AutoGrid." );
                     (void) fflush( logFile);
-                    exit(-1);
+                    // FATAL_ERROR will cause AutoGrid to exit...
+                    print_error( logFile, FATAL_ERROR, "Sorry, AutoGrid cannot continue.");
                 } /* endif */
             } /* endif */
         } /* endwhile */
+        /* Finished reading in the lines of the receptor file */
         (void) fclose( receptor_fileptr);
+        /*
+        if ( has_receptor_types_in_gpf == 1 ) {
+            // Check that the number of atom types found in the receptor PDBQT
+            // file match the number parsed in by the "receptor_types" command
+            // in the GPF; if they do not match, exit!
+            if ( receptor_types_ct != receptor_types_gpf_ct ) {
+                (void) sprintf( message, "The number of atom types found in the receptor PDBQT (%d) does not match the number specified by the \"receptor_types\" command (%d) in the GPF!\n\n", receptor_types_ct, receptor_types_gpf_ct );
+                print_error( logFile, ERROR, message );
+                // FATAL_ERROR will cause AutoGrid to exit...
+                print_error( logFile, FATAL_ERROR, "Sorry, AutoGrid cannot continue.");
+            }
+        }
+        */
         /* Update the total number of atoms in the receptor */
         num_receptor_atoms = ia;
         (void) fprintf( logFile, "\nMaximum partial atomic charge found = %+.3lf e\n", q_max);
@@ -704,8 +762,10 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         (void) fflush( logFile);
         /* Check there are partial charges... */
         if (q_max == 0. && q_min == 0.) {
-            (void) fprintf( logFile, "\nERROR!  Partial atomic charges not found!\n\n");
-            exit(-1);
+            (void) sprintf( message, "No partial atomic charges were found in the receptor PDBQT file %s!\n\n", receptor_filename );
+            print_error( logFile, ERROR, message );
+            // FATAL_ERROR will cause AutoGrid to exit...
+            print_error( logFile, FATAL_ERROR, "Sorry, AutoGrid cannot continue.");
         } /* if  there are no charges EXIT*/
 
         for (ia = 0;  ia < num_receptor_atoms;  ia++) {
@@ -753,9 +813,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         (void) sscanf( GPF_line, "%*s %s", AVS_fld_filename);
         infld = strindex( AVS_fld_filename, ".fld");
         if (infld == -1) {
-            (void) fprintf( stderr, "\n\n%s: WARNING:  Grid data file needs the extension \".fld\" for AVS input\n\n", programname);
-            (void) fprintf( logFile, "\n\n%s: WARNING:  Grid data file needs the extension \".fld\" for AVS input\n\n", programname);
-            exit(-1);
+            print_error( logFile, FATAL_ERROR, "Grid data file needs the extension \".fld\" for AVS input\n\n" );
         } else {
             infld = strindex( AVS_fld_filename, "fld");
             (void) strcpy(xyz_filename, AVS_fld_filename);
@@ -764,22 +822,18 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             xyz_filename[infld + 2] = 'z';
         }
         if ( (AVS_fld_fileptr = ag_fopen(AVS_fld_filename, "w")) == NULL ) {
-            (void) fprintf( stderr, "\n%s: can't create grid dimensions data file %s\n", programname, AVS_fld_filename);
-            (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
-            (void) fprintf( logFile, "\n%s: can't create grid dimensions data file %s\n", programname, AVS_fld_filename);
-            (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-            exit(-1);
+            (void) sprintf( message, "can't create grid dimensions data file %s\n", AVS_fld_filename);
+            print_error( logFile, ERROR, message );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
         } else {
             (void) fprintf( logFile, "\nCreating (AVS-readable) grid maps file : %s\n", AVS_fld_filename);
         }
         if ( (xyz_fileptr = ag_fopen(xyz_filename, "w")) == NULL ) {
-            (void) fprintf( stderr, "\n%s: can't create grid extrema data file %s\n", programname, xyz_filename);
-            (void) fprintf( stderr, "%s: SORRY!    unable to create the \".xyz\" file.\n\n", programname);
-            (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
-            (void) fprintf( logFile, "\n%s: can't create grid extrema data file %s\n", programname, xyz_filename);
-            (void) fprintf( logFile, "%s: SORRY!    unable to create the \".xyz\" file.\n\n", programname);
-            (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-            exit(-1);
+            (void) sprintf( message, "can't create grid extrema data file %s\n", xyz_filename);
+            print_error( logFile, ERROR, message );
+            (void) sprintf( message, "SORRY!    unable to create the \".xyz\" file.\n\n" );
+            print_error( logFile, ERROR, message );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
         } else {
             (void) fprintf( logFile, "\nCreating (AVS-readable) grid-coordinates extrema file : %s\n\n", xyz_filename);
         }
@@ -940,31 +994,21 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             dummy_map = (Real *)malloc(sizeof(Real) * (num_maps * num_grid_points_per_map));
             if (!dummy_map) {
                 /* Too many maps requested */
-                (void) sprintf(message, "\n%s: WARNING:  There will not be enough memory to store these grid maps in AutoDock; \ntry reducing the number of ligand atom types (you have %d including electrostatics) \nor reducing the size of the grid maps (you asked for %d x %d x %d grid points); \n or try running AutoDock on a machine with more RAM than this one.\n", programname, num_maps, n1[X], n1[Y], n1[Z]);
-                (void) fprintf(stderr, "%s\n", message);
-                (void) fprintf(logFile, "%s\n", message);
+                (void) sprintf( message, "There will not be enough memory to store these grid maps in AutoDock; \ntry reducing the number of ligand atom types (you have %d including electrostatics) \nor reducing the size of the grid maps (you asked for %d x %d x %d grid points); \n or try running AutoDock on a machine with more RAM than this one.\n", num_maps, n1[X], n1[Y], n1[Z] );
+                print_error( logFile, WARNING, message );
             } else {
                 /* free up this memory right away; we were just testing to
                  * see if we had enough when we try to run AutoDock */
                 free(dummy_map);
             }
         } else {
-            (void) sprintf(message, "\n%s: ERROR:  You need to set the number of grid points using \"npts\" before setting the ligand atom types, using \"types\".\n", programname);
-            (void) fprintf(stderr, "%s\n", message);
-            (void) fprintf(logFile, "%s\n", message);
-            (void) sprintf(message, "\n%s:  Unsuccessful completion.\n\n", programname);
-            (void) fprintf(stderr, "%s\n", message);
-            (void) fprintf(logFile, "%s\n", message);
-            exit(-1);
+            print_error( logFile, ERROR, "You need to set the number of grid points using \"npts\" before setting the ligand atom types, using \"ligand_types\".\n" );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
         } /* ZZZZZZZZZZZZZZZZZ*/
         if (!gridmap) {
-            (void) sprintf(message, "\n%s: ERROR:  Too many ligand atom types; there is not enough memory to create these maps.  Try using fewer atom types than %d.\n", programname, num_atom_maps);
-            (void) fprintf(stderr, "%s\n", message);
-            (void) fprintf(logFile, "%s\n", message);
-            (void) sprintf(message, "\n%s:  Unsuccessful completion.\n\n", programname);
-            (void) fprintf(stderr, "%s\n", message);
-            (void) fprintf(logFile, "%s\n", message);
-            exit(-1);
+            (void) sprintf( message, "Too many ligand atom types; there is not enough memory to create these maps.  Try using fewer atom types than %d.\n", num_atom_maps);
+            print_error( logFile, ERROR, message);
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
         }
 
         for (i = 0;  i < num_atom_maps;  i++) {
@@ -1056,27 +1100,36 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_RECEPTOR_TYPES:
         // Read in the list of atom types in the receptor.
         // GPF_line e.g.: "receptor_types N O A C HH NH"
+        //
+        // NOTE:  This line is not guaranteed to match the actual
+        //        atom types present in the receptor PDBQT file
+        //        specified by the "receptor" command.
+        // receptor_types_gpf_ct = parsetypes(GPF_line, receptor_atom_types,  MAX_ATOM_TYPES);
         receptor_types_ct = parsetypes(GPF_line, receptor_atom_types,  MAX_ATOM_TYPES);
-
+        has_receptor_types_in_gpf = 1;
 #ifdef DEBUG
+        //printf("receptor_types_gpf_ct=%d\n",receptor_types_gpf_ct);
         printf("receptor_types_ct=%d\n",receptor_types_ct);
 #endif
+        //for(i=0; i<receptor_types_gpf_ct; i++){
         for(i=0; i<receptor_types_ct; i++){
             strcpy(receptor_types[i], receptor_atom_types[i]);
 #ifdef DEBUG
             printf("%d %s  ->%s\n",i, receptor_atom_types[i],  receptor_types[i]);
 #endif
         }
+        //for (i=0; i<receptor_types_gpf_ct; i++) {
         for (i=0; i<receptor_types_ct; i++) {
             found_parm = apm_find(receptor_atom_types[i]);
             if (found_parm != NULL){
                 found_parm->rec_index = i;
             } else {
-                fprintf(stderr, "unknown receptor type:%s\n add parameters for it to the parameter library first!\n", receptor_atom_types[i]);
-                exit(-1);
+                (void) sprintf( message, "Unknown receptor type: \"%s\"\n -- Add parameters for it to the parameter library first!\n", receptor_atom_types[i]);
+                print_error( logFile, ERROR, message );
+                print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
             }
         };
-        /*at this point set up hydrogen, carbon, oxygen and nitrogen*/
+        // at this point set up hydrogen, carbon, oxygen and nitrogen
         hydrogen = get_rec_index("HD");
         nonHB_hydrogen = get_rec_index("H");
         carbon = get_rec_index("C");
@@ -1086,11 +1139,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         nonHB_nitrogen = get_rec_index("N");
         sulphur = get_rec_index("SA");
         nonHB_sulphur = get_rec_index("S");
-
 #ifdef DEBUG
         printf("assigned receptor types:arom_carbon->%d, hydrogen->%d,nonHB_hydrogen->%d, carbon->%d, oxygen->%d, nitrogen->%d\n, nonHB_nitrogen->%d, sulphur->%d, nonHB_sulphur->%d\n",arom_carbon,hydrogen, nonHB_hydrogen, carbon,oxygen, nitrogen, nonHB_nitrogen, sulphur, nonHB_sulphur);
 #endif
-
         (void) fflush( logFile);
         break;
 
@@ -1140,22 +1191,16 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
          * "map" keywords. */
         ++map_index;
         if (map_index > num_atom_maps - 1) {
-             (void) sprintf(message, "\n%s: ERROR:  Too many \"map\" keywords (%d);  the \"types\" command declares only %d maps.\nRemove a \"map\" keyword from the GPF.\n", programname, map_index + 1, num_atom_maps);
-            (void) fprintf(stderr, "%s\n", message);
-            (void) fprintf(logFile, "%s\n", message);
-            (void) sprintf(message, "\n%s:  Unsuccessful completion.\n\n", programname);
-            (void) fprintf(stderr, "%s\n", message);
-            (void) fprintf(logFile, "%s\n", message);
-            exit(-1);
+             (void) sprintf(message, "Too many \"map\" keywords (%d);  the \"types\" command declares only %d maps.\nRemove a \"map\" keyword from the GPF.\n", map_index + 1, num_atom_maps);
+            print_error( logFile, ERROR, message );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
         }
         /* Read in the filename for this grid map */ /* GPF_MAP */
         (void) sscanf( GPF_line, "%*s %s", gridmap[map_index].map_filename);
         if ( (gridmap[map_index].map_fileptr = ag_fopen( gridmap[map_index].map_filename, "w")) == NULL ) {
-            (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[map_index].map_filename);
-            (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
-            (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[map_index].map_filename);
-            (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-            exit(-1);
+            (void) sprintf( message, "Cannot open grid map \"%s\" for writing.", gridmap[map_index].map_filename);
+            print_error( logFile, ERROR, message );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
         }
         (void) fprintf( logFile, "\nOutput Grid Map %d:   %s\n\n", (map_index + 1), gridmap[map_index].map_filename);
         (void) fflush( logFile);
@@ -1166,11 +1211,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_ELECMAP:
         (void) sscanf( GPF_line, "%*s %s", gridmap[elecPE].map_filename);
         if ( (gridmap[elecPE].map_fileptr = ag_fopen( gridmap[elecPE].map_filename, "w" )) == NULL){
-            (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[elecPE].map_filename);
-            (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
-            (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[elecPE].map_filename);
-            (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-            exit(-1);
+            (void) sprintf( message, "can't open grid map \"%s\" for writing.\n", gridmap[elecPE].map_filename);
+            print_error( logFile, ERROR, message );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
         }
         (void) fprintf( logFile, "\nOutput Electrostatic Potential Energy Grid Map: %s\n\n", gridmap[elecPE].map_filename);
         break;
@@ -1179,11 +1222,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_DSOLVMAP:
         (void) sscanf( GPF_line, "%*s %s", gridmap[dsolvPE].map_filename);
         if ( (gridmap[dsolvPE].map_fileptr = ag_fopen( gridmap[dsolvPE].map_filename, "w" )) == NULL){
-            (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[dsolvPE].map_filename);
-            (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
-            (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, gridmap[dsolvPE].map_filename);
-            (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-            exit(-1);
+            (void) sprintf( message, "can't open grid map \"%s\" for writing.\n", gridmap[dsolvPE].map_filename);
+            print_error( logFile, ERROR, message );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
         }
         (void) fprintf( logFile, "\nOutput Desolvation Free Energy Grid Map: %s\n\n", gridmap[dsolvPE].map_filename);
         break;
@@ -1266,11 +1307,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_FMAP:
         (void) sscanf( GPF_line, "%*s %s", floating_grid_filename);
         if ( (floating_grid_fileptr = ag_fopen( floating_grid_filename, "w" )) == NULL) {
-            (void) fprintf( stderr, "\n%s: can't open grid map \"%s\" for writing.\n", programname, floating_grid_filename);
-            (void) fprintf( stderr, "\n%s: Unsuccessful completion.\n\n", programname);
-            (void) fprintf( logFile, "\n%s: can't open grid map \"%s\" for writing.\n", programname, floating_grid_filename);
-            (void) fprintf( logFile, "\n%s: Unsuccessful completion.\n\n", programname);
-            exit(-1);
+            (void) sprintf( message, "can't open grid map \"%s\" for writing.\n", floating_grid_filename);
+            print_error( logFile, ERROR, message );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
         }
         (void) fprintf( logFile, "\nFloating Grid file name = %s\n", floating_grid_filename);
         ++num_maps;
@@ -1377,9 +1416,13 @@ for (ia=0; ia<num_atom_maps; ia++){
             /*for each receptor_type get its parms and fill in tables*/
             cA = (tmpconst = epsij / (double)(xA - xB)) * pow( Rij, (double)xA ) * (double)xB;
             cB = tmpconst * pow( Rij, (double)xB ) * (double)xA;
+            if ( isnan( cA ) ) exit(-1);
+            if ( isnan( cB ) ) exit(-1);
             /*printf("tmpconst = %6.4f, cA = %6.4f, cB = %6.4f\n",tmpconst, cA, cB);*/
             dxA = (double) xA;
             dxB = (double) xB;
+            assert( xA != 0 );
+            assert( xB != 0 );
 
             (void) fprintf( logFile, "\n             %9.1lf       %9.1lf \n", cA, cB);
             (void) fprintf( logFile, "    E    =  -----------  -  -----------\n");
@@ -1524,8 +1567,8 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                     if (rd2 < 1.90) { /*INCREASED for H-S bonds*/
                         if (rd2 < APPROX_ZERO) {
                             if (rd2 == 0.) {
-                                (void) fprintf (stderr, "WARNING! While calculating an H-O or H-N bond vector...\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
-                                (void) fprintf (logFile, "WARNING! While calculating an H-O or H-N bond vector...\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                                (void) sprintf ( message, "While calculating an H-O or H-N bond vector...\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                                print_error( logFile, WARNING, message );
                             }
                             rd2 = APPROX_ZERO;
                         }
@@ -1588,7 +1631,8 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 if (((rd2 < 3.61) && ((atom_type[ib] != hydrogen)&&(atom_type[ib]!=nonHB_hydrogen))) ||
                     ((rd2 < 1.69) && ((atom_type[ib] == hydrogen)||(atom_type[ib]==nonHB_hydrogen)))) {
                     if (nbond == 2) {
-                        (void) fprintf( logFile, "WARNING! h-bonding atom with three bonded atoms, atom serial number %d\n", ia + 1);
+                        (void) sprintf( message, "Found an H-bonding atom with three bonded atoms, atom serial number %d\n", ia + 1);
+                        print_error( logFile, WARNING, message );
                     }
                     if (nbond == 1) {
                         nbond = 2;
@@ -1605,7 +1649,8 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
         /* if no bonds, something is wrong */
 
         if (nbond == 0) {
-            (void) fprintf( logFile, "WARNING! oxygen with no bonded atoms, atom serial number %d,atom_type->%d\n", ia + 1, atom_type[ia]);
+            (void) sprintf( message, "Oxygen atom found with no bonded atoms, atom serial number %d, atom_type %d\n", ia + 1, atom_type[ia]);
+            print_error( logFile, WARNING, message );
         }
 
         /* one bond: Carbonyl Oxygen O=C-X */
@@ -1621,8 +1666,8 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
             }
             if (rd2 < APPROX_ZERO) {
                 if ((rd2 == 0.) && (warned == 'F')) {
-                    (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
-                    (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                    (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                    print_error( logFile, WARNING, message );
                     warned = 'T';
                 }
                 rd2 = APPROX_ZERO;
@@ -1652,8 +1697,8 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                         }
                         if (rd2 < APPROX_ZERO) {
                             if ((rd2 == 0.) && (warned == 'F')) {
-                                (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
-                                (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                                (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                                print_error( logFile, WARNING, message );
                                 warned = 'T';
                             }
                             rd2 = APPROX_ZERO;
@@ -1673,8 +1718,8 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                         }
                         if (rd2 < APPROX_ZERO) {
                             if ((rd2 == 0.) && (warned == 'F')) {
-                                (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
-                                (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                                (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                                print_error( logFile, WARNING, message );
                                 warned = 'T';
                             }
                             rd2 = APPROX_ZERO;
@@ -1706,8 +1751,8 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 }
                 if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
-                        (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                        print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
                     rd2 = APPROX_ZERO;
@@ -1729,8 +1774,8 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 }
                 if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
-                        (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                        print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
                     rd2 = APPROX_ZERO;
@@ -1757,8 +1802,8 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 }
                 if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
-                        (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                        print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
                     rd2 = APPROX_ZERO;
@@ -1814,7 +1859,8 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
         /* if no bonds, something is wrong */
 
         if (nbond == 0) {
-            (void) fprintf( logFile, "WARNING! nitrogen with no bonded atoms, atom serial number %d\n",ia);
+            (void) sprintf( message, "Nitrogen atom found with no bonded atoms, atom serial number %d\n",ia);
+            print_error( logFile, WARNING, message );
         }
 
         /* one bond: Azide Nitrogen :N=C-X */
@@ -1830,8 +1876,8 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
             }
             if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
-                        (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
                     rd2 = APPROX_ZERO;
@@ -1853,8 +1899,8 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 }
                 if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
-                        (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
                     rd2 = APPROX_ZERO;
@@ -1877,8 +1923,8 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 }
                 if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
-                        (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
                     rd2 = APPROX_ZERO;
@@ -2180,10 +2226,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     }
                     if (t0 > 1.) {
                         t0 = 1.;
-                        (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", t0);
+                        (void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", t0);
+                        print_error( logFile, WARNING, message );
                     } else if (t0 < -1.) {
                         t0 = -1.;
-                        (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", t0);
+                        (void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", t0);
+                        print_error( logFile, WARNING, message );
                     }
                     t0 = PI_halved - acos(t0);
 
@@ -2199,8 +2247,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     rd2 = sq(cross[0]) + sq(cross[1]) + sq(cross[2]);
                     if (rd2 < APPROX_ZERO) {
                         if ((rd2 == 0.) && (warned == 'F')) {
-                            (void) fprintf (stderr, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
-                            (void) fprintf (logFile, "WARNING! Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                            (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                            print_error( logFile, WARNING, message );
                             warned = 'T';
                         }
                         rd2 = APPROX_ZERO;
@@ -2216,10 +2264,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     if (cos_theta >= 0.) {
                         if (ti > 1.) {
                             ti = 1.;
-                            (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", ti);
+                            (void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", ti);
+                            print_error( logFile, WARNING, message );
                         } else if (ti < -1.) {
                             ti = -1.;
-                            (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", ti);
+                            (void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", ti);
+                            print_error( logFile, WARNING, message );
                         }
                         ti = acos(ti) - PI_halved;
                         if (ti < 0.) {
@@ -2242,10 +2292,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     }
                     if (cos_theta > 1.) {
                         cos_theta = 1.;
-                        (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", cos_theta);
+                        (void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", cos_theta);
+                        print_error( logFile, WARNING, message );
                     } else if (cos_theta < -1.) {
                         cos_theta = -1.;
-                        (void) fprintf( logFile, "WARNING! I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", cos_theta);
+                        (void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", cos_theta);
+                        print_error( logFile, WARNING, message );
                     }
                     theta = acos(cos_theta);
                     racc = 0.;
@@ -2359,8 +2411,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
     } /* icoord[Y] loop */
 
     if (problem_wrt) {
-        (void) fprintf( stderr, "WARNING! Problems writing grid maps - there may not be enough space.\n");
-        (void) fprintf( logFile, "WARNING! Problems writing grid maps - there may not be enough space.\n");
+        (void) sprintf( message, "Problems writing grid maps - there may not be enough disk space.\n");
+        print_error( logFile, WARNING, message );
     }
     grd_end = times( &tms_grd_end);
     ++nDone;
@@ -2478,6 +2530,8 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
 }
 
 #endif
+
+
 
 /*
  * EOF
