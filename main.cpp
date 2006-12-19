@@ -1,6 +1,6 @@
 /* AutoGrid */
 /*
-  $Id: main.cpp,v 1.52 2006/12/19 18:37:06 garrett Exp $
+  $Id: main.cpp,v 1.53 2006/12/19 19:00:46 garrett Exp $
 */
 
 
@@ -228,7 +228,7 @@ Real *dummy_map;
 /*NB: these are sparse arrays, some entries are not set */
 char receptor_types[NUM_RECEPTOR_TYPES][3];
 /* number of different receptor atom types declared on receptor_types line in GPF */
-//int receptor_types_gpf_ct = 0;
+int receptor_types_gpf_ct = 0;
 int has_receptor_types_in_gpf = 0;
 /* number of different receptor atom types actually found in receptor PDBQT */
 int receptor_types_ct = 0;
@@ -509,7 +509,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.52 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.53 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -742,7 +742,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         } /* endwhile */
         /* Finished reading in the lines of the receptor file */
         (void) fclose( receptor_fileptr);
-        /*
         if ( has_receptor_types_in_gpf == 1 ) {
             // Check that the number of atom types found in the receptor PDBQT
             // file match the number parsed in by the "receptor_types" command
@@ -754,7 +753,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 print_error( logFile, FATAL_ERROR, "Sorry, AutoGrid cannot continue.");
             }
         }
-        */
         /* Update the total number of atoms in the receptor */
         num_receptor_atoms = ia;
         (void) fprintf( logFile, "\nMaximum partial atomic charge found = %+.3lf e\n", q_max);
@@ -1104,11 +1102,11 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         // NOTE:  This line is not guaranteed to match the actual
         //        atom types present in the receptor PDBQT file
         //        specified by the "receptor" command.
-        // receptor_types_gpf_ct = parsetypes(GPF_line, receptor_atom_types,  MAX_ATOM_TYPES);
         receptor_types_ct = parsetypes(GPF_line, receptor_atom_types,  MAX_ATOM_TYPES);
+        receptor_types_gpf_ct = receptor_types_ct;
         has_receptor_types_in_gpf = 1;
 #ifdef DEBUG
-        //printf("receptor_types_gpf_ct=%d\n",receptor_types_gpf_ct);
+        printf("receptor_types_gpf_ct=%d\n",receptor_types_gpf_ct);
         printf("receptor_types_ct=%d\n",receptor_types_ct);
 #endif
         //for(i=0; i<receptor_types_gpf_ct; i++){
@@ -1416,14 +1414,21 @@ for (ia=0; ia<num_atom_maps; ia++){
             /*for each receptor_type get its parms and fill in tables*/
             cA = (tmpconst = epsij / (double)(xA - xB)) * pow( Rij, (double)xA ) * (double)xB;
             cB = tmpconst * pow( Rij, (double)xB ) * (double)xA;
-            if ( isnan( cA ) ) exit(-1);
-            if ( isnan( cB ) ) exit(-1);
+            if ( isnan( cA ) ) {
+                print_error( logFile, FATAL_ERROR, "Van der Waals coefficient cA is not a number.  AutoGrid must exit." );
+            }
+            if ( isnan( cB ) ) {
+                print_error( logFile, FATAL_ERROR, "Van der Waals coefficient cB is not a number.  AutoGrid must exit." );
+            }
             /*printf("tmpconst = %6.4f, cA = %6.4f, cB = %6.4f\n",tmpconst, cA, cB);*/
             dxA = (double) xA;
             dxB = (double) xB;
-            assert( xA != 0 );
-            assert( xB != 0 );
-
+            if ( xA == 0 ) {
+                print_error( logFile, FATAL_ERROR, "Van der Waals exponent xA is 0.  AutoGrid must exit." );
+            }
+            if ( xB == 0 ) {
+                print_error( logFile, FATAL_ERROR, "Van der Waals exponent xB is 0.  AutoGrid must exit." );
+            }
             (void) fprintf( logFile, "\n             %9.1lf       %9.1lf \n", cA, cB);
             (void) fprintf( logFile, "    E    =  -----------  -  -----------\n");
             (void) fprintf( logFile, "     %s, %s         %2d              %2d\n", gridmap[ia].type, receptor_types[i], xA, xB);
