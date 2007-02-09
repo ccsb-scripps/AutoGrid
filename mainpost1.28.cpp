@@ -1,6 +1,6 @@
 /* AutoGrid */
 /*
-  $Id: mainpost1.28.cpp,v 1.53 2006/12/19 19:00:46 garrett Exp $
+  $Id: mainpost1.28.cpp,v 1.54 2007/02/09 23:08:33 garrett Exp $
 */
 
 
@@ -509,7 +509,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.53 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.54 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1671,7 +1671,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
             }
             if (rd2 < APPROX_ZERO) {
                 if ((rd2 == 0.) && (warned == 'F')) {
-                    (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                    (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, i1 + 1);
                     print_error( logFile, WARNING, message );
                     warned = 'T';
                 }
@@ -1702,7 +1702,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                         }
                         if (rd2 < APPROX_ZERO) {
                             if ((rd2 == 0.) && (warned == 'F')) {
-                                (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                                (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", i1 + 1, i2 + 1);
                                 print_error( logFile, WARNING, message );
                                 warned = 'T';
                             }
@@ -1723,7 +1723,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                         }
                         if (rd2 < APPROX_ZERO) {
                             if ((rd2 == 0.) && (warned == 'F')) {
-                                (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                                (void) sprintf ( message, "Attempt to divide by zero was just prevented.\n\n" );
                                 print_error( logFile, WARNING, message );
                                 warned = 'T';
                             }
@@ -1779,7 +1779,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 }
                 if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", i1 + 1, i2 + 1);
                         print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
@@ -1807,7 +1807,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 }
                 if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\n\n" );
                         print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
@@ -2252,7 +2252,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     rd2 = sq(cross[0]) + sq(cross[1]) + sq(cross[2]);
                     if (rd2 < APPROX_ZERO) {
                         if ((rd2 == 0.) && (warned == 'F')) {
-                            (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                            (void) sprintf ( message, "Attempt to divide by zero was just prevented.\n\n" );
                             print_error( logFile, WARNING, message );
                             warned = 'T';
                         }
