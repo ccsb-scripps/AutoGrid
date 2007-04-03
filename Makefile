@@ -1,14 +1,14 @@
 #
 # Makefile to build AutoGrid from Object files.
 #
-# $Revision: 1.17 $
+# $Revision: 1.18 $
 #
 # (c) 1994-2005, TSRI
 # Garrett M. Morris, Ruth Huey, David S. Goodsell
 #
 
 #
-# $Id: Makefile,v 1.17 2006/12/02 01:28:52 garrett Exp $
+# $Id: Makefile,v 1.18 2007/04/03 04:27:19 garrett Exp $
 #
 
 EXE = .
@@ -94,9 +94,9 @@ OPT_ARCH_SPECIFIC = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
 
 OPT = $(OPTLEVEL) $(OPT_ARCH_SPECIFIC) # All platforms
 
-LINKOPT = $(OPT) # SGI, HP, Alpha, Sun, Convex, Linux.
+# LINKOPT = $(OPT) # SGI, HP, Alpha, Sun, Convex, Linux.
 # LINKOPT = -O2 -r4000 -IPA $(LNO_OPT) # SGI/IRIX5: R4000.
-# LINKOPT = $(CSTD) $(OPT) -Wl,--stack=0x2000000 # Cygwin, 32MB stacksize
+LINKOPT = $(CSTD) $(OPT) -Wl,--stack=0x2000000 # Cygwin, 32MB stacksize
 
 LINK = $(LINKOPT) # Linking flags.
 # LINK = $(LINKOPT) -cord # Procedure rearranger on SGI.
@@ -147,7 +147,7 @@ convertmap : convertmap.o
 	$(CC) $(OPT) -o $@ convertmap.o $(LIB)
 
 
-main.o : main.cpp autogrid.h autoglobal.h  banner.cpp gpfparser.cpp gpftoken.h parsetypes.cpp default_parameters.h read_parameter_library.cpp read_parameter_library.h 
+main.o : main.cpp autogrid.h autoglobal.h  banner.cpp gpfparser.cpp gpftoken.h parsetypes.cpp default_parameters.h read_parameter_library.cpp read_parameter_library.h ../autodock/autocomm.h
 
 check_size.o : check_size.cpp autogrid.h
 
@@ -175,7 +175,7 @@ convertmap.o : convertmap.cpp
 
 atom_parameter_manager.o : atom_parameter_manager.cpp parameters.h
 
-read_parameter_library.o : read_parameter_library.cpp autocomm.h default_parameters.h partokens.h
+read_parameter_library.o : read_parameter_library.cpp default_parameters.h partokens.h ../autodock/autocomm.h
 
 parse_param_line.o : parse_param_line.cpp parse_param_line.h partokens.h
 
