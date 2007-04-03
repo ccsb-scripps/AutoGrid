@@ -1,14 +1,14 @@
 #
 # Makefile to build AutoGrid from Object files.
 #
-# $Revision: 1.18 $
+# $Revision: 1.19 $
 #
 # (c) 1994-2005, TSRI
 # Garrett M. Morris, Ruth Huey, David S. Goodsell
 #
 
 #
-# $Id: Makefile,v 1.18 2007/04/03 04:27:19 garrett Exp $
+# $Id: Makefile,v 1.19 2007/04/03 05:16:33 garrett Exp $
 #
 
 EXE = .
@@ -94,9 +94,9 @@ OPT_ARCH_SPECIFIC = # Alpha, HP, Sun, Convex, SGI, Linux, MacOS X.
 
 OPT = $(OPTLEVEL) $(OPT_ARCH_SPECIFIC) # All platforms
 
-# LINKOPT = $(OPT) # SGI, HP, Alpha, Sun, Convex, Linux.
+LINKOPT = $(OPT) # SGI, HP, Alpha, Sun, Convex, Linux, Darwin, Mac OS X
 # LINKOPT = -O2 -r4000 -IPA $(LNO_OPT) # SGI/IRIX5: R4000.
-LINKOPT = $(CSTD) $(OPT) -Wl,--stack=0x2000000 # Cygwin, 32MB stacksize
+# LINKOPT = $(CSTD) $(OPT) -Wl,--stack=0x2000000 # Cygwin, 32MB stacksize
 
 LINK = $(LINKOPT) # Linking flags.
 # LINK = $(LINKOPT) -cord # Procedure rearranger on SGI.
