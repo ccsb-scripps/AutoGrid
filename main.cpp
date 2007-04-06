@@ -1,6 +1,6 @@
 /* AutoGrid */
 /*
-  $Id: main.cpp,v 1.54 2007/02/09 23:08:33 garrett Exp $
+  $Id: main.cpp,v 1.55 2007/04/06 01:34:13 garrett Exp $
 */
 
 
@@ -81,9 +81,20 @@ void print_error( FILE *fileptr, int error_level, char message[LINE_LEN] )
     }
 
     (void) sprintf( output_message, "\n%s: %s:  %s\n", programname, tag, message);
-    (void) fprintf( stderr, "%s\n", output_message);
+
+    // Records all messages in the logFile.
     (void) fprintf( logFile, "%s\n", output_message);
 
+    // Only send errors, fatal errors and warnings to standard error, stderr.
+    switch ( error_level ) {
+        case ERROR:
+        case FATAL_ERROR:
+        case WARNING:
+            (void) fprintf( stderr, "%s\n", output_message);
+            break;
+    }
+
+    // If this is a fatal error, exit now.
     if (error_level == FATAL_ERROR) {
         exit( error_level );
     }
@@ -509,7 +520,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.54 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.55 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
