@@ -1,0 +1,151 @@
+New Features
+
+Flexible Residues in the Macromolecule
+
+AutoDock 4 can now model sidechain flexibility in the macromolecule.
+
+We have added a new keyword to AutoDock 4, flexible_residues or
+flexres for short, that you must now use to specify the flexible
+residues PDBQT file, if you have sidechain motion in the receptor.
+Prior to this change, the assumption was that the input PDBQT file
+contained both the ligand atoms and the flexible residues atoms.
+Now, a file containing only ligand atoms must be supplied to the
+move command, while a second file containing the moving receptor
+atoms must be supplied to the flexres command.
+
+AutoDockTools (ADT) has been updated to support the setting up of
+flexible receptor sidechains, thanks to the introduction of the new
+"Flexible Residues" menu.
+
+ADT now computes the center of rotation of the ligand using only
+the ligand atoms. Previously, the center was computed using all the
+atoms in the input PDBQT file, which could cause the center to be
+far from the ligand atoms when receptor atoms were included in the
+ligand PDBQT file; when this was the case, AutoDock was unable to
+find a low energy docking.
+
+Unbound Ligand Calculation
+
+AutoDock 4 computes the unbound state of the ligand before docking
+as an extended conformation, and includes the difference in internal
+interaction energy between this unbound state and the final docked
+state, when estimating the free energy of binding. Previously,
+AutoDock assumed that the internal energy of the ligand was the
+same both before and after binding to the macromolecule.
+
+This is achieved using the compute_unbound_extended command, and
+this must be specified after the search parameters have been set,
+but before the actual dockings are done (i.e. before ga_run or
+simanneal or do_local_only, depending on the type of docking).
+
+Internal Energy Calculations
+
+AutoDock 4 uses a more reasonable distance for the non-bond cutoff
+in the internal energy calculations, which speeds up docking compared
+to AutoDock 3.
+
+The internal energy calculation now includes the desolvation energy
+term. Previously, AutoDock 3 only used the desolvation energy term
+in the intermolecular interaction energy.
+
+The internal energy calculation now uses the same distance-dependent
+dielectric function that is used in the intermolecular interaction
+energy calculation. Previously, AutoDock 3 only used the
+distance-dependent dielectric function in the intermolecular
+interaction energy.
+
+It is possible to include 1,4-interactions in AutoDock's energy
+calculation, and these contributions can be optionally weighted.
+This is done using the new include_1_4_interactions command in the
+DPF, and may be followed by a scaling factor.
+
+Desolvation Energy Calculations
+
+The desolvation term in AutoDock 4 now supports more atom types
+than the Stouten method implemented in AutoDock 3, which is
+particularly useful in It now includes the absolute magnitude of
+an atom's partial atomic charge to evaluate its contribution to the
+total desolvation free energy.
+
+Atom Types
+
+More atom types are supported by both AutoGrid 4 and AutoDock 4.
+Specifically, AutoDock 3 supported ligands with a maximum of 6
+different atom types, now the limit is 22.
+
+File Formats & Atom Types
+
+Ligands and macromolecules are now stored in the same file format,
+namely "PDBQT". The "Q" in "PDBQT" stands for partial charge, and
+the "T" stands for atom type.
+
+Atom types are now one or two character strings, and are separate
+from the atom name, and are almost always the same as the element
+name. The exceptions are hydrogen bond donors and acceptors, and
+aromatic carbons. AutoDock 3 used only one character for atom types,
+and this was always the first character of the atom name, even when
+the first character might have been changed to a lower case letter
+(e.g. chlorine atom names had to be modified to have a "c" as their
+first character).
+
+AutoDock and AutoGrid version 3 used "PDBQ" format for the ligand,
+and "PDBQS" for the macromolecule. The "S" in "PDBQS" stands for
+atomic solvation parameter.
+
+In version 4, the solvation parameters are looked up using the atom
+type and the supplied parameter library file.
+
+A new command has been added to AutoDock 4, called parameter_file
+that expects the name of the AutoDock 4 parameter file. If this
+line is omitted, default parameter values are used instead.
+
+The grid parameter file (GPF) and docking parameter file (DPF) are
+now shorter and simpler, since the internal non-bond parameters are
+now stored in a separate file, the AutoDock 4 parameter file. This
+is called "AD4_parameters.dat" by default, but can be called anything.
+
+New Search Algorithms
+
+Coliny is the new search library from Bill Hart, Sandia National
+Laboratories. Max Chang, (who, like Bill Hart, is a student of
+UCSD's Rik Belew) has been trying out some of the new options in
+AutoDock, and contributed this tip. If you want to use any of the
+coliny optimisation libraries, you need to create file called
+SearchMethod.in in addition to your AutoDock DPF, that lists all
+the parameters you want to set for the particular search method,
+SearchMethod, you want to use--change the text SearchMethod
+accordingly. For instance, a simple real-value-optimizing Evolutionary
+Algorithm (EAreal) search would require a file called EAreal.in.
+To set the maximum number of energy evaluations to use before
+terminating the EAReal search, it would contain the line:
+
+      max_neval 250000
+
+By default, Coliny searches print a lot of debugging information
+(detailing the search process) to the standard output, so you may
+want to add the line:
+
+    output_level none
+
+To use Coliny in AutoDock, you will also need to add the following
+line to your AutoDock 4 DPF, to specify which Coliny search method
+and how many docking runs to do:
+
+    coliny EAreal 10
+
+AutoDock 4 Genetic Algorithm (GA) and Lamarckian Genetic Algorithm
+(LGA) now support new crossover operators. Previously, AutoDock 3
+only offered 2-point crossover. AutoDock 4 now offers the choice
+of 1-point crossover, 2-point crossover, uniform crossover and
+arithmetic crossover.
+
+Seeding Populations
+
+We have added the ability to "seed" a population when using the GA
+or LGA in AutoDock. This means we can specify the particular state
+variables for a member of the initial population using the tran0,
+quat0 and dihe0 commands in the DPF. This can bias a search, and
+if the state variables have come from a previous docking and are
+of a good docked conformation (i.e. low energy), then seeding can
+dramatically improve the search efficiency of the docking.
+

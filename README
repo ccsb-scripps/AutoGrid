@@ -1,0 +1,42 @@
+
+What is AutoDock?
+
+AutoDock is a suite of automated docking tools. It is designed to
+predict how small molecules, such as substrates or drug candidates,
+bind to a receptor of known 3D structure.
+
+AutoDock actually consists of two main programs: AutoDock performs
+the docking of the ligand to a set of grids describing the target
+protein; AutoGrid pre-calculates these grids.
+
+In addition to using them for docking, the atomic affinity grids
+can be visualised. This can help, for example, to guide organic
+synthetic chemists design better binders.
+
+We have also developed a graphical user interface called AutoDockTools,
+or ADT for short, which amongst other things helps to set up which
+bonds will treated as rotatable in the ligand and to analyze dockings.
+
+AutoDock has applications in:
+
+    X-ray crystallography; 
+    structure-based drug design; 
+    lead optimization; 
+    virtual screening (HTS); 
+    combinatorial library design; 
+    protein-protein docking; 
+    chemical mechanism studies.
+
+
+Installing AutoDock
+
+Read the INSTALL file in this directory for instructions on
+installing AutoDock.
+
+
+Copying AutoDock
+
+Please refer to the file "COPYING" in this directory for
+more information on copying AutoDock.
+
+
