@@ -1,6 +1,6 @@
 /* AutoGrid */
 /*
-  $Id: mainpost1.28.cpp,v 1.55 2007/04/06 01:34:13 garrett Exp $
+  $Id: mainpost1.28.cpp,v 1.56 2007/05/01 06:37:19 garrett Exp $
 */
 
 
@@ -172,8 +172,8 @@ int main( int argc,  char **argv )
 {
 
 /*  for associative dictionary storing parameters by autogrid 'type'  */
-FILE * dataFile;
-char dataline[100];
+// FILE * dataFile;
+// char dataline[100];
 //ENTRY item; 
 /*see  atom_parameter_manager.c */
 static ParameterEntry thisparm;
@@ -328,13 +328,12 @@ FILE *receptor_fileptr,
 double solpar_q = .01097;  /*unweighted value restored 3:9:05 */
 /*double solpar_q = 0.0013383; =.01097 * 0.122*/
 
-double A, epsilon0, rk, lambda, B, lambda_B;
 double q_tot = 0.0;
 double diel, invdielcal;
 double dxA;
 double dxB;
 double minus_inv_two_sigma_sqd;
-double percentdone;
+double percentdone=0.0;
 double PI_halved;
 double q_max = -BIG,  q_min = BIG;
 double rA;
@@ -379,8 +378,6 @@ int nDone = 0;
 int problem_wrt = FALSE;
 int xA, xB;
 int hbondflag[MAX_MAPS];
-
-int this_hbond_type = 0;  //why is this used???
 
 int outlev = -1;
 
@@ -520,7 +517,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.55 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.56 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -718,7 +715,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 }
 
                 /* Tell the user what you thought this atom was... */
-                (void) fprintf( logFile, " was assigned atom type \"%s\" (%d).\n", found_parm->autogrid_type, found_parm->rec_index, atom_type[ia]);
+                (void) fprintf( logFile, " was assigned atom type \"%s\" (rec_index= %d, atom_type= %d).\n", found_parm->autogrid_type, found_parm->rec_index, atom_type[ia]);
                 (void) fflush( logFile);
 
                 /* Count the number of each atom type */
@@ -965,6 +962,11 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
         /* Check to see if there is enough memory to store these map objects */
         gridmap = (MapObject *)malloc(sizeof(MapObject) * num_maps);
+
+        if ( gridmap == NULL ) {
+            print_error( logFile, ERROR, "Could not allocate memory to create the MapObject \"gridmap\".\n" );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
+        }
 
         // Initialize the gridmap MapObject
         for (i=0; i<num_maps; i++) {
