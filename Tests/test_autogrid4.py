@@ -1,7 +1,7 @@
 #
 # 
 #
-# $Id: test_autogrid4.py,v 1.8 2006/12/19 18:38:01 garrett Exp $
+# $Id: test_autogrid4.py,v 1.9 2007/05/02 17:27:06 rhuey Exp $
 #
 """
 Test AutoGrid.
@@ -92,7 +92,9 @@ class AutoGrid4_hsg1_sm_test(unittest.TestCase):
                 self.assertEquals(((abs(c_num-py_num)/(c_num))*100.)<.5, True)
             else:
                 #but use precision only for smaller values
-                self.assertAlmostEquals(c_num, py_num, precision)
+                cutoff = 10**(-precision)
+                self.assertTrue(abs(c_num-py_num)<cutoff)
+                #self.assertAlmostEquals(c_num, py_num, precision)
 
 
     def test_hsg1_estat(self):
