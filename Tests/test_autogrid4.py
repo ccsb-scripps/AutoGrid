@@ -1,7 +1,7 @@
 #
 # 
 #
-# $Id: test_autogrid4.py,v 1.9 2007/05/02 17:27:06 rhuey Exp $
+# $Id: test_autogrid4.py,v 1.10 2007/05/03 21:50:32 garrett Exp $
 #
 """
 Test AutoGrid.
@@ -93,7 +93,7 @@ class AutoGrid4_hsg1_sm_test(unittest.TestCase):
             else:
                 #but use precision only for smaller values
                 cutoff = 10**(-precision)
-                self.assertTrue(abs(c_num-py_num)<cutoff)
+                self.assertEqual(abs(c_num-py_num)<cutoff, True)
                 #self.assertAlmostEquals(c_num, py_num, precision)
 
 
