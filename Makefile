@@ -14,7 +14,7 @@
 
 
 
-# $Id: Makefile,v 1.20 2007/05/01 06:40:32 garrett Exp $
+# $Id: Makefile,v 1.21 2007/05/03 20:42:52 garrett Exp $
 # 
 # AutoGrid 
 # 
@@ -61,9 +61,10 @@ POST_UNINSTALL = :
 bin_PROGRAMS = autogrid4$(EXEEXT)
 subdir = .
 DIST_COMMON = README $(am__configure_deps) $(srcdir)/Makefile.am \
-	$(srcdir)/Makefile.in $(top_srcdir)/configure AUTHORS COPYING \
-	ChangeLog INSTALL NEWS depcomp install-sh missing \
-	mkinstalldirs
+	$(srcdir)/Makefile.in \
+	$(top_srcdir)/../autodock-4.0.0/autocomm.h \
+	$(top_srcdir)/configure AUTHORS COPYING ChangeLog INSTALL NEWS \
+	depcomp install-sh missing mkinstalldirs
 ACLOCAL_M4 = $(top_srcdir)/aclocal.m4
 am__aclocal_m4_deps = $(top_srcdir)/configure.ac
 am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
@@ -71,7 +72,7 @@ am__configure_deps = $(am__aclocal_m4_deps) $(CONFIGURE_DEPENDENCIES) \
 am__CONFIG_DISTCLEAN_FILES = config.status config.cache config.log \
  configure.lineno config.status.lineno
 mkinstalldirs = $(SHELL) $(top_srcdir)/mkinstalldirs
-CONFIG_CLEAN_FILES =
+CONFIG_CLEAN_FILES = autocomm.h
 am__installdirs = "$(DESTDIR)$(bindir)"
 binPROGRAMS_INSTALL = $(INSTALL_PROGRAM)
 PROGRAMS = $(bin_PROGRAMS)
@@ -670,9 +671,12 @@ check : autogrid4 $(srcdir)/Tests/test_autogrid4.py
 
 main.o : $(srcdir)/../autodock-4.0.0/autocomm.h
 
+# 2007-04-30 MP & GMM: this line is necessary to be able to compile read_parameter_library.o
+read_parameter_library.o : default_parameters.h
+
 default_parameters.h : AD4_parameters.dat paramdat2h.csh
 	rm -f $@
-	./paramdat2h.csh > tmp-paramdat
+	csh ./paramdat2h.csh > tmp-paramdat
 	mv -f tmp-paramdat $@
 
 #
