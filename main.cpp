@@ -1,8 +1,29 @@
-/* AutoGrid */
 /*
-  $Id: main.cpp,v 1.56 2007/05/01 06:37:19 garrett Exp $
-*/
 
+ $Id: main.cpp,v 1.57 2007/05/03 20:46:06 garrett Exp $
+
+ AutoGrid 
+
+ Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
+ All Rights Reserved.
+
+ AutoGrid is a Trade Mark of The Scripps Research Institute.
+
+ This program is free software; you can redistribute it and/or
+ modify it under the terms of the GNU General Public License
+ as published by the Free Software Foundation; either version 2
+ of the License, or (at your option) any later version.
+
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with this program; if not, write to the Free Software
+ Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
+
+ */
 
 #include <sys/types.h>
 #ifndef _WIN32
@@ -517,7 +538,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.56 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.57 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
