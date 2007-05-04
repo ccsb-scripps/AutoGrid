@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.57 2007/05/03 20:46:06 garrett Exp $
+ $Id: mainpost1.28.cpp,v 1.58 2007/05/04 07:54:25 garrett Exp $
 
  AutoGrid 
 
@@ -67,7 +67,14 @@
 extern float idct;
 extern Linear_FE_Model AD4;
 
-#define round3dp(x) ((round((x)*1000.0L))/1000.0L) // Required to round %.3f consistently on different platforms
+// round() is a C99 function and not universally available
+// Required to round %.3f consistently on different platforms
+#ifdef HAVE_ROUND
+#define round3dp(x) ((round((x)*1000.0L))/1000.0L)
+#else
+#define round3dp(x) (( floor((x)*1000.0 + 0.5)) / 1000.0)
+#endif
+
 
 // print_error() is used with error_level where:
 // error_level = one of the following:
@@ -538,7 +545,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.57 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.58 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
