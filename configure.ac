@@ -25,7 +25,7 @@ AC_STRUCT_TM
 
 # Checks for library functions.
 AC_FUNC_MALLOC
-AC_CHECK_FUNCS([gethostname pow sqrt strncasecmp])
+AC_CHECK_FUNCS([gethostname pow round sqrt strncasecmp])
 
 case $host_os in
   *cygwin* ) CYGWIN=yes;;
