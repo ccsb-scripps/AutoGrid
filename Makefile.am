@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.2 2007/05/03 20:42:52 garrett Exp $
+# $Id: Makefile.am,v 1.3 2007/05/04 01:38:39 garrett Exp $
 # 
 # AutoGrid 
 # 
@@ -78,9 +78,18 @@ autogrid4_SOURCES = main.cpp \
             util.h \
             version.h
 
+AM_CFLAGS = -Wall -O3 # All warnings, Agressive optimization
+
 AM_CXXFLAGS = -Wall -O3 # All warnings, Agressive optimization
 
 AM_CPPFLAGS = -I$(srcdir)/../autodock-4.0.0
+
+autogrid4_CFLAGS = -Wall -O3 # All warnings, Agressive optimization
+# autogrid4_CFLAGS = -Wall -O3 -ftree-vectorize # All warnings, Agressive optimization, GCC vectorization in Mac OS X
+
+autogrid4_CXXFLAGS = -Wall -O3 # All warnings, Agressive optimization
+# autogrid4_CXXFLAGS = -Wall -O3 -ftree-vectorize # All warnings, Agressive optimization, GCC vectorization in Mac OS X
+
 
 # LINKOPT = $(CSTD) $(OPT) -Wl,--stack=0x2000000 # Cygwin, 32MB stacksize
 
@@ -95,17 +104,17 @@ AM_CPPFLAGS = -I$(srcdir)/../autodock-4.0.0
 # DBUG = -DDEBUG3 # Just DEBUG3-specific code for print age of individuals.
 
 check : autogrid4 $(srcdir)/Tests/test_autogrid4.py
-if HAVE_PYTHON
+#if HAVE_PYTHON
 	@echo " "
 	@echo "Running the Python test_autogrid4.py unit-tests on autogrid4"
 	@echo " "
 	cd $(srcdir)/Tests ; chmod u+w . ; python ./test_autogrid4.py
-else
-	@echo " "
-	@echo "Python version 2.1 or higher needed for 'make check', but not found."
-	@echo "Skipping AutoGrid4 unit tests."
-	@echo " "
-endif
+#else
+#	@echo " "
+#	@echo "Python version 2.1 or higher needed for 'make check', but not found."
+#	@echo "Skipping AutoGrid4 unit tests."
+#	@echo " "
+#endif
 
 
 main.o : $(srcdir)/../autodock-4.0.0/autocomm.h
