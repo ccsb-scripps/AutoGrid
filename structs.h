@@ -1,6 +1,6 @@
 /*
 
- $Id: structs.h,v 1.4 2007/05/03 20:46:06 garrett Exp $
+ $Id: structs.h,v 1.5 2007/05/04 01:39:49 garrett Exp $
 
  AutoGrid 
 
@@ -127,7 +127,7 @@ typedef struct rotamer
 
 /* ____________________________________________________________________________ */
 
-typedef struct charge
+typedef struct chargestruct
 {
     double charge;
     double abs_charge;
