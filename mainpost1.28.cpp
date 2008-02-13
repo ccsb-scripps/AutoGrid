@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.58 2007/05/04 07:54:25 garrett Exp $
+ $Id: mainpost1.28.cpp,v 1.59 2008/02/13 19:16:54 rhuey Exp $
 
  AutoGrid 
 
@@ -545,7 +545,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.58 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.59 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1056,6 +1056,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             gridmap[i].map_index = i;
             strcpy(gridmap[i].type, ligand_types[i]); /*eg HD or OA or NA or N*/
             found_parm = apm_find(ligand_types[i]);
+            if (strcmp(ligand_types[i],"Z")==0){
+                fprintf(logFile, "Found covalent map atomtype\n");
+                gridmap[i].is_covalent = TRUE;}
             gridmap[i].atom_type = found_parm->map_index;
             gridmap[i].solpar_probe = found_parm->solpar;
             gridmap[i].vol_probe = found_parm->vol;
