@@ -1,8 +1,8 @@
-# $Id: AD4_parameters.dat,v 1.8 2008/02/14 17:14:38 rhuey Exp $
+# $Id: AD4_parameters.dat,v 1.9 2008/02/15 17:42:16 rhuey Exp $
 
 # AutoDock Linear Free Energy Model Coefficients and Energetic Parameters
 #                        Version 1.0
-#                     $Revision: 1.8 $
+#                     $Revision: 1.9 $
 
 # AutoDock 4 free energy coefficients with respect to original (AD2) energetic parameters
 #
@@ -78,4 +78,4 @@ atom_par ZN     1.48  0.550   1.7000  -0.00110  0.0  0.0  0  -1  -1  4	# Non H-b
 atom_par Br     4.33  0.389  42.5661  -0.00110  0.0  0.0  0  -1  -1  4	# Non H-bonding Bromine
 atom_par BR     4.33  0.389  42.5661  -0.00110  0.0  0.0  0  -1  -1  4	# Non H-bonding Bromine
 atom_par I      4.72  0.550  55.0585  -0.00110  0.0  0.0  0  -1  -1  4	# Non H-bonding Iodine
-atom_par Z      0.00  0.000  00.0000   0.00000  0.0  0.0  0  -1  -1  4	# Non H-bonding covalent map
+atom_par Z      4.00  0.150  33.5103  -0.00143  0.0  0.0  0  -1  -1  0	# Non H-bonding covalent map
