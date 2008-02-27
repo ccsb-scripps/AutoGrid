@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.59 2008/02/13 19:16:54 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.60 2008/02/27 23:48:18 rhuey Exp $
 
  AutoGrid 
 
@@ -545,7 +545,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.59 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.60 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1126,12 +1126,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         (void) fprintf( logFile, "\nAtom type names for ligand atom types 1-%d used for ligand-atom affinity grid maps:\n\n", num_atom_maps);
         for (i = 0;  i < num_atom_maps;  i++) {
             (void) fprintf( logFile, "\t\t\tAtom type number %d corresponds to atom type name \"%s\".\n", gridmap[i].map_index, gridmap[i].type);
-
-            /*FIX THIS!!! Covalent Atom Types are not yet supported with the new AG4/AD4 atom typing mechanism... */
-            /*if (gridmap[i].atom_type == COVALENTTYPE) {
-              gridmap[i].is_covalent = TRUE;
+            if (gridmap[i].is_covalent == TRUE) {
               (void) fprintf( logFile, "\nAtom type number %d will be used to calculate a covalent affinity grid map\n\n", i + 1);
-            }*/
+            }
         }
         (void) fprintf( logFile, "\n\n");
         (void) fflush( logFile);
@@ -1153,14 +1150,12 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         printf("receptor_types_gpf_ct=%d\n",receptor_types_gpf_ct);
         printf("receptor_types_ct=%d\n",receptor_types_ct);
 #endif
-        //for(i=0; i<receptor_types_gpf_ct; i++){
         for(i=0; i<receptor_types_ct; i++){
             strcpy(receptor_types[i], receptor_atom_types[i]);
 #ifdef DEBUG
             printf("%d %s  ->%s\n",i, receptor_atom_types[i],  receptor_types[i]);
 #endif
         }
-        //for (i=0; i<receptor_types_gpf_ct; i++) {
         for (i=0; i<receptor_types_ct; i++) {
             found_parm = apm_find(receptor_atom_types[i]);
             if (found_parm != NULL){
