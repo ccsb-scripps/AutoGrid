@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.60 2008/02/27 23:48:18 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.61 2008/03/19 18:20:04 rhuey Exp $
 
  AutoGrid 
 
@@ -545,7 +545,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.60 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.61 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1228,7 +1228,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
          * "map" keywords. */
         ++map_index;
         if (map_index > num_atom_maps - 1) {
-             (void) sprintf(message, "Too many \"map\" keywords (%d);  the \"types\" command declares only %d maps.\nRemove a \"map\" keyword from the GPF.\n", map_index + 1, num_atom_maps);
+             (void) sprintf(message, "Too many \"map\" keywords (%d);  the \"ligand_types\" command declares only %d maps.\nRemove a \"map\" keyword from the GPF.\n", map_index + 1, num_atom_maps);
             print_error( logFile, ERROR, message );
             print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
         }
