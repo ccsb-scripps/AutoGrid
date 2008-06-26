@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.8 2008/06/26 23:08:25 garrett Exp $
+# $Id: Makefile.am,v 1.9 2008/06/26 23:13:27 garrett Exp $
 # 
 # AutoGrid 
 # 
@@ -125,9 +125,9 @@ main.o : $(srcdir)/../autodock/autocomm.h
 # 2007-04-30 MP & GMM: this line is necessary to be able to compile read_parameter_library.o
 read_parameter_library.o : default_parameters.h
 
-default_parameters.h : ../autodock/paramdat2h.csh  ../autodock/AD4.1_bound.dat
+default_parameters.h : $(srcdir)/../autodock/paramdat2h.csh  $(srcdir)/../autodock/AD4.1_bound.dat
 	rm -f $@
-	csh ../autodock/paramdat2h.csh > tmp-paramdat
+	csh $(srcdir)/../autodock/paramdat2h.csh > tmp-paramdat
 	mv -f tmp-paramdat $@
 
 # see Autoconf manual 4.7.3 (p. 25) support for VPATH
