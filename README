@@ -1,5 +1,6 @@
 
 What is AutoDock?
+=================
 
 AutoDock is a suite of automated docking tools. It is designed to
 predict how small molecules, such as substrates or drug candidates,
@@ -29,6 +30,7 @@ AutoDock has applications in:
 
 
 Installing AutoGrid
+===================
 
 Make sure you checkout both "autodock" and "autogrid" at the same 
 time and into the same directory.  The compilation of "autogrid4" 
@@ -47,13 +49,24 @@ files would be come necessary:
     ../autodock/AD4.1_compact.dat
     ../autodock/AD4.1_extended.dat
 
-Please read the INSTALL file in this directory for more information.
 
+Bootstrapping Installation
+==========================
+
+The CVS repository does not include the 'configure' file;  this
+is used to create a Makefile that is platform-specific.
+
+To generate the `./configure' file, it is necessary to run 'autoreconf -i'.
+Once this file has been generated, follow the instructions below
+for installing AutoGrid.
+
+Please read the INSTALL file in this directory for more information,
+this will explain how to use './configure' to create the necessary
+Makefile and how to use it to make the executables.
 
 
 Copying AutoDock
+================
 
 Please refer to the file "COPYING" in this directory for
 more information on copying AutoDock.
-
-
