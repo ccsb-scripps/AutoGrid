@@ -1,14 +1,14 @@
 #
 # Makefile to build AutoGrid from Object files.
 #
-# $Revision: 1.1 $
+# $Revision: 1.2 $
 #
 # (c) 1994-2005, TSRI
 # Garrett M. Morris, Ruth Huey, David S. Goodsell
 #
 
 #
-# $Id: Makefile.pre-autoconf,v 1.1 2008/06/26 22:28:53 garrett Exp $
+# $Id: Makefile.pre-autoconf,v 1.2 2008/06/26 22:54:57 garrett Exp $
 #
 
 EXE = .
@@ -136,6 +136,8 @@ autogrid4 : $(OBJS)
 	@echo $(EXE) on `date` using' >>> ' `hostname` ' <<<' >> LATEST_MAKE
 	@echo 'Flags: '$(CC) $(LINK) $(LIB) >> LATEST_MAKE
 	$(CC) $(LINK) -o $@ $(OBJS) $(LIB)
+
+check : test
 
 test : autogrid4 Tests/test_autogrid4.py
 	@echo " "

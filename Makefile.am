@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.6 2008/06/26 21:53:08 garrett Exp $
+# $Id: Makefile.am,v 1.7 2008/06/26 22:54:57 garrett Exp $
 # 
 # AutoGrid 
 # 
@@ -103,7 +103,9 @@ autogrid4_CXXFLAGS = -Wall -O3 # All warnings, Agressive optimization
 # DBUG = -DDEBUG2 # Just DEBUG2-specific code for tracking prop.selection.
 # DBUG = -DDEBUG3 # Just DEBUG3-specific code for print age of individuals.
 
-check : autogrid4 $(srcdir)/Tests/test_autogrid4.py
+check : test
+
+test : autogrid4 $(srcdir)/Tests/test_autogrid4.py
 #if HAVE_PYTHON
 	@echo " "
 	@echo "Running the Python test_autogrid4.py unit-tests on autogrid4"
@@ -112,7 +114,7 @@ check : autogrid4 $(srcdir)/Tests/test_autogrid4.py
 	cd $(srcdir)/Tests ; chmod u+w . ; python ./test_autogrid4.py -g . -e $$outputdir/autogrid4 -o .
 #else
 #	@echo " "
-#	@echo "Python version 2.1 or higher needed for 'make check', but not found."
+#	@echo "Python version 2.1 or higher needed for 'make test', but not found."
 #	@echo "Skipping AutoGrid4 unit tests."
 #	@echo " "
 #endif
