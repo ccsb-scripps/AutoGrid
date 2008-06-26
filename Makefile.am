@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.7 2008/06/26 22:54:57 garrett Exp $
+# $Id: Makefile.am,v 1.8 2008/06/26 23:08:25 garrett Exp $
 # 
 # AutoGrid 
 # 
@@ -29,7 +29,7 @@
 
 # Autotools
 
-EXTRA_DIST = AD4_parameters.dat paramdat2h.csh Tests
+EXTRA_DIST = Tests
 
 dist-hook:
 	rm -rf `find $(distdir)/Tests -name CVS -o -name '*.glg'` 
