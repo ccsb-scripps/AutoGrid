@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.4 2007/05/04 08:01:45 garrett Exp $
+# $Id: Makefile.am,v 1.5 2008/06/26 21:17:47 garrett Exp $
 # 
 # AutoGrid 
 # 
@@ -82,7 +82,7 @@ AM_CFLAGS = -Wall -O3 # All warnings, Agressive optimization
 
 AM_CXXFLAGS = -Wall -O3 # All warnings, Agressive optimization
 
-AM_CPPFLAGS = -I$(srcdir)/../autodock-4.0.0
+AM_CPPFLAGS = -I$(srcdir)/../autodock
 
 autogrid4_CFLAGS = -Wall -O3 # All warnings, Agressive optimization
 # autogrid4_CFLAGS = -Wall -O3 -ftree-vectorize # All warnings, Agressive optimization, GCC vectorization in Mac OS X
@@ -118,7 +118,7 @@ check : autogrid4 $(srcdir)/Tests/test_autogrid4.py
 #endif
 
 
-main.o : $(srcdir)/../autodock-4.0.0/autocomm.h
+main.o : $(srcdir)/../autodock/autocomm.h
 
 # 2007-04-30 MP & GMM: this line is necessary to be able to compile read_parameter_library.o
 read_parameter_library.o : default_parameters.h
