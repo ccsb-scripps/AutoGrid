@@ -28,10 +28,27 @@ AutoDock has applications in:
     chemical mechanism studies.
 
 
-Installing AutoDock
+Installing AutoGrid
 
-Read the INSTALL file in this directory for instructions on
-installing AutoDock.
+Make sure you checkout both "autodock" and "autogrid" at the same 
+time and into the same directory.  The compilation of "autogrid4" 
+depends on files in the "../autodock" directory, specifically:
+
+    ../autodock/autocomm.h
+    ../autodock/paramdat2h.csh
+    ../autodock/AD4.1_bound.dat
+
+By default, AutoDock 4.1 uses the AD4.1_bound.dat parameter file,
+so AD4.1_compact.dat and AD4.1_extended.dat would not be used,
+but if "../autodock/paramdat2h.csh" is changed to use either of
+these scoring functions, then either of these other two ".dat"
+files would be come necessary:
+
+    ../autodock/AD4.1_compact.dat
+    ../autodock/AD4.1_extended.dat
+
+Please read the INSTALL file in this directory for more information.
+
 
 
 Copying AutoDock
