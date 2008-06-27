@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.10 2008/06/26 23:29:05 garrett Exp $
+# $Id: Makefile.am,v 1.11 2008/06/27 04:17:53 garrett Exp $
 # 
 # AutoGrid 
 # 
@@ -58,6 +58,7 @@ autogrid4_SOURCES = main.cpp \
             autoglobal.h \
             autogrid.h \
             constants.h \
+            default_parameters.h \
             distdepdiel.h \
             gpftoken.h \
             grid.h \
@@ -77,6 +78,14 @@ autogrid4_SOURCES = main.cpp \
             typedefs.h \
             util.h \
             version.h
+
+# See GNU Automake documentation, section 10.4 re BUILT_SOURCES;
+# "default_parameters.h" is generated using the rules below
+# which invoke "paramdat2h.csh" to convert the AD4.1_bound.dat
+# parameter library file into a C++ header file.
+BUILT_SOURCES = default_parameters.h
+
+CLEANFILES = default_parameters.h
 
 AM_CFLAGS = -Wall -O3 # All warnings, Agressive optimization
 
@@ -122,15 +131,12 @@ test : autogrid4 $(srcdir)/Tests/test_autogrid4.py
 
 main.o : $(srcdir)/../autodock/autocomm.h
 
-# 2007-04-30 MP & GMM: this line is necessary to be able to compile read_parameter_library.o
-read_parameter_library.o : default_parameters.h
-
 default_parameters.h : $(srcdir)/../autodock/paramdat2h.csh  $(srcdir)/../autodock/AD4.1_bound.dat
 	rm -f $@
-	cp $(srcdir)/../autodock/AD4.1_bound.dat $(srcdir)
-	csh $(srcdir)/../autodock/paramdat2h.csh > tmp-paramdat
-	rm -f $(srcdir)/AD4.1_bound.dat
-	mv -f tmp-paramdat $@
+	csh $(srcdir)/../autodock/paramdat2h.csh $(srcdir)/../autodock/AD4.1_bound.dat > $@
+
+# 2007-04-30 MP & GMM: this line is necessary to be able to compile read_parameter_library.o
+read_parameter_library.o : default_parameters.h
 
 # see Autoconf manual 4.7.3 (p. 25) support for VPATH
 # enabling multi-platform builds
