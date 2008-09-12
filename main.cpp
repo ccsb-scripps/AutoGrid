@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.61 2008/03/19 18:20:04 rhuey Exp $
+ $Id: main.cpp,v 1.62 2008/09/12 11:06:30 garrett Exp $
 
  AutoGrid 
 
@@ -379,7 +379,7 @@ double covhalfwidth = 1.0;
 double covbarrier = 1000.0;
 double cA, cB, tmpconst;
 double sigma;
-double version_num = 4.00;
+double version_num = 4.10;
 /*are these necessary??*/
 double temp_vol, temp_solpar;
 double temp_hbond_enrg, hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
@@ -545,7 +545,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.61 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.62 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
