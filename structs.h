@@ -1,6 +1,6 @@
 /*
 
- $Id: structs.h,v 1.5 2007/05/04 01:39:49 garrett Exp $
+ $Id: structs.h,v 1.6 2008/10/15 21:28:20 rhuey Exp $
 
  AutoGrid 
 
@@ -60,6 +60,10 @@ typedef unsigned long UnsignedFourByteLong;
 
 /* ____________________________________________________________________________ */
 
+typedef double Vector [3];  // for vectors and points
+
+/* ____________________________________________________________________________ */
+
 typedef struct coord
 {
   double x;			/* Cartesian x-coordinate */
@@ -75,10 +79,10 @@ typedef struct quat
   double ny;			/* unit vector's y-component */
   double nz;			/* unit vector's z-component */
   double ang;			/* angle of rotation about unit-vector */
+  double w;			/* quaternion's w-component */
   double x;			/* quaternion's x-component */
   double y;			/* quaternion's y-component */
   double z;			/* quaternion's z-component */
-  double w;			/* quaternion's w-component */
   double qmag;			/* quaternion's 4-D magnitude */
 } Quat;
 
@@ -235,7 +239,7 @@ typedef struct linear_FE_model
 
 typedef struct energy_tables
 {
-    Real e_vdW_Hb[NEINT][ATOM_MAPS][ATOM_MAPS];  // vdW & Hb energies
+    Real e_vdW_Hb[NEINT][MAX_ATOM_TYPES][MAX_ATOM_TYPES];  // vdW & Hb energies
     Real sol_fn[NEINT];                            // distance-dependent desolvation function
     Real epsilon_fn[NDIEL];                        // distance-dependent dielectric function
     Real r_epsilon_fn[NDIEL];                      // r * distance-dependent dielectric function
