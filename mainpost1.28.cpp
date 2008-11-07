@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.63 2008/11/07 17:31:45 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.64 2008/11/07 22:22:00 rhuey Exp $
 
  AutoGrid 
 
@@ -341,11 +341,11 @@ int ctr;
 char atom_name[6];
 /*char extension[5];*/
 /* char q_str[7]; */
-char record[6];
+char record[LINE_LEN];
 char temp_char = ' ';
 char token[LINE_LEN];
 char warned = 'F';
-char xyz[5];
+static const char xyz[] = "xyz"; // used to print headings
 
 FILE *receptor_fileptr,
      *AVS_fld_fileptr,
@@ -516,8 +516,6 @@ job_start = times( &tms_job_start);
  */
 (void) setflags( argc, argv);
 
-(void) strcpy( xyz, "xyz");
-
 for (i = 0;  i < XYZ;  i++) {
    icoord[i] = 0;
 }
@@ -545,7 +543,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.63 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.64 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
