@@ -1,6 +1,6 @@
 /*
 
- $Id: banner.cpp,v 1.13 2008/09/12 11:08:14 garrett Exp $
+ $Id: banner.cpp,v 1.14 2009/02/26 00:58:49 rhuey Exp $
 
  AutoGrid 
 
@@ -31,7 +31,7 @@
 
 extern FILE *logFile;
 
-void banner( double version_num )
+void banner( char * version_num )
 
 {
 
@@ -67,7 +67,7 @@ void banner( double version_num )
 (void) fprintf(logFile,"\n");
 (void) fprintf(logFile,"                ______________________________________ \n");
 (void) fprintf(logFile,"               |                                      |\n");
-(void) fprintf(logFile,"               |            AutoGrid %3.2lf             |\n",version_num);
+(void) fprintf(logFile,"               |            AutoGrid %-8s         |\n", version_num );
 (void) fprintf(logFile,"               |                                      |\n");
 (void) fprintf(logFile,"               |        Garrett M. Morris, TSRI       |\n");
 (void) fprintf(logFile,"               |            Ruth Huey, TSRI           |\n");

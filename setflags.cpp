@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.8 2007/05/03 20:46:06 garrett Exp $
+ $Id: setflags.cpp,v 1.9 2009/02/26 00:58:49 rhuey Exp $
 
  AutoGrid 
 
@@ -36,7 +36,6 @@ extern char *programname;
 extern char AutoGridHelp[];
 extern char grid_param_fn[];
 extern int  debug;
-extern int  oldpdbq;
 
 /*----------------------------------------------------------------------------*/
 
@@ -91,9 +90,6 @@ int setflags( int argc, char **argv )
             argindex++;
             break;
 #endif
-        case 'o':
-            oldpdbq = TRUE;
-            break;
         case 'd':
             debug++;
             break;
@@ -102,7 +98,7 @@ int setflags( int argc, char **argv )
 	    exit(0);
             break;
         case 'l':
-            if ( (logFile = ag_fopen(argv[2], "w")) == NULL ) {
+            if ( (logFile = ad_fopen(argv[2], "w")) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't create the log file \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
                 exit(911);
@@ -113,7 +109,7 @@ int setflags( int argc, char **argv )
             break;
         case 'p':
             strcpy(grid_param_fn, argv[2]);
-            if ( (GPF = ag_fopen(argv[2], "r")) == NULL ) {
+            if ( (GPF = ad_fopen(argv[2], "r")) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't find or open Grid Parameter File \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
                 exit(911);

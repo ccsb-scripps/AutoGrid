@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.11 2008/06/27 04:17:53 garrett Exp $
+# $Id: Makefile.am,v 1.12 2009/02/26 00:58:49 rhuey Exp $
 # 
 # AutoGrid 
 # 
@@ -34,9 +34,7 @@ EXTRA_DIST = Tests
 dist-hook:
 	rm -rf `find $(distdir)/Tests -name CVS -o -name '*.glg'` 
 
-bin_PROGRAMS = autogrid4
-
-# Define the AutoGrid 4 source code files:
+bin_PROGRAMS = autogrid4 autogrid4_0
 
 autogrid4_SOURCES = main.cpp \
        check_size.cpp \
@@ -79,6 +77,49 @@ autogrid4_SOURCES = main.cpp \
             util.h \
             version.h
 
+# same as autogrid4
+autogrid4_0_SOURCES = main.cpp \
+       check_size.cpp \
+       setflags.cpp \
+       timesys.cpp \
+       timesyshms.cpp \
+       printhms.cpp \
+       prHMSfixed.cpp \
+       printdate.cpp \
+       strindex.cpp \
+       banner.cpp \
+       gpfparser.cpp \
+       parsetypes.cpp \
+       atom_parameter_manager.cpp \
+       read_parameter_library.cpp \
+       parse_param_line.cpp \
+       distdepdiel.cpp \
+            atom_parameter_manager.h \
+            autoglobal.h \
+            autogrid.h \
+            constants.h \
+            default_parameters.h \
+            distdepdiel.h \
+            gpftoken.h \
+            grid.h \
+            parameters.h \
+            parm.h \
+            parse_param_line.h \
+            partokens.h \
+            printdate.h \
+            printhms.h \
+            prototypes.h \
+            ranlib.h \
+            read_parameter_library.h \
+            structs.h \
+            times.h \
+            timesys.h \
+            timesyshms.h \
+            typedefs.h \
+            util.h \
+            version.h
+
+# Define the AutoGrid 4 source code files:
 # See GNU Automake documentation, section 10.4 re BUILT_SOURCES;
 # "default_parameters.h" is generated using the rules below
 # which invoke "paramdat2h.csh" to convert the AD4.1_bound.dat
@@ -89,15 +130,12 @@ CLEANFILES = default_parameters.h
 
 AM_CFLAGS = -Wall -O3 # All warnings, Agressive optimization
 
-AM_CXXFLAGS = -Wall -O3 # All warnings, Agressive optimization
+AM_CPPFLAGS = -Wall -O3 -I$(srcdir)/../autodock # All warnings, Agressive optimization
 
-AM_CPPFLAGS = -I$(srcdir)/../autodock
-
-autogrid4_CFLAGS = -Wall -O3 # All warnings, Agressive optimization
-# autogrid4_CFLAGS = -Wall -O3 -ftree-vectorize # All warnings, Agressive optimization, GCC vectorization in Mac OS X
-
-autogrid4_CXXFLAGS = -Wall -O3 # All warnings, Agressive optimization
 # autogrid4_CXXFLAGS = -Wall -O3 -ftree-vectorize # All warnings, Agressive optimization, GCC vectorization in Mac OS X
+
+autogrid4_0_CPPFLAGS=-DVERSION_NUM=\"4.0.2\" $(AM_CPPFLAGS)
+autogrid4_CPPFLAGS=-DVERSION_NUM=\"4.1.1\" $(AM_CPPFLAGS)
 
 
 # LINKOPT = $(CSTD) $(OPT) -Wl,--stack=0x2000000 # Cygwin, 32MB stacksize
@@ -131,9 +169,9 @@ test : autogrid4 $(srcdir)/Tests/test_autogrid4.py
 
 main.o : $(srcdir)/../autodock/autocomm.h
 
-default_parameters.h : $(srcdir)/../autodock/paramdat2h.csh  $(srcdir)/../autodock/AD4.1_bound.dat
+default_parameters.h : $(srcdir)/../autodock/paramdat2h.csh  $(srcdir)/../autodock/AD4_parameters.dat $(srcdir)/../autodock/AD4.1_bound.dat
 	rm -f $@
-	csh $(srcdir)/../autodock/paramdat2h.csh $(srcdir)/../autodock/AD4.1_bound.dat > $@
+	csh $(srcdir)/../autodock/paramdat2h.csh $(srcdir)/../autodock/AD4_parameters.dat  $(srcdir)/../autodock/AD4.1_bound.dat > $@
 
 # 2007-04-30 MP & GMM: this line is necessary to be able to compile read_parameter_library.o
 read_parameter_library.o : default_parameters.h

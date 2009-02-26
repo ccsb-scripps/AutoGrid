@@ -1,6 +1,6 @@
 /*
 
- $Id: autogrid.h,v 1.15 2007/05/03 20:46:06 garrett Exp $
+ $Id: autogrid.h,v 1.16 2009/02/26 00:58:49 rhuey Exp $
 
  AutoGrid 
 
@@ -101,7 +101,7 @@
 #define MAX_LEN_AUTOGRID_TYPE 7
 
 /* added for port to BOINC 11/17/2004 */
-FILE *ag_fopen(const char *path, const char *mode);
+FILE *ad_fopen(const char *path, const char *mode);
 /*----------------------------------------------------------------------------*/
 /* EOF.                                                                       */
 /*----------------------------------------------------------------------------*/

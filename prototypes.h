@@ -1,6 +1,6 @@
 /*
 
- $Id: prototypes.h,v 1.8 2007/05/03 20:46:06 garrett Exp $
+ $Id: prototypes.h,v 1.9 2009/02/26 00:58:49 rhuey Exp $
 
  AutoGrid 
 
@@ -34,7 +34,7 @@
 #include "parameters.h"
 
 
-void	banner( double version_num );
+void	banner( char * version_num );
 int	    setflags( int argc, char **argv );
 ParameterEntry * apm_find( const char key[] );
 void    apm_enter( const char key[], ParameterEntry value );
