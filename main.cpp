@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.65 2009/02/26 00:58:49 rhuey Exp $
+ $Id: main.cpp,v 1.66 2009/03/02 22:04:32 rhuey Exp $
 
  AutoGrid 
 
@@ -257,7 +257,7 @@ typedef struct mapObject {
 /*constant will go away*/
 
 char * maptypeptr; /*ptr for current map->type*/
-MapObject *gridmap; /* was statically assigned  MapObject gridmap[MAX_MAPS]; */
+MapObject *gridmap = NULL; /* was statically assigned  MapObject gridmap[MAX_MAPS]; */
 
 /* needed to make regression tests work between platforms*/
 Real *dummy_map;
@@ -357,7 +357,7 @@ double solpar_q = .01097;  /*unweighted value restored 3:9:05 */
 /*double solpar_q = 0.0013383; =.01097 * 0.122*/
 
 double q_tot = 0.0;
-double diel, invdielcal;
+double diel, invdielcal=0.;//expected never used if uninitialized
 double dxA;
 double dxB;
 double minus_inv_two_sigma_sqd;
@@ -368,7 +368,7 @@ double rA;
 double rB; /* double e; */
 double rcov = 0.0; /* Distance from current grid point to the covalent attachment point */
 double ri, inv_rd, rd2, r; /* re, r2, rd, */
-double r_min, inv_r, inv_rmax, racc, rdon, rsph, cos_theta, theta, tmp;
+double r_min = BIG, inv_r, inv_rmax, racc, rdon, rsph, cos_theta, theta, tmp;
 double r_smooth = 0.;
 double rdot;
 double Rij, epsij;
@@ -549,7 +549,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.65 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.66 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -997,7 +997,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
         if ( gridmap == NULL ) {
             print_error( logFile, ERROR, "Could not allocate memory to create the MapObject \"gridmap\".\n" );
-            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );//exits with FATAL_ERROR return code
+
         }
 
         // Initialize the gridmap MapObject
