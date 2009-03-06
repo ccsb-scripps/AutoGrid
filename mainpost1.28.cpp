@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.66 2009/03/02 22:04:32 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.67 2009/03/06 19:15:38 rhuey Exp $
 
  AutoGrid 
 
@@ -334,9 +334,7 @@ int MD_1 = MAX_DIST - 1;
 static double sol_fn[MAX_DIST];
 double energy_smooth[MAX_DIST];
 
-/*JUNE 29*/
 int ctr;
-/*JUNE 29*/
 
 char atom_name[6];
 /*char extension[5];*/
@@ -549,7 +547,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.66 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.67 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -982,7 +980,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
              }
         };
 
-
         elecPE = num_atom_maps;
         dsolvPE = elecPE + 1;
 
@@ -998,7 +995,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         if ( gridmap == NULL ) {
             print_error( logFile, ERROR, "Could not allocate memory to create the MapObject \"gridmap\".\n" );
             print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );//exits with FATAL_ERROR return code
-
         }
 
         // Initialize the gridmap MapObject
@@ -1378,7 +1374,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 /******************************************************************************/
 
     } /* second switch */
-} /* while */
+} /* while: finished reading gpf */
 
 (void) fprintf( logFile, "\n>>> Closing the grid parameter file (GPF)... <<<\n\n");
 (void) fprintf( logFile, UnderLine);
@@ -1576,12 +1572,12 @@ sulphur = get_rec_index("SA");
 nonHB_sulphur = get_rec_index("S");
 
 
-/*7:CHANGE HERE: scan the 'map_index' from the input*/
+/********************************************
+ * Start bond vector loop
+ ********************************************/
 for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
-
     disorder[ia] = FALSE;  /* initialize disorder flag. */
     warned = 'F';
-
     /*
      * Set scan limits looking for bonded atoms
      */
@@ -1985,8 +1981,6 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 
         }  /* end three bonds for Nitrogen */
     /* endNEW directional N Acceptor */
-
-
     } /* end test for atom type */
 
 } /* Do Next receptor atom... */
@@ -2035,9 +2029,7 @@ if (floating_grid) {
 /*
  * Iterate over all grid points, Z( Y ( X ) ) (X is fastest)...
  */
-
 ic = 0;
-
 ctr = 0;
 for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
     /*
@@ -2091,7 +2083,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     r = hypotenuse( d[X],d[Y],d[Z] );
                     if (r < rmin) {
                         rmin = r;
-                        closestH = ia; }
+                        closestH = ia; 
+                    }
                 } /* Hydrogen test */
             } /* ia loop */
             /* END NEW2: Find Min Hbond */
@@ -2119,7 +2112,6 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 /*make sure lookup index is in the table*/
                 indx_r = min(lookup(r), MD_1);
 
-
                 if (floating_grid) {
                     /* Calculate the so-called "Floating Grid"... */
                     r_min = min(r, r_min);
@@ -2129,11 +2121,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 if (dddiel) {
                     /* Distance-dependent dielectric... */
                     /*gridmap[elecPE].energy += charge[ia] * inv_r * epsilon[indx_r];*/
-
                     /*apply the estat forcefield coefficient/weight here */
                     gridmap[elecPE].energy += charge[ia] * inv_rmax * epsilon[indx_r] * AD4.coeff_estat;
-
-                    
                 } else {
                     /* Constant dielectric... */
                     /*gridmap[elecPE].energy += charge[ia] * inv_r * invdielcal;*/
@@ -2157,9 +2146,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 racc = 1.;
                 rdon = 1.;
 /* NEW2 Hramp ramps in Hbond acceptor probes */
-                        Hramp = 1.;
+                Hramp = 1.;
 /* END NEW2 Hramp ramps in Hbond acceptor probes */
-
 
                 if (hbond[ia] == 2) {/*D1*/
                     /*
@@ -2176,7 +2164,6 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     for (i = 0;  i < XYZ;  i++) {
                         cos_theta -= d[i] * rvector[ia][i];
                     }
-
                     if (cos_theta <= 0.) {
                         /*
                          *  H->current-grid-pt vector >= 90 degrees from
@@ -2202,55 +2189,52 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                                 break;
                         }
                         /* racc = pow( cos_theta, (double)rexp[ia]); */
-
  /* NEW2 calculate dot product of bond vector with bond vector of best hbond */
-                if (ia == closestH) {
-                    Hramp = 1.;
-                } else {
-                    cos_theta = 0.;
-                    for (i = 0;  i < XYZ;  i++) {
-                    cos_theta += rvector[closestH][i] * rvector[ia][i];
-                    }
-                   cos_theta = min(cos_theta, 1.0); 
-                   cos_theta = max(cos_theta, -1.0);
-                   theta = acos(cos_theta);
-                   Hramp = 0.5-0.5*cos(theta * 120./90.);
-                } /* ia test */
- /* END NEW2 calculate dot product of bond vector with bond vector of best hbond */
-        
+                        if (ia == closestH) {
+                            Hramp = 1.;
+                        } else {
+                            cos_theta = 0.;
+                            for (i = 0;  i < XYZ;  i++) {
+                                cos_theta += rvector[closestH][i] * rvector[ia][i];
+                            }
+                            cos_theta = min(cos_theta, 1.0); 
+                            cos_theta = max(cos_theta, -1.0);
+                            theta = acos(cos_theta);
+                            Hramp = 0.5-0.5*cos(theta * 120./90.);
+                        } /* ia test for closestH */
+/* END NEW2 calculate dot product of bond vector with bond vector of best hbond */
                     }
                     /* endif (atom_type[ia] == hydrogen) */
-                    /* NEW Directional N acceptor */
                 } else if (hbond[ia] == 4) {/*A1*/
-            /*
-            **  ia-th macromolecule atom = Nitrogen ( 4 = H )
-            **  calculate rdon for H-bond Donor PROBES at this grid pt.
-            **            ====     ======================
-            */
-                        cos_theta = 0.;
-            /*
-            **  d[] = Unit vector from current grid pt to ia_th m/m atom.
-            **  cos_theta = d dot rvector == cos(angle) subtended.
-            */
-                        for (i = 0;  i < XYZ;  i++) {
+                    /* NEW Directional N acceptor */
+                    /*
+                    **  ia-th macromolecule atom = Nitrogen ( 4 = H )
+                    **  calculate rdon for H-bond Donor PROBES at this grid pt.
+                    **            ====     ======================
+                    */
+                    cos_theta = 0.;
+                    /*
+                    **  d[] = Unit vector from current grid pt to ia_th m/m atom.
+                    **  cos_theta = d dot rvector == cos(angle) subtended.
+                    */
+                    for (i = 0;  i < XYZ;  i++) {
                         cos_theta -= d[i] * rvector[ia][i];
-                        }
+                    }
 
-                        if (cos_theta <= 0.) {
-            /*
-            **  H->current-grid-pt vector >= 90 degrees from
-            **  X->N vector,
-            */
+                    if (cos_theta <= 0.) {
+                        /*
+                        **  H->current-grid-pt vector >= 90 degrees from
+                        **  X->N vector,
+                        */
                         rdon = 0.;
-                        } else {
-            /*
-            **  racc = [cos(theta)]^2.0 for H->N
-            */
+                    } else {
+                        /*
+                        **  racc = [cos(theta)]^2.0 for H->N
+                        */
                         rdon = cos_theta*cos_theta;
-                        }
-                        /* endif (atom_type[ia] == nitrogen) */
-            /* end NEW Directional N acceptor */
-
+                    }
+                    /* endif (atom_type[ia] == nitrogen) */
+                    /* end NEW Directional N acceptor */
                 } else if ((hbond[ia] == 5) && (disorder[ia] == FALSE)) {/*A2*/
                     /*
                     **  ia-th receptor atom = Oxygen
@@ -2283,7 +2267,6 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                         print_error( logFile, WARNING, message );
                     }
                     t0 = PI_halved - acos(t0);
-
                     /*
                     ** ti is the angle in the lone pair plane, away from the
                     ** vector between the lone pairs,
@@ -2326,14 +2309,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                         }
                         /* the 2.0*ti can be replaced by (ti + ti) in: rdon = (0.9 + 0.1*sin(2.0*ti))*cos(t0);*/
                         rdon = (0.9 + 0.1*sin(ti + ti))*cos(t0);
-                    /* 0.34202 = cos (100 deg) */
                     } else if (cos_theta >= -0.34202) {
+                        /* 0.34202 = cos (100 deg) */
                         rdon = 562.25*pow(0.116978 - sq(cos_theta), 3.)*cos(t0);
                     }
-
-                    /* endif atom_type == oxygen, not disordered */
+                /* endif atom_type == oxygen, not disordered */
                 } else if ((hbond[ia] == 5) && (disorder[ia] == TRUE)) {/*A2*/
-
                     /* cylindrically disordered hydroxyl */
                     cos_theta = 0.;
                     for (i = 0;  i < XYZ;  i++) {
@@ -2357,7 +2338,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                         rdon = pow(cos(theta - 1.24791), 4.);
                         racc = rdon;
                     }
-                } /* atom_type test */
+                } /* end atom_type tests used to set rdon and racc */
 
                 /*
                  * For each probe atom-type,
@@ -2366,21 +2347,20 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                  * and the current receptor atom, ia...
                  */
                 for (map_index = 0;  map_index < num_atom_maps;  map_index++) {
-                    /* We do not want to change the current enrg value 
+                    /* We do not want to change the current energy value 
                      * for any covalent maps, make sure iscovalent is
                      * false... */                    
                     maptypeptr = gridmap[map_index].type;
 
                     if (gridmap[map_index].is_covalent == FALSE) {
                         if (gridmap[map_index].is_hbonder == TRUE) {
-                            /*  PROBE forms H-bonds... */
-
+                            /*  current map_index PROBE forms H-bonds... */
                             /* rsph ramps in angular dependence for distances with negative energy */
                             rsph = energy_lookup[atom_type[ia]][indx_r][map_index]/100.;
                             rsph = max(rsph, 0.);
                             rsph = min(rsph, 1.);
                             if ((gridmap[map_index].hbond==3||gridmap[map_index].hbond==5) /*AS or A2*/
-                              &&(hbond[ia]==1||hbond[ia]==2)){/*DS or D1*/
+                                      &&(hbond[ia]==1||hbond[ia]==2)){/*DS or D1*/
                                   /* PROBE can be an H-BOND ACCEPTOR, */
                                 if (disorder[ia] == FALSE ) {
                                     gridmap[map_index].energy += energy_lookup[atom_type[ia]][indx_r][map_index] * Hramp * (racc + (1. - racc)*rsph);
@@ -2390,42 +2370,45 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
                                 }
                             } else if ((gridmap[map_index].hbond==4) /*A1*/
-                              &&(hbond[ia]==1||hbond[ia]==2)) { /*DS,D1*/
-                                        hbondmin[map_index] = min( hbondmin[map_index],energy_lookup[atom_type[ia]][indx_r][map_index] * (racc+(1.-racc)*rsph));
-                                                    hbondmax[map_index] = max( hbondmax[map_index],energy_lookup[atom_type[ia]][indx_r][map_index] * (racc+(1.-racc)*rsph));
-                                                    hbondflag[map_index] = TRUE;
+                                             &&(hbond[ia]==1||hbond[ia]==2)) { /*DS,D1*/
+                                hbondmin[map_index] = min( hbondmin[map_index],energy_lookup[atom_type[ia]][indx_r][map_index] * (racc+(1.-racc)*rsph));
+                                hbondmax[map_index] = max( hbondmax[map_index],energy_lookup[atom_type[ia]][indx_r][map_index] * (racc+(1.-racc)*rsph));
+                                hbondflag[map_index] = TRUE;
                             } else if ((gridmap[map_index].hbond==1||gridmap[map_index].hbond==2)                                       && (hbond[ia]>2)){/*DS,D1 vs AS,A1,A2*/
 
                                 /*  PROBE is H-BOND DONOR, */
                                 temp_hbond_enrg = energy_lookup[atom_type[ia]][indx_r][map_index] * (rdon + (1. - rdon)*rsph);
                                 hbondmin[map_index] = min( hbondmin[map_index], temp_hbond_enrg);
-                                            hbondmax[map_index] = max( hbondmax[map_index], temp_hbond_enrg);
-                                                hbondflag[map_index] = TRUE;
+                                hbondmax[map_index] = max( hbondmax[map_index], temp_hbond_enrg);
+                                hbondflag[map_index] = TRUE;
                             } else {
                                 /*  hbonder PROBE-ia cannot form a H-bond..., */
                                 gridmap[map_index].energy += energy_lookup[atom_type[ia]][indx_r][map_index];
                             }
-
                         } else { /*end of is_hbonder*/
                             /*  PROBE does not form H-bonds..., */
                             gridmap[map_index].energy += energy_lookup[atom_type[ia]][indx_r][map_index];
+                        }/* end hbonder tests */
 
-                        }/* end hbonder test */
                         /* add desolvation energy  */
                         /* forcefield desolv coefficient/weight in sol_fn*/
                         gridmap[map_index].energy += gridmap[map_index].solpar_probe * vol[ia]*sol_fn[indx_r] + 
                                         (solpar[ia]+solpar_q*fabs(charge[ia]))*gridmap[map_index].vol_probe*sol_fn[indx_r];
-                } /* is not covalent */
-            }/* map_index */
-            gridmap[dsolvPE].energy += solpar_q * vol[ia] * sol_fn[indx_r];
+                    } /* is not covalent */
+                }/* end of loop over all map_index values */
+
+                gridmap[dsolvPE].energy += solpar_q * vol[ia] * sol_fn[indx_r];
             }/* ia loop, over all receptor atoms... */
+
+            /* adjust maps of hydrogen-bonding atoms by adding largest and
+             * smallest interaction of all 'pair-wise' interactions with receptor atoms
+             */
             for (map_index = 0; map_index < num_atom_maps; map_index++) {
-                            if (hbondflag[map_index]) {
-                                    gridmap[map_index].energy += hbondmin[map_index]; 
-                                    gridmap[map_index].energy += hbondmax[map_index];
+                if (hbondflag[map_index]) {
+                    gridmap[map_index].energy += hbondmin[map_index]; 
+                    gridmap[map_index].energy += hbondmax[map_index];
                 };
             }
-
 
             /*
              * O U T P U T . . .
@@ -2445,7 +2428,6 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                         problem_wrt = TRUE;
                     }
                 }
-
                 gridmap[k].energy_max = max(gridmap[k].energy_max, gridmap[k].energy);
                 gridmap[k].energy_min = min(gridmap[k].energy_min, gridmap[k].energy);
             }
@@ -2456,7 +2438,6 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
             }
         ctr++;
         } /* icoord[X] loop */
-
     } /* icoord[Y] loop */
 
     if (problem_wrt) {
@@ -2471,7 +2452,6 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
     (void) fprintf( logFile, "  ");
     timesys( grd_end - grd_start, &tms_grd_start, &tms_grd_end);
     (void) fflush( logFile);
-
 } /* icoord[Z] loop */
 
 #ifdef BOINCCOMPOUND
