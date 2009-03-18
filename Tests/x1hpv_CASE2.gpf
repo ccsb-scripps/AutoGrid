@@ -1,4 +1,4 @@
-npts 60 60 60                        # num.grid points in xyz
+npts 6 6 6                           # num.grid points in xyz
 gridfld x1hpv.maps.fld               # grid_data_file
 spacing 0.375                        # spacing(A)
 receptor_types A C HD N OA SA        # receptor atom types
