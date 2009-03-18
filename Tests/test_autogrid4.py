@@ -1,12 +1,14 @@
-#
+#! /usr/bin/env python
 # 
 #
-# $Id: test_autogrid4.py,v 1.11 2007/05/04 08:00:38 garrett Exp $
+# $Id: test_autogrid4.py,v 1.12 2009/03/18 23:12:18 rhuey Exp $
 #
 """
 Test AutoGrid.
 """
 
+#______________________________________________________________________________
+#
 import sys
 import os
 import types
@@ -47,6 +49,8 @@ built_maps_no_receptor_types = False
 built_maps_minus_two_types = False  
 #no receptor types, ligand_types keyword preceeds receptor filename
 built_maps_ligand_types_before_receptor = False 
+#missing_map for ligand_types keyword
+built_missing_map = False
 
 #______________________________________________________________________________
 
@@ -77,16 +81,39 @@ def run_AutoGrid( gpf_filename, glg_filename ):
     gpf = gpf_directory + os.sep + gpf_filename
     glg = test_output_directory + os.sep + glg_filename
     command = "rm -f " + glg
+    print "calling ", command
     os.system( command )
     command = "%s -p %s -l %s" % ( autogrid_executable, gpf, glg )
     print '\nRunning ' + autogrid_executable + ' using GPF "'+gpf+'", saving results in "'+glg+'":'
     try:
         ( i, o, e ) = os.popen3( command ) # trap all the outputs
         os.wait() # for the child process to finish
-        return True
+        #return True
+        return find_success_in_GLG(glg_filename)
     except:
         print "\nUnable to run " + autogrid_executable + "."
         return False
+
+#______________________________________________________________________________
+
+def find_success_in_GLG( glg_filename ):
+    """Open the AutoGrid GLG, and look for the string "Successful Completion"
+    in the last 10 lines of the file."""
+    glg = test_output_directory + os.sep + glg_filename
+    try:
+        fptr = open( glg )
+        lines = fptr.readlines()
+        fptr.close()
+        success = False
+        for l in lines[-10:]:
+            if l.find( "Successful Completion" ) > -1:
+                success = True
+        return success
+    except:
+        return False
+
+#______________________________________________________________________________
+
 
 def rm( filename ):
     """Removes files in the test_output_directory."""
@@ -94,7 +121,7 @@ def rm( filename ):
 
 #______________________________________________________________________________
 
-class AutoGrid4_hsg1_sm_test(unittest.TestCase):
+class AutoGrid_hsg1_sm_test(unittest.TestCase):
     
     def setUp(self):
         """Set up for autogrid4 tests.
@@ -194,7 +221,7 @@ class AutoGrid4_hsg1_sm_test(unittest.TestCase):
         self.compare_autogrid4_maps("hsg1_sm", 'OA')
 
 
-class AutoGrid4_hsg1_sm_no_parameter_library_test(AutoGrid4_hsg1_sm_test):
+class AutoGrid_hsg1_sm_no_parameter_library_test(AutoGrid_hsg1_sm_test):
 
     def setUp(self):
         """Set up for autogrid4 tests.  Locate the autogrid binary now during setUp."""
@@ -206,7 +233,7 @@ class AutoGrid4_hsg1_sm_no_parameter_library_test(AutoGrid4_hsg1_sm_test):
             built_maps_no_parameter_library = run_AutoGrid( 'hsg1_sm_no_parameter_file.gpf', 'hsg1_sm.glg' )
 
 
-class AutoGrid4_hsg1_sm_no_receptor_types_test(AutoGrid4_hsg1_sm_test):
+class AutoGrid_hsg1_sm_no_receptor_types_test(AutoGrid_hsg1_sm_test):
 
     def setUp(self):
         """Set up for autogrid4 tests.  Locate the autogrid binary now during setUp."""
@@ -218,7 +245,7 @@ class AutoGrid4_hsg1_sm_no_receptor_types_test(AutoGrid4_hsg1_sm_test):
             built_maps_no_receptor_types = run_AutoGrid( 'hsg1_no_receptor_types.gpf', 'hsg1_sm.glg' )
 
 
-class AutoGrid4_hsg1_sm_minus_two_types_test(AutoGrid4_hsg1_sm_test):
+class AutoGrid_hsg1_sm_minus_two_types_test(AutoGrid_hsg1_sm_test):
 
     def setUp(self):
         """Set up for autogrid4 tests.  Locate the autogrid binary now during setUp."""
@@ -230,25 +257,73 @@ class AutoGrid4_hsg1_sm_minus_two_types_test(AutoGrid4_hsg1_sm_test):
             built_maps_minus_two_types = run_AutoGrid( 'hsg1_no_receptor_types.gpf', 'hsg1_sm.glg' )
 
 
-#class AutoGrid4_ligand_types_before_receptor_test(AutoGrid4_hsg1_sm_test):
+class AutoGrid_ligand_types_before_receptor_test(AutoGrid_hsg1_sm_test):
 
-#    def setUp(self):
-#        """Set up for autogrid4 tests. Locate the autogrid binary now during setUp."""
-#        global built_maps_ligand_types_before_receptor
-#        self.autogrid = autogrid_executable
-#        if not built_maps_ligand_types_before_receptor:
-#            # Make sure you remove all the products of AutoGrid from any previous tests.
-#            rm("hsg1_sm.*map*")
-#            built_maps_ligand_types_before_receptor = run_AutoGrid( 'hsg1_ligand_types_before_receptor.gpf', 'hsg1_sm.glg')
+    def setUp(self):
+        """Set up for autogrid4 tests. Locate the autogrid binary now during setUp."""
+        global built_maps_ligand_types_before_receptor
+        self.autogrid = autogrid_executable
+        if not built_maps_ligand_types_before_receptor:
+            # Make sure you remove all the products of AutoGrid from any previous tests.
+            rm("hsg1_sm.*map*")
+            built_maps_ligand_types_before_receptor = run_AutoGrid( 'hsg1_ligand_types_before_receptor.gpf', 'hsg1_sm.glg')
+
+#------------------------------------------------------------------
+# tests contributed by Stefano Forli
+#------------------------------------------------------------------
+class AutoGrid_simple_test(unittest.TestCase):
+    """ Base Class for AutoGrid testing."""
+    gpf_stem = "BaseClass"
+    computed = False
+
+    def setUp(self):
+        """ Set up for autogrid4 tests. Locate the autogrid binary now during setUp."""
+        self.glg_filename = "test_" + self.gpf_stem + ".glg"
+        self.computed = run_AutoGrid(self.gpf_stem + ".gpf", self.glg_filename)
+        print "after call to run_AutoGrid"
+
+    def test_glg_exists(self):
+        #Check that autogrid calculation finished and a new GLG has been computed
+        if (self.expected_outcome == True):
+            print "Testing that GLG exists and AutoGrid successfully completed."
+        else:
+            print "Testing that GLG exists and AutoGrid did not complete."
+        self.assertEqual(self.computed, self.expected_outcome)
+
+#------------------------------------------------------------------
+class AutoGrid_control_test(AutoGrid_simple_test):
+    gpf_stem = 'x1hpv_CASE0'  #not missing A,elecmap or dsolvmap
+    expected_outcome = True
+
+#------------------------------------------------------------------
+class AutoGrid_missing_Amap_test(AutoGrid_simple_test):
+    gpf_stem = 'x1hpv_CASE1'  #missing x1hpv.A.map
+    expected_outcome = False
+
+#------------------------------------------------------------------
+class AutoGrid_missing_elecmap_test(AutoGrid_simple_test):
+    gpf_stem = 'x1hpv_CASE2'  #missing elecmap
+    expected_outcome = False
+
+#------------------------------------------------------------------
+class AutoGrid_missing_dsolvmap_test(AutoGrid_simple_test):
+    gpf_stem = 'x1hpv_CASE3'  #missing dsolvmap
+    expected_outcome = False
+
 
 
 if __name__ == '__main__':
     test_cases = [
-        'AutoGrid4_hsg1_sm_test',
-        'AutoGrid4_hsg1_sm_no_parameter_library_test',
-        'AutoGrid4_hsg1_sm_no_receptor_types_test',
-        'AutoGrid4_hsg1_sm_minus_two_types_test',
-        #'AutoGrid4_ligand_types_before_receptor_test',
+        'AutoGrid_hsg1_sm_test',
+        'AutoGrid_hsg1_sm_no_parameter_library_test',
+        'AutoGrid_hsg1_sm_no_receptor_types_test',
+        'AutoGrid_hsg1_sm_minus_two_types_test',
+        'AutoGrid_missing_Amap_test',
+        'AutoGrid_missing_elecmap_test',
+        'AutoGrid_missing_dsolvmap_test',
+        'AutoGrid_control_test',
+        #'AutoGrid_ligand_types_before_receptor_test', 
+        #3/18/09 not sure of status of ligand_types_before_receptor test, rh
     ]
     unittest.main( argv=([__name__,] + test_cases))  # non-verbose output
     # optional:  for verbose output, use this:
