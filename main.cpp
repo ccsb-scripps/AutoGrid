@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.67 2009/03/06 19:15:38 rhuey Exp $
+ $Id: main.cpp,v 1.68 2009/03/18 23:17:25 rhuey Exp $
 
  AutoGrid 
 
@@ -547,7 +547,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.67 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.68 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1229,7 +1229,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
          * "map" keywords. */
         ++map_index;
         if (map_index > num_atom_maps - 1) {
-             (void) sprintf(message, "Too many \"map\" keywords (%d);  the \"ligand_types\" command declares only %d maps.\nRemove a \"map\" keyword from the GPF.\n", map_index + 1, num_atom_maps);
+             (void) sprintf(message, "Too many \"map\" keywords (%d);  the \"ligand_types\" command declares only %d atom types.\nRemove a \"map\" keyword from the GPF.\n", map_index + 1, num_atom_maps);
             print_error( logFile, ERROR, message );
             print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
         }
@@ -1374,7 +1374,39 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 /******************************************************************************/
 
     } /* second switch */
+
 } /* while: finished reading gpf */
+
+/* Map files checkpoint  (number of maps, desolv and elec maps )    SF  */
+
+/* Number of maps defined for atom types*/
+if ( map_index < num_atom_maps -1 ) {   
+             (void) fprintf( logFile, "Too few \"map\" keywords (%d);  the \"ligand_types\" command declares %d atom types.\nAdd a \"map\" keyword from the GPF.\n", map_index + 1, num_atom_maps );
+             (void) sprintf( message, "Not enough map keywords found.\n" );
+            print_error( logFile, ERROR, message );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" ); 
+	exit( FATAL_ERROR );
+	} 
+
+/* Desolvation map */
+if ( strlen( gridmap[dsolvPE].map_filename ) == NULL  ) {  
+             (void) fprintf( logFile, "The desolvation map file is not defined in the GPF.\n" );
+             (void) sprintf( message, "No desolvation map file defined.\n" );
+            print_error( logFile, ERROR, message );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" ); 
+	exit( FATAL_ERROR );
+	}
+
+/* Electrostatic map */
+if ( strlen( gridmap[elecPE].map_filename ) == NULL  ) {  
+             (void) fprintf( logFile, "The electrostatic map file is not defined in the GPF.\n" );
+             (void) sprintf( message, "No electrostatic map file defined.\n" );
+            print_error( logFile, ERROR, message );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" ); 
+	exit( FATAL_ERROR );
+	}
+/* End of map files checkpoint SF */
+
 
 (void) fprintf( logFile, "\n>>> Closing the grid parameter file (GPF)... <<<\n\n");
 (void) fprintf( logFile, UnderLine);
