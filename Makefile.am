@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.12 2009/02/26 00:58:49 rhuey Exp $
+# $Id: Makefile.am,v 1.13 2009/03/25 22:32:25 rhuey Exp $
 # 
 # AutoGrid 
 # 
@@ -34,7 +34,7 @@ EXTRA_DIST = Tests
 dist-hook:
 	rm -rf `find $(distdir)/Tests -name CVS -o -name '*.glg'` 
 
-bin_PROGRAMS = autogrid4 autogrid4_0
+bin_PROGRAMS = autogrid4 
 
 autogrid4_SOURCES = main.cpp \
        check_size.cpp \
@@ -77,47 +77,6 @@ autogrid4_SOURCES = main.cpp \
             util.h \
             version.h
 
-# same as autogrid4
-autogrid4_0_SOURCES = main.cpp \
-       check_size.cpp \
-       setflags.cpp \
-       timesys.cpp \
-       timesyshms.cpp \
-       printhms.cpp \
-       prHMSfixed.cpp \
-       printdate.cpp \
-       strindex.cpp \
-       banner.cpp \
-       gpfparser.cpp \
-       parsetypes.cpp \
-       atom_parameter_manager.cpp \
-       read_parameter_library.cpp \
-       parse_param_line.cpp \
-       distdepdiel.cpp \
-            atom_parameter_manager.h \
-            autoglobal.h \
-            autogrid.h \
-            constants.h \
-            default_parameters.h \
-            distdepdiel.h \
-            gpftoken.h \
-            grid.h \
-            parameters.h \
-            parm.h \
-            parse_param_line.h \
-            partokens.h \
-            printdate.h \
-            printhms.h \
-            prototypes.h \
-            ranlib.h \
-            read_parameter_library.h \
-            structs.h \
-            times.h \
-            timesys.h \
-            timesyshms.h \
-            typedefs.h \
-            util.h \
-            version.h
 
 # Define the AutoGrid 4 source code files:
 # See GNU Automake documentation, section 10.4 re BUILT_SOURCES;
@@ -134,7 +93,6 @@ AM_CPPFLAGS = -Wall -O3 -I$(srcdir)/../autodock # All warnings, Agressive optimi
 
 # autogrid4_CXXFLAGS = -Wall -O3 -ftree-vectorize # All warnings, Agressive optimization, GCC vectorization in Mac OS X
 
-autogrid4_0_CPPFLAGS=-DVERSION_NUM=\"4.0.2\" $(AM_CPPFLAGS)
 autogrid4_CPPFLAGS=-DVERSION_NUM=\"4.1.1\" $(AM_CPPFLAGS)
 
 

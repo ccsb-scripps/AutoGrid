@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.68 2009/03/18 23:17:25 rhuey Exp $
+ $Id: main.cpp,v 1.69 2009/03/25 22:32:25 rhuey Exp $
 
  AutoGrid 
 
@@ -547,7 +547,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.68 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.69 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -574,7 +574,7 @@ if (gethostname( host_name, MAX_CHARS ) == 0) {
 //
 // Read in default parameters
 //
-setup_parameter_library(outlev, version_num);
+setup_parameter_library(outlev, "default Unbound_Same_As_Bound", Unbound_Same_As_Bound );
 
 
 /******************************************************************************/
@@ -1389,7 +1389,7 @@ if ( map_index < num_atom_maps -1 ) {
 	} 
 
 /* Desolvation map */
-if ( strlen( gridmap[dsolvPE].map_filename ) == NULL  ) {  
+if ( strlen( gridmap[dsolvPE].map_filename ) == 0  ) {  
              (void) fprintf( logFile, "The desolvation map file is not defined in the GPF.\n" );
              (void) sprintf( message, "No desolvation map file defined.\n" );
             print_error( logFile, ERROR, message );
@@ -1398,7 +1398,7 @@ if ( strlen( gridmap[dsolvPE].map_filename ) == NULL  ) {
 	}
 
 /* Electrostatic map */
-if ( strlen( gridmap[elecPE].map_filename ) == NULL  ) {  
+if ( strlen( gridmap[elecPE].map_filename ) == 0  ) {  
              (void) fprintf( logFile, "The electrostatic map file is not defined in the GPF.\n" );
              (void) sprintf( message, "No electrostatic map file defined.\n" );
             print_error( logFile, ERROR, message );
