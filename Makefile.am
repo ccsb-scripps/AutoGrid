@@ -1,10 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.13 2009/03/25 22:32:25 rhuey Exp $
+# $Id: Makefile.am,v 1.14 2009/05/08 23:36:15 rhuey Exp $
 # 
 # AutoGrid 
 # 
-# Copyright (C) 1989-2007,  Garrett M. Morris,   TSRI
+# Copyright (C) 1989-2009, TSRI
 # All Rights Reserved.
 # 
 # AutoGrid is a Trade Mark of The Scripps Research Institute.
@@ -93,7 +93,7 @@ AM_CPPFLAGS = -Wall -O3 -I$(srcdir)/../autodock # All warnings, Agressive optimi
 
 # autogrid4_CXXFLAGS = -Wall -O3 -ftree-vectorize # All warnings, Agressive optimization, GCC vectorization in Mac OS X
 
-autogrid4_CPPFLAGS=-DVERSION_NUM=\"4.1.1\" $(AM_CPPFLAGS)
+autogrid4_CPPFLAGS=$(AM_CPPFLAGS)
 
 
 # LINKOPT = $(CSTD) $(OPT) -Wl,--stack=0x2000000 # Cygwin, 32MB stacksize
