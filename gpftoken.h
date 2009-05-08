@@ -1,11 +1,10 @@
 /*
 
- $Id: gpftoken.h,v 1.5 2007/05/03 20:46:06 garrett Exp $
+ $Id: gpftoken.h,v 1.6 2009/05/08 23:17:34 rhuey Exp $
 
  AutoGrid 
 
- Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
- All Rights Reserved.
+Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  AutoGrid is a Trade Mark of The Scripps Research Institute.
 

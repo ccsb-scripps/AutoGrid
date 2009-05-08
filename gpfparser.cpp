@@ -1,11 +1,10 @@
 /*
 
- $Id: gpfparser.cpp,v 1.9 2007/05/03 20:46:06 garrett Exp $
+ $Id: gpfparser.cpp,v 1.10 2009/05/08 23:17:34 rhuey Exp $
 
  AutoGrid 
 
- Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
- All Rights Reserved.
+Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  AutoGrid is a Trade Mark of The Scripps Research Institute.
 
@@ -37,7 +36,7 @@ int gpfparser( char line[LINE_LEN] )
 /******************************************************************************/
 /*      Name: gpfparser                                                       */
 /*  Function: Parse the AutoGrid parameter file line                          */
-/* Copyright: (C) 1995, TSRI                                                  */
+/*Copyright (C) 2009 The Scripps Research Institute. All rights reserved. */
 /*----------------------------------------------------------------------------*/
 /*    Author: Garrett Morris, The Scripps Research Institute                  */
 /*      Date: 02/01/95 (1-feb-1995)                                           */

@@ -1,11 +1,10 @@
 /*
 
- $Id: timesyshms.cpp,v 1.8 2007/05/03 20:46:06 garrett Exp $
+ $Id: timesyshms.cpp,v 1.9 2009/05/08 23:17:35 rhuey Exp $
 
  AutoGrid 
 
- Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
- All Rights Reserved.
+Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  AutoGrid is a Trade Mark of The Scripps Research Institute.
 

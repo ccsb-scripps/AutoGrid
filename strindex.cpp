@@ -1,11 +1,10 @@
 /*
 
- $Id: strindex.cpp,v 1.5 2007/05/03 20:46:06 garrett Exp $
+ $Id: strindex.cpp,v 1.6 2009/05/08 23:17:35 rhuey Exp $
 
  AutoGrid 
 
- Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
- All Rights Reserved.
+Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  AutoGrid is a Trade Mark of The Scripps Research Institute.
 
@@ -36,7 +35,7 @@ int strindex( char s[], char t[])
 /******************************************************************************/
 /*      Name: strindex                                                        */
 /*  Function: return index of t in s, -1 if none.                             */
-/* Copyright: (C) Garrett Morris, TSRI                                        */
+/*Copyright (C) 2009 The Scripps Research Institute. All rights reserved. */
 /*----------------------------------------------------------------------------*/
 /*    Author: Garrett Morris, The Scripps Research Institute                  */
 /*      Date: 30/11/92                                                        */

@@ -1,11 +1,10 @@
 /*
 
- $Id: typedefs.h,v 1.4 2007/05/03 20:46:06 garrett Exp $
+ $Id: typedefs.h,v 1.5 2009/05/08 23:17:35 rhuey Exp $
 
  AutoGrid 
 
- Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
- All Rights Reserved.
+Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  AutoGrid is a Trade Mark of The Scripps Research Institute.
 
@@ -31,7 +30,7 @@
 /******************************************************************************
  *      Name: typedefs.h                                                      *
  *  Function: Defines types used in Molecular Applications.                   *
- * Copyright: (C) Garrett Matthew Morris, TSRI                                *
+ *Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
  *----------------------------------------------------------------------------*
  *    Author: Garrett Matthew Morris, The Scripps Research Institute          *
  *      Date: JAN/18/2003                                                     *

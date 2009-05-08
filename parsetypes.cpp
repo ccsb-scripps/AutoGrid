@@ -1,11 +1,10 @@
 /*
 
- $Id: parsetypes.cpp,v 1.4 2007/05/03 20:46:06 garrett Exp $
+ $Id: parsetypes.cpp,v 1.5 2009/05/08 23:17:35 rhuey Exp $
 
  AutoGrid 
 
- Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
- All Rights Reserved.
+Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  AutoGrid is a Trade Mark of The Scripps Research Institute.
 
@@ -38,7 +37,7 @@ int parsetypes(char * line, char *words[], int maxwords)
 /******************************************************************************/
 /*      Name: parsetypes                                                      */
 /*  Function: Parse the AutoGrid types lines                                  */
-/* Copyright: (C) 1995, TSRI                                                  */
+/*Copyright (C) 2009 The Scripps Research Institute. All rights reserved. */
 /*----------------------------------------------------------------------------*/
 /*    Author: Garrett Morris, The Scripps Research Institute                  */
 /*      Date: 02/01/95 (1-feb-1995)                                           */

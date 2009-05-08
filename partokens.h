@@ -1,11 +1,10 @@
 /*
 
- $Id: partokens.h,v 1.2 2007/05/03 20:46:06 garrett Exp $
+ $Id: partokens.h,v 1.3 2009/05/08 23:17:35 rhuey Exp $
 
  AutoGrid 
 
- Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
- All Rights Reserved.
+Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  AutoGrid is a Trade Mark of The Scripps Research Institute.
 
@@ -29,7 +28,7 @@
 /******************************************************************************
  *      Name: partoken.h                                                      *
  *  Function: Define tokens for parsing AutoDock atomic parameter files       *
- * Copyright: (C) Garrett Matthew Morris, TSRI                                *
+ *Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
  *----------------------------------------------------------------------------*
  *    Author: Garrett Matthew Morris, The Scripps Research Institute          *
  *      Date: 08/03/2005                                                      * 

@@ -1,11 +1,10 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.69 2009/03/25 22:32:25 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.70 2009/05/08 23:17:34 rhuey Exp $
 
  AutoGrid 
 
- Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
- All Rights Reserved.
+Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  AutoGrid is a Trade Mark of The Scripps Research Institute.
 
@@ -159,7 +158,7 @@ int main( int argc,  char **argv )
 /*            Directional H_bonds from Goodford:                              */
 /*            Distance dependent dielectric after Mehler and Solmajer.        */
 /*            Charge-based desolvation                                        */
-/* Copyright: (C) 2004, TSRI                                                  */
+/*Copyright (C) 2009 The Scripps Research Institute. All rights reserved. */
 /*                                                                            */
 /*   Authors: Garrett Matthew Morris, Ruth Huey, David S. Goodsell            */
 /*                                                                            */
@@ -547,7 +546,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.69 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.70 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */

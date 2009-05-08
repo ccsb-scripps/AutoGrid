@@ -1,11 +1,10 @@
 /*
 
- $Id: parse_param_line.cpp,v 1.2 2007/05/03 20:46:06 garrett Exp $
+ $Id: parse_param_line.cpp,v 1.3 2009/05/08 23:17:35 rhuey Exp $
 
  AutoGrid 
 
- Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
- All Rights Reserved.
+Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  AutoGrid is a Trade Mark of The Scripps Research Institute.
 
@@ -43,7 +42,7 @@ int parse_param_line( char line[LINE_LEN] )
 /******************************************************************************/
 /*      Name: parse_param_line                                                */
 /*  Function: Parse the docking parameter file line                           */
-/* Copyright: (C) 2005, TSRI                                                  */
+/*Copyright (C) 2009 The Scripps Research Institute. All rights reserved. */
 /*----------------------------------------------------------------------------*/
 /*    Author: Garrett Morris, The Scripps Research Institute                  */
 /*      Date: 08/03/05                                                        */

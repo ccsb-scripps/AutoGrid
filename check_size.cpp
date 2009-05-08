@@ -1,11 +1,10 @@
 /*
 
- $Id: check_size.cpp,v 1.7 2007/05/03 20:46:06 garrett Exp $
+ $Id: check_size.cpp,v 1.8 2009/05/08 23:17:34 rhuey Exp $
 
  AutoGrid 
 
- Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
- All Rights Reserved.
+Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  AutoGrid is a Trade Mark of The Scripps Research Institute.
 
@@ -42,7 +41,7 @@ int check_size(int nelements,
 /******************************************************************************/
 /*      Name: check_size                                                      */
 /*  Function: Checks that number of grid elements is valid.                   */ 
-/* Copyright: (C) 1994, TSRI                                                  */
+/*Copyright (C) 2009 The Scripps Research Institute. All rights reserved. */
 /*----------------------------------------------------------------------------*/
 /*    Author: Garrett Morris, The Scripps Research Institute                  */
 /*      Date: 13/07/92                                                        */

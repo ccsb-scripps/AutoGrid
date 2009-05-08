@@ -1,11 +1,10 @@
 /*
 
- $Id: grid.h,v 1.2 2007/05/03 20:46:06 garrett Exp $
+ $Id: grid.h,v 1.3 2009/05/08 23:17:34 rhuey Exp $
 
  AutoGrid 
 
- Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
- All Rights Reserved.
+Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  AutoGrid is a Trade Mark of The Scripps Research Institute.
 

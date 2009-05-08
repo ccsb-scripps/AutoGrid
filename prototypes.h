@@ -1,11 +1,10 @@
 /*
 
- $Id: prototypes.h,v 1.9 2009/02/26 00:58:49 rhuey Exp $
+ $Id: prototypes.h,v 1.10 2009/05/08 23:17:35 rhuey Exp $
 
  AutoGrid 
 
- Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
- All Rights Reserved.
+Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  AutoGrid is a Trade Mark of The Scripps Research Institute.
 

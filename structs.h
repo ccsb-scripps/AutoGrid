@@ -1,11 +1,10 @@
 /*
 
- $Id: structs.h,v 1.6 2008/10/15 21:28:20 rhuey Exp $
+ $Id: structs.h,v 1.7 2009/05/08 23:17:35 rhuey Exp $
 
  AutoGrid 
 
- Copyright (C) 1989-2007,  Garrett M. Morris, David S. Goodsell, Ruth Huey, Arthur J. Olson, 
- All Rights Reserved.
+Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  AutoGrid is a Trade Mark of The Scripps Research Institute.
 
@@ -34,7 +33,7 @@
 /* *****************************************************************************
  *      Name: structs.h                                                       *
  *  Function: Defines structures used in Molecular Applications.              *
- * Copyright: (C) Garrett Matthew Morris, TSRI                                *
+ *Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
  *----------------------------------------------------------------------------*
  *    Author: Garrett Matthew Morris, The Scripps Research Institute          *
  *      Date: SEP/07/1995                                                     *
