@@ -11,6 +11,8 @@ AM_INIT_AUTOMAKE()
 # Checks for programs.
 AC_PROG_CXX
 
+AC_CANONICAL_HOST
+
 # Checks for libraries.
 AC_CHECK_LIB([m], [sqrt])
 
