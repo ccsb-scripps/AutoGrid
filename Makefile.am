@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.14 2009/05/08 23:36:15 rhuey Exp $
+# $Id: Makefile.am,v 1.15 2009/05/27 23:42:36 rhuey Exp $
 # 
 # AutoGrid 
 # 
@@ -95,8 +95,12 @@ AM_CPPFLAGS = -Wall -O3 -I$(srcdir)/../autodock # All warnings, Agressive optimi
 
 autogrid4_CPPFLAGS=$(AM_CPPFLAGS)
 
-
 # LINKOPT = $(CSTD) $(OPT) -Wl,--stack=0x2000000 # Cygwin, 32MB stacksize
+
+if WANT_BIGSTACK
+    autogrid4_LDFLAGS = -Wl,--stack,8388608 # Cygwin, 32MB stacksize
+endif
+
 
 # DBUG = -DNDEBUG # No debugging and no assert code.
 # DBUG = # Use assert code.
