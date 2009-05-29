@@ -1,3 +1,5 @@
+AutoGrid README $Id: README,v 1.4 2009/05/29 20:53:16 rhuey Exp $
+
 
 What is AutoDock?
 =================
@@ -40,11 +42,11 @@ depends on files in the "../autodock" directory, specifically:
     ../autodock/paramdat2h.csh
     ../autodock/AD4.1_bound.dat
 
-By default, AutoDock 4.1 uses the AD4.1_bound.dat parameter file,
+By default, AutoDock 4.2 uses the AD4.1_bound.dat parameter file,
 so AD4.1_compact.dat and AD4.1_extended.dat would not be used,
 but if "../autodock/paramdat2h.csh" is changed to use either of
 these scoring functions, then either of these other two ".dat"
-files would be come necessary:
+files would become necessary:
 
     ../autodock/AD4.1_compact.dat
     ../autodock/AD4.1_extended.dat
@@ -57,12 +59,9 @@ The CVS repository does not include the 'configure' file;  this
 is used to create a Makefile that is platform-specific.
 
 To generate the `./configure' file, it is necessary to run 'autoreconf -i'.
-Once this file has been generated, follow the instructions below
-for installing AutoGrid.
-
-Please read the INSTALL file in this directory for more information,
-this will explain how to use './configure' to create the necessary
-Makefile and how to use it to make the executables.
+Once this file has been generated, read the INSTALL file in this directory 
+for more information, this will explain how to use './configure' to create 
+the necessary Makefile and how to use it to make the executables.
 
 
 Copying AutoDock
