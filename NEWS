@@ -1,4 +1,30 @@
-New Features
+What's new?
+June 1, 2009
+
+AutoDock 4.2 is faster than earlier versions, and it allows sidechains in
+the macromolecule to be flexible. As before, rigid docking is blindingly
+fast, and high-quality flexible docking can be done in around a minute.
+Up to 40,000 rigid dockings can be done in a day on one cpu.
+
+AutoDock 4.2 now has a free-energy scoring function that is based on a
+linear regression analysis, the AMBER force field, and an even larger
+set of diverse protein-ligand complexes with known inhibition constants
+than we used in AutoDock 3.0. The best model was cross-validated with
+a separate set of HIV-1 protease complexes, and confirmed that the
+standard error is around 2.5 kcal/mol. This is enough to discriminate
+between leads with milli-, micro- and nano-molar inhibition constants.
+
+You can read more about the new features in AutoDock 4.2 and how to use
+them in the AutoDock4.2 User Guide.
+http://autodock.scripps.edu/faqs-help/manual/autodock-4-2-user-guide/AutoDock4.2_UserGuide.pdf
+
+
+We have established several methods for users to get support for AutoDock,
+including the AutoDock List (ADL) and a new forum for AutoDock users.  
+See these and more at http://autodock.scripps.edu
+
+
+New Features in AutoDock 4.0 (2007)
 
 Flexible Residues in the Macromolecule
 
