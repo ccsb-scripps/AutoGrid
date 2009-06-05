@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.10 2009/05/08 23:17:35 rhuey Exp $
+ $Id: setflags.cpp,v 1.11 2009/06/05 00:11:33 rhuey Exp $
 
  AutoGrid 
 
@@ -32,7 +32,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 extern FILE *GPF;
 extern FILE *logFile;
 extern char *programname;
-extern char AutoGridHelp[];
+static char    AutoGridHelp[] = "\t-p parameter_filename\n\t\t\t-l log_filename\n\t\t\t-d (increment debug level)\n\t\t\t-h (display this message)\n\t\t\t--version (print version information, copyright, and license)\n";
 extern char grid_param_fn[];
 extern int  debug;
 
@@ -80,6 +80,8 @@ int setflags( int argc, char **argv )
 /* Loop over arguments                                                        */
 /*----------------------------------------------------------------------------*/
     while((argc > 1) && (argv[1][0] == '-')){
+        if (argv[1][1] == '-') argv[1]++;
+
         switch(argv[1][1]){
 #ifdef FOO
         case 'n':
@@ -93,14 +95,15 @@ int setflags( int argc, char **argv )
             debug++;
             break;
         case 'u':
-	    fprintf(stderr, "usage: %s %s\n", programname, AutoGridHelp);
-	    exit(0);
+        case 'h':
+	        fprintf(stdout, "usage: AutoGrid %s\n", AutoGridHelp);
+	        exit(0);
             break;
         case 'l':
             if ( (logFile = ad_fopen(argv[2], "w")) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't create the log file \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
-                exit(911);
+                exit(-1);
             }
             argv++;
             argc--;
@@ -111,11 +114,19 @@ int setflags( int argc, char **argv )
             if ( (GPF = ad_fopen(argv[2], "r")) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't find or open Grid Parameter File \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
-                exit(911);
+                exit(-1);
             }
             argv++;
             argc--;
             argindex++;
+            break;
+        case 'v':
+            fprintf(stdout, "AutoGrid %-8s\n", VERSION);
+            fprintf(stdout, " Copyright (C) 2009 The Scripps Research Institute.\n");
+            fprintf(stdout, " License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>\n");
+            fprintf(stdout, " This is free software: you are free to change and redistribute it.\n");
+            fprintf(stdout, " There is NO WARRANTY, to the extent permitted by law.\n");
+            exit(0);
             break;
         default:
             fprintf(stderr,"%s: unknown switch -%c\n",programname,argv[1][1]);
