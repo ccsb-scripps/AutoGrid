@@ -1,6 +1,6 @@
 /*
 
- $Id: check_size.cpp,v 1.8 2009/05/08 23:17:34 rhuey Exp $
+ $Id: check_size.cpp,v 1.9 2009/06/10 00:08:54 rhuey Exp $
 
  AutoGrid 
 
@@ -26,6 +26,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
 #include <iostream>
 #include <math.h>
+#include <stdlib.h>
 #include "autogrid.h"
 
 
