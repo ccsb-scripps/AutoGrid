@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.15 2009/05/27 23:42:36 rhuey Exp $
+# $Id: Makefile.am,v 1.16 2009/06/30 00:15:42 rhuey Exp $
 # 
 # AutoGrid 
 # 
@@ -90,6 +90,7 @@ CLEANFILES = default_parameters.h
 AM_CFLAGS = -Wall -O3 # All warnings, Agressive optimization
 
 AM_CPPFLAGS = -Wall -O3 -I$(srcdir)/../autodock # All warnings, Agressive optimization
+AM_CPPFLAGS += -Wno-write-strings # increase compatibility with pre 4.x compilers for string handling
 
 # autogrid4_CXXFLAGS = -Wall -O3 -ftree-vectorize # All warnings, Agressive optimization, GCC vectorization in Mac OS X
 
