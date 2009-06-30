@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.11 2009/06/05 00:11:33 rhuey Exp $
+ $Id: setflags.cpp,v 1.12 2009/06/30 00:26:24 rhuey Exp $
 
  AutoGrid 
 
@@ -28,6 +28,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include <stdlib.h>
 #include <string.h>
 #include "autogrid.h"
+#include <unistd.h>
 
 extern FILE *GPF;
 extern FILE *logFile;
@@ -136,6 +137,11 @@ int setflags( int argc, char **argv )
         argindex++;
         argc--;
         argv++;
+    }
+    //no gpf specified and input is terminal, very likely an error
+    if (GPF==stdin && isatty(fileno(stdin))){
+	    fprintf(stdout, "usage: AutoGrid %s\n", AutoGridHelp);
+	    exit(-1); 
     }
     return(argindex);
 }
