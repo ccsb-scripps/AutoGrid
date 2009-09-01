@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.71 2009/05/08 23:36:15 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.72 2009/09/01 23:38:29 rhuey Exp $
 
  AutoGrid 
 
@@ -378,7 +378,7 @@ double cA, cB, tmpconst;
 double sigma;
 
 #ifndef VERSION
-static char * version_num = "4.2.1";
+static char * version_num = "4.2.2";
 #else
 static char * version_num = VERSION;
 #endif
@@ -546,7 +546,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.71 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.72 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
