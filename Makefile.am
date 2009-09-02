@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.18 2009/09/02 21:42:01 rhuey Exp $
+# $Id: Makefile.am,v 1.19 2009/09/02 23:12:56 rhuey Exp $
 # 
 # AutoGrid 
 # 
@@ -120,10 +120,14 @@ test : autogrid4 $(srcdir)/Tests/test_autogrid4.py
 	@echo " "
 	@echo "Running the Python test_autogrid4.py unit-tests on autogrid4"
 	@echo " "
+    # for technical reasons, autogrid must be run in the srcdir/Tests
+    # directory because it writes its maps into its current directory
+    # and expects to find AD4.1_bound.dat in that same directory.
+    # So it is not practical to run from a separate "Tests" directory
+    #  as autodock  supports.
 	outputdir=`pwd` ;\
     umask 0 ;\
-	test -d $$outputdir/Tests || mkdir $$outputdir/Tests ;\
-	cd $(srcdir)/Tests ; chmod u+w . ; python ./test_autogrid4.py -d . -e $$outputdir/autogrid4 -o $$outputdir/Tests
+	cd $(srcdir)/Tests ; chmod a+w . ; python ./test_autogrid4.py -d . -e $$outputdir/autogrid4 -o .
 #else
 #	@echo " "
 #	@echo "Python version 2.1 or higher needed for 'make test', but not found."
