@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #
-# $Id: test_autogrid4.py,v 1.12 2009/03/18 23:12:18 rhuey Exp $
+# $Id: test_autogrid4.py,v 1.13 2009/09/02 21:42:12 rhuey Exp $
 #
 """
 Test AutoGrid.
@@ -25,14 +25,16 @@ gpf_directory = '.' # where the input GPF files reside
 test_output_directory = '.' # where the GLG files will be written
 
 try:
-    opts, argv = getopt.getopt(sys.argv[1:], "g:e:o:",
-    ["gpf-directory=","executable=","test-output-directory="]) 
+    opts, argv = getopt.getopt(sys.argv[1:], "d:g:e:o:",
+    ["gpf-directory=","gpf-directory=","executable=","test-output-directory="]) 
 except getopt.GetoptError, v:
     usage() 
     sys.exit(2)
 
 for o,a in opts:
     if o in ("-d", "--gpf-directory"):
+        gpf_directory = a
+    if o in ("-g", "--gpf-directory"):
         gpf_directory = a
     if o in ("-e", "--executable"):
         autogrid_executable = a
@@ -56,10 +58,10 @@ built_missing_map = False
 
 def usage():
     """Print out the usage of this command."""
-    print """Usage:  python test_autogrid4.py [-g <string>] [-e <string>] [-o <string>]
+    print """Usage:  python test_autogrid4.py [-d <string>] [-e <string>] [-o <string>]
 
 where:
-    -g, --gpf-directory
+    -d, --gpf-directory
         specifies the directory containing the GPFs to be tested;
         this flag is optional; default is '.'
     -e, --executable
