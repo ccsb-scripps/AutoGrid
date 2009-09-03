@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.19 2009/09/02 23:12:56 rhuey Exp $
+# $Id: Makefile.am,v 1.20 2009/09/03 15:41:32 rhuey Exp $
 # 
 # AutoGrid 
 # 
@@ -127,7 +127,7 @@ test : autogrid4 $(srcdir)/Tests/test_autogrid4.py
     #  as autodock  supports.
 	outputdir=`pwd` ;\
     umask 0 ;\
-	cd $(srcdir)/Tests ; chmod a+w . ; python ./test_autogrid4.py -d . -e $$outputdir/autogrid4 -o .
+	cd $(srcdir)/Tests ;  python ./test_autogrid4.py -d . -e $$outputdir/autogrid4 -o .
 #else
 #	@echo " "
 #	@echo "Python version 2.1 or higher needed for 'make test', but not found."
