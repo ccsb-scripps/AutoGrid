@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.12 2009/06/30 00:26:24 rhuey Exp $
+ $Id: setflags.cpp,v 1.13 2010/06/23 19:36:33 mp Exp $
 
  AutoGrid 
 
@@ -124,8 +124,10 @@ int setflags( int argc, char **argv )
         case 'v':
             fprintf(stdout, "AutoGrid %-8s\n", VERSION);
             fprintf(stdout, " Copyright (C) 2009 The Scripps Research Institute.\n");
+// GNU BEGIN   (see maintenance script update_license_de-GNU)
             fprintf(stdout, " License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>\n");
             fprintf(stdout, " This is free software: you are free to change and redistribute it.\n");
+// GNU END   (see maintenance script update_license_de-GNU)
             fprintf(stdout, " There is NO WARRANTY, to the extent permitted by law.\n");
             exit(0);
             break;
