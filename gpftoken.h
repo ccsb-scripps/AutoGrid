@@ -1,6 +1,6 @@
 /*
 
- $Id: gpftoken.h,v 1.6 2009/05/08 23:17:34 rhuey Exp $
+ $Id: gpftoken.h,v 1.7 2010/10/20 20:58:15 rhuey Exp $
 
  AutoGrid 
 
@@ -47,3 +47,4 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #define GPF_PARAM_FILE	21
 #define GPF_DSOLVMAP	22
 #define GPF_QASP	23
+#define GPF_USE_VINA_POTENTIAL	24
