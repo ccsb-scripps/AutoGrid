@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.74 2010/10/20 21:25:02 rhuey Exp $
+ $Id: main.cpp,v 1.75 2010/10/20 21:55:24 rhuey Exp $
 
  AutoGrid 
 
@@ -556,7 +556,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.74 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.75 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1519,17 +1519,17 @@ if (use_vina_potential) {
     float wt_hydrogen = -0.587439;
     float wt_hydrophobic = -0.035069; //C_H,F_H,Cl_H,Br_H,I_H
     // xs_vdw_radii from atom_constants.h  ??@@?? 
-    float C_H = 1.9;//C_P
-    float N_P = 1.8;//N_D,N_A,N_DA
-    float O_P = 1.7;//O_D,O_A,O_DA
-    float S_P = 2.0;
-    float P_P = 2.1;
-    float F_H = 1.5;
-    float Cl_H = 1.8;
-    float Br_H = 2.0;
-    float I_H = 2.2;
-    float Met_D = 1.2; //metal_donor:Mg,Mn,Zn,Ca,Fe,Cl,Br
-    float Met_non_ad = 1.75;//metal_non_ad:Cu,Fe,Na,K,Hg,Co,U,Cd,Ni
+    //float C_H = 1.9;//C_P
+    //float N_P = 1.8;//N_D,N_A,N_DA
+    //float O_P = 1.7;//O_D,O_A,O_DA
+    //float S_P = 2.0;
+    //float P_P = 2.1;
+    //float F_H = 1.5;
+    //float Cl_H = 1.8;
+    //float Br_H = 2.0;
+    //float I_H = 2.2;
+    //float Met_D = 1.2; //metal_donor:Mg,Mn,Zn,Ca,Fe,Cl,Br
+    //float Met_non_ad = 1.75;//metal_non_ad:Cu,Fe,Na,K,Hg,Co,U,Cd,Ni
     float map_Rij;
     double rddist; 
     double delta_e = 0.0;
@@ -1607,8 +1607,8 @@ for (ia=0; ia<num_atom_maps; ia++){
                 // get radius for this probe type
                 //canned receptor types:
                 //hydrogen = get_rec_index("HD");
-                Rij = 1.9;
-                map_Rij = 1.9;
+                Rij = 1.9; //carbon is default receptor atom type 
+                map_Rij = 1.9; //and default ligand atom type 
                 if ((i==carbon)||(i==arom_carbon)){ //i is receptor type
                     Rij = 1.9;//C_H, C_P
                 } else if ((i== nitrogen)||(i==nonHB_nitrogen)){
@@ -1617,20 +1617,19 @@ for (ia=0; ia<num_atom_maps; ia++){
                     Rij = 1.7;//O_P, O_D,O_A, O_DA
                 } else if (i==sulphur){
                     Rij = 2.0;//S_P
-                } //TODO: add P_P(2.1),F_H(1.5),Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
+                } //@@TODO@@: add P_P(2.1),F_H(1.5),Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
 #ifdef DEBUG
                 printf("@@2 in use_vina_potential loop\n");
 #endif
                 if ((ia==map_carbon)||(i==map_arom_carbon)){ //i is receptor type
                     map_Rij = 1.9;//C_H, C_P
-                } else if ((i== nitrogen)||(i==nonHB_nitrogen)){
+                } else if ((i== nitrogen)||(i==nonHB_nitrogen)){ //@@nonHB_nitrogen?@@
                     map_Rij = 1.8;//N_P, N_D, N_A, N_DA
                 } else if (i==oxygen){
                     map_Rij = 1.7;//O_P, O_D,O_A, O_DA
                 } else if (i==sulphur){
                     map_Rij = 2.0;//S_P
-                } //TODO: add P_P(2.1),F_H(1.5),Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
-                //    interatom_distance - xs_radius(t1) -xs_radius(t2)    .--|........|-----.  
+                } //@@TODO@@: add P_P(2.1),F_H(1.5),Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
                 /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
 #ifdef DEBUG
                 printf("%d-%d-building  Rij=%6.3lf, map_Rij=%10.8f for %s\n",ia,i, Rij, map_Rij, gridmap[ia].type);
@@ -1638,30 +1637,32 @@ for (ia=0; ia<num_atom_maps; ia++){
                 //printf("%d-%d-building  Rij=%6.3lf, map_Rij=%10.8f for %s\n",Rij, map_Rij, gridmap[ia].type);
                 for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
                     r  = angstrom(indx_r);
-                    // compute rddist:
+                    // compute rddist:                                   map_Rij  rddist   Rij
+                    //  interatom_distance - xs_radius(t1) -xs_radius(t2)    .--|........|-----.  
                     rddist =  r - (map_Rij + Rij);
                     //rddist =  r - (gridmap[ia].Rij + gridmap[ia].nbp_r[i]);
-                    //use this to compute the various energies
+                    //use rddist for computing the vina component energies
                     //attraction:
                     delta_e = exp(-pow(((rddist)/0.5),2)) + wt_gauss2 * exp(-pow(((rddist-3.)/2.),2));
                     //delta_e = exp(pow(-((rddist)/0.5),2)) + wt_gauss2 * exp(pow(-((rddist-3.)/2.),2));
                     //delta_e = wt_gauss1 * exp(-((rddist)/0.5)**2) + wt_gauss2 * exp(-((rddist-3.)/2.)**2);
-                    energy_lookup[ia][indx_r][i] += delta_e;
+                    //at distance 'indx_r': interaction of receptor atomtype 'ia' - ligand atomtype 'i'
+                    energy_lookup[ia][indx_r][i] += delta_e; 
                     //repulsion
                     if (rddist<0){
                         delta_e = wt_repulsion*pow(rddist,2);
                         energy_lookup[ia][indx_r][i] += delta_e;
                     }
                     //hbond
-                    if (gridmap[ia].hbonder[j]>0){ //check that ia must be hbonder
+                    if (gridmap[ia].hbonder[j]>0){ //check that ia-j must be hbonder
 #ifdef DEBUG
                         printf(" processing gridmap= %d-hbonder j= %d\n",ia, j);
 #endif
-                        if (rddist<0.7) {
+                        if (rddist<=0.7) { //what about EXACTLY 0.7?
                            delta_e = 1*wt_hydrogen;
                            energy_lookup[ia][indx_r][i] += delta_e;
                         }
-                        if ((-0.7<rddist) && (rddist<0.)){
+                        if ((-0.7<rddist) && (rddist<=0.)){
                            delta_e =(rddist/0.7)*wt_hydrogen;
                            energy_lookup[ia][indx_r][i] -= delta_e;
                         }
