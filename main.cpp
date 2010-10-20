@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.75 2010/10/20 21:55:24 rhuey Exp $
+ $Id: main.cpp,v 1.76 2010/10/20 22:02:59 rhuey Exp $
 
  AutoGrid 
 
@@ -556,7 +556,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.75 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.76 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1511,7 +1511,7 @@ if (floating_grid) {
 if (use_vina_potential) {
     (void) fprintf( logFile,   "Using vina potential %d\n\n", use_vina_potential);
 }
-    float cutoff = 8.0;
+    float cutoff = 8.0; //???IS THIS USED???
     //from autodock_vina_1_1_1/src/main.cpp,line 394
     float wt_gauss1 = -0.035579;
     float wt_gauss2 = -0.005156;
@@ -1643,7 +1643,7 @@ for (ia=0; ia<num_atom_maps; ia++){
                     //rddist =  r - (gridmap[ia].Rij + gridmap[ia].nbp_r[i]);
                     //use rddist for computing the vina component energies
                     //attraction:
-                    delta_e = exp(-pow(((rddist)/0.5),2)) + wt_gauss2 * exp(-pow(((rddist-3.)/2.),2));
+                    delta_e = wt_gauss1 * exp(-pow(((rddist)/0.5),2)) + wt_gauss2 * exp(-pow(((rddist-3.)/2.),2));
                     //delta_e = exp(pow(-((rddist)/0.5),2)) + wt_gauss2 * exp(pow(-((rddist-3.)/2.),2));
                     //delta_e = wt_gauss1 * exp(-((rddist)/0.5)**2) + wt_gauss2 * exp(-((rddist-3.)/2.)**2);
                     //at distance 'indx_r': interaction of receptor atomtype 'ia' - ligand atomtype 'i'
