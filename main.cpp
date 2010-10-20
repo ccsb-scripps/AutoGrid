@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.73 2010/10/20 21:15:47 rhuey Exp $
+ $Id: main.cpp,v 1.74 2010/10/20 21:25:02 rhuey Exp $
 
  AutoGrid 
 
@@ -556,7 +556,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.73 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.74 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1208,9 +1208,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         chlorine = get_rec_index("Cl");
         fluorine = get_rec_index("Fl");
         iodine = get_rec_index("I");
-//#ifdef DEBUG
+#ifdef DEBUG
         printf("assigned receptor types:arom_carbon->%d, hydrogen->%d,nonHB_hydrogen->%d, carbon->%d, oxygen->%d, nitrogen->%d\n, nonHB_nitrogen->%d, sulphur->%d, nonHB_sulphur->%d\n",arom_carbon,hydrogen, nonHB_hydrogen, carbon,oxygen, nitrogen, nonHB_nitrogen, sulphur, nonHB_sulphur);
-//#endif
+#endif
         (void) fflush( logFile);
         break;
 
@@ -1251,7 +1251,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_USE_VINA_POTENTIAL:
         use_vina_potential = TRUE;
         (void) fprintf( logFile, "\n Using Vina potential for calculation.\n\n");
-        (void) printf( "\n Using Vina potential for calculation.  use_vina_potential==%d\n\n", use_vina_potential);
+        //(void) printf( "\n Using Vina potential for calculation.  use_vina_potential==%d\n\n", use_vina_potential);
         break;
 
 /******************************************************************************/
@@ -1591,7 +1591,7 @@ for (ia=0; ia<num_atom_maps; ia++){
         printf("receptor_types_ct=%d\n", receptor_types_ct);
 #endif
         for (i = 0;  i < receptor_types_ct;  i++) {
-            printf("processing receptor_type=%d\n", i);
+            //printf("processing receptor_type=%d\n", i);
             /*for each receptor_type*/
             xA = gridmap[ia].xA[i];
             xB = gridmap[ia].xB[i];
