@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.78 2010/10/22 23:13:00 rhuey Exp $
+ $Id: main.cpp,v 1.79 2010/10/22 23:58:57 rhuey Exp $
 
  AutoGrid 
 
@@ -556,7 +556,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.78 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.79 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1581,12 +1581,14 @@ for (ia=0; ia<num_atom_maps; ia++){
 #ifdef DEBUG
         printf("receptor_types_ct=%d\n", receptor_types_ct);
 #endif
+        ParameterEntry * lig_parm = apm_find(ligand_types[ia]);
         for (i = 0;  i < receptor_types_ct;  i++) {
             /*for each receptor_type*/
             xA = gridmap[ia].xA[i];
             xB = gridmap[ia].xB[i];
             Rij = gridmap[ia].nbp_r[i];
             epsij = gridmap[ia].nbp_eps[i];
+            ParameterEntry * rec_parm = apm_find(receptor_types[i]);
             if (use_vina_potential){//from vina: atom_constants.h
                 fprintf(logFile, "@@in use_vina_potential loop ia=%d, i=%d\n", ia,i);
 #ifdef DEBUG
@@ -1596,38 +1598,15 @@ for (ia=0; ia<num_atom_maps; ia++){
                 //@@TODO@@: use xs_radius from read_parameter_library
                 //canned receptor types:
                 //hydrogen = get_rec_index("HD");
-                Rij = 1.9; //carbon is default receptor atom type 
-                map_Rij = 1.9; //and default ligand atom type 
-                if ((i==carbon)||(i==arom_carbon)){ //i is receptor type
-                    Rij = 1.9;//C_H, C_P
-                    fprintf(logFile, "%d map: receptor is carbon %d\n",ia, i);
-                } else if ((i==nitrogen)||(i==nonHB_nitrogen)){
-                    Rij = 1.8;//N_P, N_D, N_A, N_DA
-                    fprintf(logFile, "%d map: receptor is nitrogen %d\n",ia, i);
-                } else if (i==oxygen){
-                    Rij = 1.7;//O_P, O_D,O_A, O_DA
-                    fprintf(logFile, "%d map: receptor is oxygen %d\n",ia, i);
-                } else if (i==sulphur){
-                    Rij = 2.0;//S_P
-                    fprintf(logFile, "%d map: receptor is sulphur %d\n",ia, i);
-                } //@@TODO@@: add P_P(2.1),F_H(1.5),Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
-                if ((ia==map_carbon)||(ia==map_arom_carbon)){ //ia is probe type
-                    map_Rij = 1.9;//C_H, C_P
-                    fprintf(logFile, " probe is carbon %d\n", map_carbon);
-                } else if ((ia== map_nitrogen)||(ia==map_nonHB_nitrogen)){ //@@nonHB_nitrogen?@@
-                    map_Rij = 1.8;//N_P, N_D, N_A, N_DA
-                    fprintf(logFile, " probe is nitrogen %d\n", map_nitrogen);
-                } else if (ia==map_oxygen){
-                    map_Rij = 1.7;//O_P, O_D,O_A, O_DA
-                    fprintf(logFile, " probe is oxygen %d\n", map_oxygen);
-                } else if (ia==map_sulphur){
-                    map_Rij = 2.0;//S_P
-                    fprintf(logFile, " probe is sulphur %d\n", map_sulphur);
-                } //@@TODO@@: add P_P(2.1),F_H(1.5),Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
+                Rij = lig_parm->xs_radius; //see read_parameter_library
+                //Rij = 1.9; //carbon is default receptor atom type 
+                map_Rij = rec_parm->xs_radius; //see read_parameter_library
+                //map_Rij = 1.9; //and default ligand atom type 
+                //@@TODO@@: add P_P(2.1),F_H(1.5),Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
                 /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
-#ifdef DEBUG
-                printf("%d-%d-building  Rij=%6.3lf, map_Rij=%10.8f for %s\n",ia,i, Rij, map_Rij, gridmap[ia].type);
-#endif
+//#ifdef DEBUG
+                printf("%d-%d-building  Rij=%6.3lf, map_Rij=%10.8f for %s %s\n",ia,i, Rij, map_Rij, gridmap[ia].type, ligand_types[ia]);
+//#endif
                 (void) fprintf( logFile, "Calculating vina energies for %s-%s interactions (%d, %d).\n", gridmap[ia].type, receptor_types[i], ia, i );
                 for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
                     r  = angstrom(indx_r);
@@ -1645,9 +1624,9 @@ for (ia=0; ia<num_atom_maps; ia++){
                         energy_lookup[i][indx_r][ia] += delta_e;
                     }
                     //hbond
-                    if (gridmap[ia].hbonder[j]>0){ //check that ia-j must be hbonder
+                    if (gridmap[ia].hbonder[i]>0){ //check that ia-i must be hbonder
 #ifdef DEBUG
-                        printf(" processing gridmap= %d-hbonder j= %d\n",ia, j);
+                        printf(" processing gridmap= %d-hbonder i= %d\n",ia, i);
 #endif
                         if (rddist<=0.7) { //what about EXACTLY 0.7?
                            delta_e = 1*wt_hydrogen;
