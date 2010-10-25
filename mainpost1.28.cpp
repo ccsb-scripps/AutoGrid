@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.79 2010/10/22 23:58:57 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.80 2010/10/25 17:02:20 rhuey Exp $
 
  AutoGrid 
 
@@ -556,7 +556,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.79 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.80 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1590,9 +1590,9 @@ for (ia=0; ia<num_atom_maps; ia++){
             epsij = gridmap[ia].nbp_eps[i];
             ParameterEntry * rec_parm = apm_find(receptor_types[i]);
             if (use_vina_potential){//from vina: atom_constants.h
-                fprintf(logFile, "@@in use_vina_potential loop ia=%d, i=%d\n", ia,i);
 #ifdef DEBUG
                 printf("@@in use_vina_potential loop ia=%d, i=%d\n", ia,i);
+                fprintf(logFile, "@@in use_vina_potential loop ia=%d, i=%d\n", ia,i);
 #endif
                 // get radius for this probe type
                 //@@TODO@@: use xs_radius from read_parameter_library
@@ -1604,9 +1604,9 @@ for (ia=0; ia<num_atom_maps; ia++){
                 //map_Rij = 1.9; //and default ligand atom type 
                 //@@TODO@@: add P_P(2.1),F_H(1.5),Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
                 /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
-//#ifdef DEBUG
+#ifdef DEBUG
                 printf("%d-%d-building  Rij=%6.3lf, map_Rij=%10.8f for %s %s\n",ia,i, Rij, map_Rij, gridmap[ia].type, ligand_types[ia]);
-//#endif
+#endif
                 (void) fprintf( logFile, "Calculating vina energies for %s-%s interactions (%d, %d).\n", gridmap[ia].type, receptor_types[i], ia, i );
                 for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
                     r  = angstrom(indx_r);
@@ -2330,6 +2330,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 }
 
                 /* elecPE is the next-to-last last grid map, i.e. electrostatics */
+                /* if use_vina_potential, electPE is 0 */
+                if (not use_vina_potential) { 
                 if (dddiel) {
                     /* Distance-dependent dielectric... */
                     /*gridmap[elecPE].energy += charge[ia] * inv_r * epsilon[indx_r];*/
@@ -2353,6 +2355,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 if ((atom_type[ia] == hydrogen) && (disorder[ia] == TRUE)) {
                     continue; /* onto the next atom... */
                 }
+                } /*not use_vina_potential*/
 
                 if (not use_vina_potential){ 
 
