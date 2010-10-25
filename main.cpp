@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.80 2010/10/25 17:02:20 rhuey Exp $
+ $Id: main.cpp,v 1.81 2010/10/25 18:32:01 rhuey Exp $
 
  AutoGrid 
 
@@ -556,7 +556,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.80 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.81 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1594,15 +1594,10 @@ for (ia=0; ia<num_atom_maps; ia++){
                 printf("@@in use_vina_potential loop ia=%d, i=%d\n", ia,i);
                 fprintf(logFile, "@@in use_vina_potential loop ia=%d, i=%d\n", ia,i);
 #endif
-                // get radius for this probe type
-                //@@TODO@@: use xs_radius from read_parameter_library
-                //canned receptor types:
-                //hydrogen = get_rec_index("HD");
+                // get xs_radius for this probe type from parameter_library
                 Rij = lig_parm->xs_radius; //see read_parameter_library
-                //Rij = 1.9; //carbon is default receptor atom type 
                 map_Rij = rec_parm->xs_radius; //see read_parameter_library
-                //map_Rij = 1.9; //and default ligand atom type 
-                //@@TODO@@: add P_P(2.1),F_H(1.5),Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
+                //@@TODO@@: add SER-OG,THR-OG, TYR_OH: X(1.2) Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
                 /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
 #ifdef DEBUG
                 printf("%d-%d-building  Rij=%6.3lf, map_Rij=%10.8f for %s %s\n",ia,i, Rij, map_Rij, gridmap[ia].type, ligand_types[ia]);
@@ -1614,6 +1609,7 @@ for (ia=0; ia<num_atom_maps; ia++){
                     //  interatom_distance - xs_radius(t1) -xs_radius(t2)    .--|........|-----.  
                     rddist =  r - (map_Rij + Rij);
                     //use rddist for computing the vina component energies
+                    //@@TODO@@: replace with functions from vina..
                     //attraction:
                     delta_e = wt_gauss1 * exp(-pow(((rddist)/0.5),2)) + wt_gauss2 * exp(-pow(((rddist-3.)/2.),2));
                     //at distance 'indx_r': interaction of receptor atomtype 'ia' - ligand atomtype 'i'
@@ -1639,6 +1635,7 @@ for (ia=0; ia<num_atom_maps; ia++){
                     }
                     // hydrophobic: check using index 'i' compared with 'carbon',
                     // carbon/aromatic_carbon       to non-hbonder
+                    //@@TODO: add support for these other hydrophobic interactions:
                     //if (((i==carbon)||(i==arom_carbon)||(i==fluorine)||(i==chlorine)||(i==bromine)||(i==iodine))
                     //&& ((ia==carbon)||(ia==arom_carbon)||(ia==fluorine)||(ia==chlorine)||(ia==bromine)||(ia==iodine))) 
                     if (((i==carbon)||(i==arom_carbon)) && ((ia==carbon)||(ia==arom_carbon)))
