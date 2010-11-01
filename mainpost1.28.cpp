@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.81 2010/10/25 18:32:01 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.82 2010/11/01 18:37:45 rhuey Exp $
 
  AutoGrid 
 
@@ -556,7 +556,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.81 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.82 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1204,9 +1204,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         chlorine = get_rec_index("Cl");
         fluorine = get_rec_index("Fl");
         iodine = get_rec_index("I");
-//#ifdef DEBUG
+#ifdef DEBUG
         printf("assigned receptor types:arom_carbon->%d, hydrogen->%d,nonHB_hydrogen->%d, carbon->%d, oxygen->%d, nitrogen->%d\n, nonHB_nitrogen->%d, sulphur->%d, nonHB_sulphur->%d\n",arom_carbon,hydrogen, nonHB_hydrogen, carbon,oxygen, nitrogen, nonHB_nitrogen, sulphur, nonHB_sulphur);
-//#endif
+#endif
         (void) fflush( logFile);
         break;
 
