@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.82 2010/11/01 18:37:45 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.83 2011/05/02 17:31:01 rhuey Exp $
 
  AutoGrid 
 
@@ -556,7 +556,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.82 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.83 $\n\n\n");
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -2712,7 +2712,7 @@ if (floating_grid) {
 /* Free up the memory allocated to the gridmap objects... */
 free(gridmap);
 
-(void) fprintf( stderr, "\n%s: Successful Completion.\n", programname);
+//(void) fprintf( stderr, "\n%s: Successful Completion.\n", programname);
 (void) fprintf( logFile, "\n%s: Successful Completion.\n", programname);
 
 job_end = times( &tms_job_end);
