@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.13 2010/06/23 19:36:33 mp Exp $
+ $Id: setflags.cpp,v 1.14 2011/06/13 21:11:24 rhuey Exp $
 
  AutoGrid 
 
@@ -101,6 +101,10 @@ int setflags( int argc, char **argv )
 	        exit(0);
             break;
         case 'l':
+            if (argc < 3){
+                fprintf(stderr, "\n%s: Sorry, -l requires a filename.\n\t%s\n", programname, AutoGridHelp);
+                exit(-1);
+            }
             if ( (logFile = ad_fopen(argv[2], "w")) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't create the log file \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
@@ -111,7 +115,13 @@ int setflags( int argc, char **argv )
             argindex++;
             break;
         case 'p':
-            strcpy(grid_param_fn, argv[2]);
+            if (argc < 3){
+                fprintf(stderr, "\n%s: Sorry, -p requires a filename.\n\t%s\n", programname, AutoGridHelp);
+                exit(-1);
+            }
+            strncpy(grid_param_fn, argv[2], PATH_MAX);
+            grid_param_fn[PATH_MAX-1] = '\0';
+
             if ( (GPF = ad_fopen(argv[2], "r")) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't find or open Grid Parameter File \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
