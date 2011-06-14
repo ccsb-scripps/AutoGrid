@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT([autogrid], [4.2.4], [autodock@scripps.edu])
+AC_INIT([autogrid], [4.2.4.x.20110613], [autodock@scripps.edu])
 AC_CONFIG_SRCDIR([atom_parameter_manager.cpp])
 #AC_CONFIG_HEADER([config.h])
 
@@ -35,6 +35,7 @@ case $host_os in
 esac
 AM_CONDITIONAL([WANT_BIGSTACK], [test "$CYGWIN" = yes]) 
 
+AC_CONFIG_LINKS(parse_param_line.cpp:../autodock/parse_param_line.cc)
 AC_CONFIG_LINKS(read_parameter_library.cpp:../autodock/read_parameter_library.cc)
 
 # See "automake" manual, version 1.10, section 10.5 (Python)
