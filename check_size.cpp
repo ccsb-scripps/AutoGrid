@@ -1,6 +1,6 @@
 /*
 
- $Id: check_size.cpp,v 1.10 2009/06/18 20:50:34 rhuey Exp $
+ $Id: check_size.cpp,v 1.11 2011/07/15 04:07:10 mp Exp $
 
  AutoGrid 
 
@@ -61,14 +61,18 @@ int check_size(int nelements,
 
     if (nelements < 0) {
         fprintf(stderr, "\n%s: Error! Negative number of %c-grid elements!  Aborting.\n\n", programname, axischar);
+        fprintf(logFile, "\n%s: Error! Negative number of %c-grid elements!  Aborting.\n\n", programname, axischar);
         exit(-2);
     }
     if (nelements == 0) {
-        fprintf(stderr, "\n%s: Warning! 0 %c-grid elements!\n\n", programname, axischar);
+        fprintf(stderr, "\n%s: Error!! 0 %c-grid elements!\n\n", programname, axischar);
+        fprintf(logFile, "\n%s: Error!! 0 %c-grid elements!\n\n", programname, axischar);
+	exit(-2);
     }
     if (nelements>MAX_GRID_PTS) {
-        fprintf(logFile, "%s: Warning! Maximum number of %c-grid elements allowed is %d. Using this value.\n", programname, axischar, MAX_GRID_PTS);
-        nelements = MAX_GRID_PTS;
+        fprintf(stderr, "\n%s: Error! Maximum number of %c-grid elements allowed is %d.\n", programname, axischar, MAX_GRID_PTS);
+        fprintf(logFile, "\n%s: Error! Maximum number of %c-grid elements allowed is %d.\n", programname, axischar, MAX_GRID_PTS);
+        exit(-1);
     }
     oldnelements = nelements;
     nelements = (int) ((nelements/2) * 2); // N.B.: integer divide truncates remainder.
