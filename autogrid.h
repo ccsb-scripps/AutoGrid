@@ -1,6 +1,6 @@
 /*
 
- $Id: autogrid.h,v 1.17 2009/05/08 23:17:34 rhuey Exp $
+ $Id: autogrid.h,v 1.18 2011/09/13 17:17:15 rhuey Exp $
 
  AutoGrid 
 
@@ -63,7 +63,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #define CYLINDRICAL 	1
 #define SPHERICAL 	2
 
-#define A_DIVISOR    100.    /* Angstrom is divided by this in look-up table. */
+#define A_DIVISOR    100     /* Angstrom is divided by this in look-up table. */
 
 #define	NBCUTOFF     8.      /* non-bond cutoff = 8 Angstroms.                */
 
@@ -97,10 +97,25 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
 #define MAX_NUM_AUTOGRID_TYPES 100
 #define NUM_ALL_TYPES 20   /*??? IS THIS REASONABLE???*/
+#define NUM_RECEPTOR_TYPES NUM_ALL_TYPES   
 #define MAX_LEN_AUTOGRID_TYPE 7
 
 /* added for port to BOINC 11/17/2004 */
 FILE *ad_fopen(const char *path, const char *mode);
+
+/*----------------------------------------------------------------------------*/
+/* transplants from main                    */
+/*----------------------------------------------------------------------------*/
+// print_error() is used with error_level where:
+// error_level = one of the following:
+#define FATAL_ERROR -2
+#define ERROR -1
+#define WARNING  0
+#define INFORMATION 1
+#define SUGGESTION 2
+
+void print_error( FILE *fileptr, int error_level, char message[LINE_LEN] );
+
 /*----------------------------------------------------------------------------*/
 /* EOF.                                                                       */
 /*----------------------------------------------------------------------------*/
