@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.83 2011/05/02 17:31:01 rhuey Exp $
+ $Id: main.cpp,v 1.84 2011/09/20 16:22:48 rhuey Exp $
 
  AutoGrid 
 
@@ -46,6 +46,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
 #include <stddef.h> 
 #include <ctype.h> 
+#include <cassert> 
 
 
 /* the BOINC API header file */
@@ -151,7 +152,7 @@ static int get_rec_index(const char key[]);
 // to support use_vina_potential
 static int get_map_index(const char key[]);
 
-
+#define ET 1 //useful switch mp+rh   1 for "energy_table",  0 for "et"
 int main( int argc,  char **argv )
 
 /******************************************************************************/
@@ -224,10 +225,10 @@ char ligand_types[MAX_MAPS][3];
 /*array of ptrs used to parse input line*/
 char * ligand_atom_types[MAX_MAPS];
 
-#define NUM_RECEPTOR_TYPES  NUM_ALL_TYPES
 /*malloc this after the number of receptor types is parsed*/
-/*MAX_DIST is really NBCUTOFF times 100 */
-static double energy_lookup[NUM_RECEPTOR_TYPES][MAX_DIST][MAX_MAPS];
+/*MAX_DIST is really NBC times 100 */
+static EnergyTables et;
+static double energy_lookup[NUM_RECEPTOR_TYPES][MAX_DIST][MAX_MAPS];//@@ rm
 
 
 typedef struct mapObject {
@@ -338,9 +339,9 @@ char GPF_line[LINE_LEN];
 int length = LINE_LEN;
 
 /* MAX_DIST */
-double epsilon[MAX_DIST];
-int MD_1 = MAX_DIST - 1;
-static double sol_fn[MAX_DIST];
+double epsilon[MAX_DIST]; //@@ rm
+#define MD_1  (MAX_DIST-1)
+//static double sol_fn[MAX_DIST]; //@@ rm
 double energy_smooth[MAX_DIST];
 
 int ctr;
@@ -367,7 +368,6 @@ double q_tot = 0.0;
 double diel, invdielcal=0.;//expected never used if uninitialized
 double dxA;
 double dxB;
-double minus_inv_two_sigma_sqd;
 double percentdone=0.0;
 double PI_halved;
 double q_max = -BIG,  q_min = BIG;
@@ -385,7 +385,6 @@ double ln_half = 0.0;
 double covhalfwidth = 1.0;
 double covbarrier = 1000.0;
 double cA, cB, tmpconst;
-double sigma;
 
 #ifndef VERSION
 static char * version_num = "4.2.2";
@@ -425,8 +424,6 @@ int outlev = -1;
 #define INIT_NUM_GRID_PTS -1
 int num_grid_points_per_map = INIT_NUM_GRID_PTS;
 register int i = 0, ii = 0, j = 0, k = 0, indx_r = 0, i_smooth = 0;
-/* register int i = 0, ii = 0, j = 0, jj = 0, k = 0, indx_r = 0, i_smooth = 0;
- */
 register int ia = 0, ib = 0, ic = 0, map_index = -1, iat = 0, i1 = 0, i2 = 0, i3 = 0;
 register int closestH = 0;
 
@@ -556,7 +553,12 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.83 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.84 $\n\n\n");
+(void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
+                            NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
+
+printf(" energy_lookup has %8d entries of size %d\n", sizeof energy_lookup/sizeof ***energy_lookup, sizeof ***energy_lookup);
+printf("       e_vdWHb has %8d entries of size %d\n", sizeof et.e_vdW_Hb/sizeof ***et.e_vdW_Hb, sizeof ***et.e_vdW_Hb);
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -996,7 +998,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
          * the number of ligand atom types, plus 1 for the electrostatic map.
          * AutoDock can only read in MAX_MAPS maps, which must include
          * the ligand atom maps and electrostatic map */
-        num_maps = num_atom_maps + 2;
+       num_maps = num_atom_maps;
+       if ( not use_vina_potential) num_maps = num_atom_maps + 2;
 
         /* Check to see if there is enough memory to store these map objects */
         gridmap = (MapObject *)malloc(sizeof(MapObject) * num_maps);
@@ -1077,7 +1080,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             gridmap[i].hbond = found_parm->hbond;
             gridmap[i].Rij_hb = found_parm->Rij_hb;
             gridmap[i].epsij_hb = found_parm->epsij_hb;
-            if (gridmap[i].hbond>0){
+            if (gridmap[i].hbond>0){       //enum: NON,DS,D1,AS,A1,A2
                 gridmap[i].is_hbonder=TRUE;}
 
 #ifdef DEBUG
@@ -1329,10 +1332,10 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_SMOOTH:
         (void) sscanf( GPF_line, "%*s %lf", &r_smooth);
         (void) fprintf( logFile, "\nPotentials will be smoothed by: %.3lf Angstrom\n\n", r_smooth);
-        /* Angstrom is divided by A_DIVISOR in look-up table. */
+        /* Angstrom is divided by A_DIV in look-up table. */
         /* Typical value of r_smooth is 0.5 Angstroms */
         /* so i_smooth = 0.5 * 100. / 2 = 25 */
-        i_smooth = (int) (r_smooth*A_DIVISOR/2.);
+        i_smooth = (int) (r_smooth*A_DIV/2.);
         break;
 
 /******************************************************************************/
@@ -1351,19 +1354,26 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             dddiel = TRUE;
             /* calculate ddd of Mehler & Solmajer */
             (void) fprintf( logFile, "\nUsing *distance-dependent* dielectric function of Mehler and Solmajer, Prot.Eng.4, 903-910.\n\n");
-            epsilon[0] = 1.0;
+	    if(ET)
+	    epsilon[0] = 1.0;
+	    else
+            et.epsilon_fn[0] = 1.0;
             for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
-                epsilon[indx_r] = calc_ddd_Mehler_Solmajer( angstrom(indx_r), APPROX_ZERO );
+                et.epsilon_fn[indx_r] = calc_ddd_Mehler_Solmajer( angstrom(indx_r), APPROX_ZERO );
+		if(ET)epsilon[indx_r] = et.epsilon_fn[indx_r];
             }
             (void) fprintf( logFile, "  d   Dielectric\n ___  __________\n");
-            for (i = 0;  i <= 500;  i += 10) {
+            for (i = 0;  i <= min(500,MAX_DIST);  i += 10) {
                 ri = angstrom(i);
-                (void) fprintf( logFile, "%4.1lf%9.2lf\n", ri, epsilon[i]);
+                (void) fprintf( logFile, "%4.1lf%9.2lf\n", ri, et.epsilon_fn[i]);
             }
             (void) fprintf( logFile, "\n");
-            /* convert epsilon to 1 / epsilon */
-            for (i = 1;  i < MAX_DIST;  i++) {
+            /* convert epsilon to factor / epsilon */
+            for (i = 0;  i < MAX_DIST;  i++) {
+		if(ET)
                 epsilon[i] = factor / epsilon[i];
+		else
+                et.r_epsilon_fn[i] = factor/et.epsilon_fn[i];
             }
 
         } else {
@@ -1453,6 +1463,7 @@ if ( ! floating_grid ) {
     (void) fprintf( logFile, "\n\nNo Floating Grid was requested.\n");
 }
 
+if (not use_vina_potential)  {  
 (void) fprintf( AVS_fld_fileptr, "# AVS field file\n#\n");
 (void) fprintf( AVS_fld_fileptr, "# AutoDock Atomic Affinity and Electrostatic Grids\n#\n");
 (void) fprintf( AVS_fld_fileptr, "# Created by %s.\n#\n", programname);
@@ -1490,7 +1501,7 @@ if (floating_grid) {
     (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_maps, floating_grid_filename);
 }
 (void) fclose( AVS_fld_fileptr);
-
+}
 
 #ifdef BOINCCOMPOUND
  boinc_fraction_done(0.1);
@@ -1505,7 +1516,7 @@ if (floating_grid) {
  * before this pt
  **************************************************/
 if (use_vina_potential) {
-    (void) fprintf( logFile,   "Using vina potential %d\n\n", use_vina_potential);
+    (void) fprintf( logFile,   "Use vina potential is %d\n\n", use_vina_potential);
 }
     float map_Rij;
     //from autodock_vina_1_1_1/src/main.cpp,line 394
@@ -1598,12 +1609,12 @@ for (ia=0; ia<num_atom_maps; ia++){
                 Rij = lig_parm->xs_radius; //see read_parameter_library
                 map_Rij = rec_parm->xs_radius; //see read_parameter_library
                 //@@TODO@@: add SER-OG,THR-OG, TYR_OH: X(1.2) Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
-                /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
+                /* loop over distance index, indx_r, from 0 to NEINT (scaled NBC non-bond cutoff) */ /* GPF_MAP */
 #ifdef DEBUG
                 printf("%d-%d-building  Rij=%6.3lf, map_Rij=%10.8f for %s %s\n",ia,i, Rij, map_Rij, gridmap[ia].type, ligand_types[ia]);
 #endif
                 (void) fprintf( logFile, "Calculating vina energies for %s-%s interactions (%d, %d).\n", gridmap[ia].type, receptor_types[i], ia, i );
-                for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
+                for (indx_r = 1;  indx_r < NEINT;  indx_r++) {
                     r  = angstrom(indx_r);
                     // compute rddist:                                   map_Rij  rddist   Rij
                     //  interatom_distance - xs_radius(t1) -xs_radius(t2)    .--|........|-----.  
@@ -1613,11 +1624,11 @@ for (ia=0; ia<num_atom_maps; ia++){
                     //attraction:
                     delta_e = wt_gauss1 * exp(-pow(((rddist)/0.5),2)) + wt_gauss2 * exp(-pow(((rddist-3.)/2.),2));
                     //at distance 'indx_r': interaction of receptor atomtype 'ia' - ligand atomtype 'i'
-                    energy_lookup[i][indx_r][ia] += delta_e; 
+                    et.e_vdW_Hb[indx_r][i][ia] += delta_e; 
                     //repulsion
                     if (rddist<0){
                         delta_e = wt_repulsion*pow(rddist,2);
-                        energy_lookup[i][indx_r][ia] += delta_e;
+                        et.e_vdW_Hb[indx_r][i][ia] += delta_e;
                     }
                     //hbond
                     if (gridmap[ia].hbonder[i]>0){ //check that ia-i must be hbonder
@@ -1626,11 +1637,11 @@ for (ia=0; ia<num_atom_maps; ia++){
 #endif
                         if (rddist<=0.7) { //what about EXACTLY 0.7?
                            delta_e = 1*wt_hydrogen;
-                           energy_lookup[i][indx_r][ia] += delta_e;
+                           et.e_vdW_Hb[indx_r][i][ia] += delta_e;
                         }
                         if ((-0.7<rddist) && (rddist<=0.)){
                            delta_e =(rddist/0.7)*wt_hydrogen;
-                           energy_lookup[i][indx_r][ia] -= delta_e;
+                           et.e_vdW_Hb[indx_r][i][ia] -= delta_e;
                         }
                     }
                     // hydrophobic: check using index 'i' compared with 'carbon',
@@ -1646,7 +1657,7 @@ for (ia=0; ia<num_atom_maps; ia++){
                         } else if (rddist<1.5){
                            delta_e = (0.5-rddist)*wt_hydrophobic;
                         }
-                        energy_lookup[i][indx_r][ia] += delta_e;
+                        et.e_vdW_Hb[indx_r][i][ia] += delta_e;
                     }
                 } /*for each distance*/ 
 #ifdef DEBUG
@@ -1678,17 +1689,31 @@ for (ia=0; ia<num_atom_maps; ia++){
             (void) fprintf( logFile, "                r               r \n\n");
             /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
             (void) fprintf( logFile, "Calculating energies for %s-%s interactions.\n", gridmap[ia].type, receptor_types[i] );
+            (void) printf( "Calculating energies for %s-%s interactions.\n", gridmap[ia].type, receptor_types[i] );
 
-            for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
+	    // do only up to non-bond cutoff distance
+            for (indx_r = 1;  indx_r < NEINT;  indx_r++) {
+		if(indx_r==1) printf("sizeof energy_lookup=%d sizeof et.e_vdW_Hb=%d\n", 
+		sizeof energy_lookup[0][0][0], sizeof et.e_vdW_Hb[0][0][0]);
                 r  = angstrom(indx_r);
                 rA = pow( r, dxA);
                 rB = pow( r, dxB);
                 energy_lookup[i][indx_r][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
+    //Real e_vdW_Hb[NDIEL][NUM_RECEPTOR_TYPES][MAX_MAPS];  // vdW & Hb energies
+		if(indx_r>=NDIEL) printf("indx_r>=%d %d\n", NDIEL, indx_r);
+		else if(i>=NUM_RECEPTOR_TYPES) printf("i>=%d %d\n", NUM_RECEPTOR_TYPES,i);
+		else if(ia>=MAX_MAPS) printf("ia>=%d %d\n", MAX_MAPS, ia);
+                else et.e_vdW_Hb[indx_r][i][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
+                if ( fabs(energy_lookup[i][indx_r][ia]-et.e_vdW_Hb[indx_r][i][ia])>0.01) \
+                printf("i=%d indx_r=%d ia = %d %lf != %lf\n",i, indx_r, ia, energy_lookup[i][indx_r][ia], et.e_vdW_Hb[indx_r][i][ia]);
+                //assert( energy_lookup[i][indx_r][ia]==et.e_vdW_Hb[indx_r][i][ia]);
             } /*for each distance*/ 
             energy_lookup[i][0][ia]    = EINTCLAMP;
-            energy_lookup[i][MD_1][ia] = 0.;
+            energy_lookup[i][NEINT-1][ia] = 0.;
+            et.e_vdW_Hb[0][i][ia] = EINTCLAMP;
+            et.e_vdW_Hb[NEINT-1][i][ia] = 0.;
 
-            /*PRINT OUT INITIAL VALUES before smoothing here
+            /*PRINT OUT INITIAL VALUES before smoothing here 
             (void) fprintf( logFile, "before smoothing\n  r ");
             for (iat = 0;  iat < receptor_types_ct;  iat++) {
                 (void) fprintf( logFile, "    %s    ", receptor_types[iat]);
@@ -1701,22 +1726,29 @@ for (ia=0; ia<num_atom_maps; ia++){
             for (j = 0;  j <= 500;  j += 10) {
                 (void) fprintf( logFile, "%4.1lf", angstrom(j));
                 for (iat = 0;  iat < receptor_types_ct;  iat++) {
+		    if(ET)
                     (void) fprintf( logFile, (energy_lookup[iat][j][ia]<100000.)?"%9.2lf":"%9.2lg", energy_lookup[iat][j][ia]);
-                } 
+		    else
+                    (void) fprintf( logFile, (et.e_vdW_Hb[j][iat][ia]<100000.)?"%9.2lf":"%9.2lg", et.e_vdW_Hb[j][iat][ia]);
+				} 
                 (void) fprintf( logFile, "\n");
             } 
             (void) fprintf( logFile, "\n");*/
 
             /* smooth with min function */ /* GPF_MAP */
             if (i_smooth > 0) {
-                for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
+                for (indx_r = 1;  indx_r < NEINT;  indx_r++) {
                     energy_smooth[indx_r] = 100000.;
-                    for (j = max(0, indx_r - i_smooth);  j < min(MAX_DIST, indx_r + i_smooth);  j++) {
+                    for (j = max(0, indx_r - i_smooth);  j < min(NEINT, indx_r + i_smooth);  j++) {
+                      if (ET)
                       energy_smooth[indx_r] = min(energy_smooth[indx_r], energy_lookup[i][j][ia]);
+                      else
+                      energy_smooth[indx_r] = min(energy_smooth[indx_r], et.e_vdW_Hb[j][i][ia]);
                     }
                 }
-                for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
-                    energy_lookup[i][indx_r][ia] = energy_smooth[indx_r];
+                for (indx_r = 1;  indx_r < NEINT;  indx_r++) {
+                    energy_lookup[i][indx_r][ia] = energy_smooth[indx_r]; //@@!
+                    et.e_vdW_Hb[indx_r][i][ia] = energy_smooth[indx_r];
                 }
             } /* endif smoothing */
         } /* end regular autogrid potential */
@@ -1735,11 +1767,33 @@ for (ia=0; ia<num_atom_maps; ia++){
             (void) fprintf( logFile, " ________");
         } /* iat */
         (void) fprintf( logFile, "\n");
-        for (j = 0;  j <= 500;  j += 10) {
+        for (j = 0;  j <= min(500,NEINT);  j += 10) {
             (void) fprintf( logFile, "%4.1lf", angstrom(j));
             for (iat = 0;  iat < receptor_types_ct;  iat++) {
+		if(ET)
                 (void) fprintf( logFile, (energy_lookup[iat][j][ia]<100000.)?"%9.2lf":"%9.2lg", energy_lookup[iat][j][ia]);
-            } /* iat */
+		else
+                (void) fprintf( logFile, (et.e_vdW_Hb[j][iat][ia]<100000.)?"%9.2lf":"%9.2lg", et.e_vdW_Hb[j][iat][ia]);
+		} /* iat */
+            (void) fprintf( logFile, "\n");
+        } /* j */
+        (void) fprintf( logFile, "\n");
+        (void) fprintf( logFile, "\n\nEnergyTable:\n");
+        (void) fprintf( logFile, "Finding the lowest pairwise interaction energy within %.1f Angstrom (\"smoothing\").\n\n  r ", r_smooth);
+        for (iat = 0;  iat < receptor_types_ct;  iat++) {
+            (void) fprintf( logFile, "    %s    ", receptor_types[iat]);
+            /*(void) fprintf( logFile, "    %c    ", receptor_atom_type_string[iat]);*/
+        } /* iat */
+        (void) fprintf( logFile, "\n ___");
+        for (iat = 0;  iat < receptor_types_ct;  iat++) {
+            (void) fprintf( logFile, " ________");
+        } /* iat */
+        (void) fprintf( logFile, "\n");
+        for (j = 0;  j <= min(500,NEINT);  j += 10) {
+            (void) fprintf( logFile, "%4.1lf", angstrom(j));
+            for (iat = 0;  iat < receptor_types_ct;  iat++) {
+                (void) fprintf( logFile, (et.e_vdW_Hb[j][iat][ia]<100000.)?"%9.2lf":"%9.2lg", et.e_vdW_Hb[j][iat][ia]);
+		} /* iat */
             (void) fprintf( logFile, "\n");
         } /* j */
         (void) fprintf( logFile, "\n");
@@ -1748,15 +1802,15 @@ for (ia=0; ia<num_atom_maps; ia++){
         (void) fprintf( logFile, "\nAny internal non-bonded parameters will be ignored for this map, since this is a covalent map.\n");
     } /*end of else parsing intnbp*/
 } /*end of loop over all the maps*/
+
 /* exponential function for receptor and ligand desolvation */
-/* note: the solvation term will not be smoothed */
-sigma = 3.6;
-minus_inv_two_sigma_sqd = -1. / (2. * sigma * sigma);
+/* note: the solvation term ranges beyond the non-bond cutoff 
+ * and will not be smoothed 
+ */
+double sigma = 3.6;
 for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
      r  = angstrom(indx_r);
-     /* sol_fn[indx_r] = exp(-sq(r)/(2.*sigma*sigma)); */
-     sol_fn[indx_r] = exp( sq(r) * minus_inv_two_sigma_sqd);
-     sol_fn[indx_r] *= AD4.coeff_desolv;
+     et.sol_fn[indx_r] = AD4.coeff_desolv * exp(-sq(r)/(2.*sq(sigma)));
 }
 
 /**************************************************
@@ -2318,8 +2372,9 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 for (i = 0;  i < XYZ;  i++) {
                     d[i] *= inv_r;
                 }
-                /*make sure lookup index is in the table*/
+                /* make sure both lookup indices are in the tables */
                 indx_r = min(lookup(r), MD_1);
+		int indx_n = min(indx_r, NEINT-1);
 
                 if (floating_grid) {
                     /* Calculate the so-called "Floating Grid"... */
@@ -2331,9 +2386,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 if (not use_vina_potential) { 
                 if (dddiel) {
                     /* Distance-dependent dielectric... */
-                    /*gridmap[elecPE].energy += charge[ia] * inv_r * epsilon[indx_r];*/
+                    /*gridmap[elecPE].energy += charge[ia] * inv_r * et.r_epsilon_fn[indx_r];*/
                     /*apply the estat forcefield coefficient/weight here */
+		    if(ET)
                     gridmap[elecPE].energy += charge[ia] * inv_rmax * epsilon[indx_r] * AD4.coeff_estat;
+		    else
+                    gridmap[elecPE].energy += charge[ia] * inv_rmax * et.r_epsilon_fn[indx_r] * AD4.coeff_estat;
                 } else {
                     /* Constant dielectric... */
                     /*gridmap[elecPE].energy += charge[ia] * inv_r * invdielcal;*/
@@ -2346,7 +2404,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                  *   add nothing to the grid-point's non-bond energy;
                  *   just continue to next atom...
                  */
-                if ( r > NBCUTOFF ) {
+                if ( r > NBC) {
                     continue; /* onto the next atom... */
                 }
                 if ((atom_type[ia] == hydrogen) && (disorder[ia] == TRUE)) {
@@ -2571,52 +2629,75 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                         if ((not use_vina_potential) && (gridmap[map_index].is_hbonder == TRUE)) {
                             /*  current map_index PROBE forms H-bonds... */
                             /* rsph ramps in angular dependence for distances with negative energy */
-                            rsph = energy_lookup[atom_type[ia]][indx_r][map_index]/100.;
+                            if(ET)
+                            rsph = energy_lookup[atom_type[ia]][indx_n][map_index]/100.;
+                            else
+                            rsph = et.e_vdW_Hb[indx_n][atom_type[ia]][map_index]/100.;
                             rsph = max(rsph, 0.);
                             rsph = min(rsph, 1.);
                             if ((gridmap[map_index].hbond==3||gridmap[map_index].hbond==5) /*AS or A2*/
                                       &&(hbond[ia]==1||hbond[ia]==2)){/*DS or D1*/
                                   /* PROBE can be an H-BOND ACCEPTOR, */
                                 if (disorder[ia] == FALSE ) {
-                                    gridmap[map_index].energy += energy_lookup[atom_type[ia]][indx_r][map_index] * Hramp * (racc + (1. - racc)*rsph);
-
+                                    if (ET)
+                                    gridmap[map_index].energy += energy_lookup[atom_type[ia]][indx_n][map_index] * Hramp * (racc + (1. - racc)*rsph);
+                                    else
+                                    gridmap[map_index].energy += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * Hramp * (racc + (1. - racc)*rsph);
                                 } else {
-                                    gridmap[map_index].energy += energy_lookup[hydrogen][max(0, indx_r - 110)][map_index] * Hramp * (racc + (1. - racc)*rsph);
+                                    if (ET)
+                                    gridmap[map_index].energy += energy_lookup[hydrogen][max(0, indx_n - 110)][map_index] * Hramp * (racc + (1. - racc)*rsph);
+                                    else
+                                    gridmap[map_index].energy += et.e_vdW_Hb[max(0, indx_n - 110)][hydrogen][map_index] * Hramp * (racc + (1. - racc)*rsph);
 
                                 }
                             } else if ((gridmap[map_index].hbond==4) /*A1*/
                                              &&(hbond[ia]==1||hbond[ia]==2)) { /*DS,D1*/
-                                hbondmin[map_index] = min( hbondmin[map_index],energy_lookup[atom_type[ia]][indx_r][map_index] * (racc+(1.-racc)*rsph));
-                                hbondmax[map_index] = max( hbondmax[map_index],energy_lookup[atom_type[ia]][indx_r][map_index] * (racc+(1.-racc)*rsph));
+                                if (ET)
+                                hbondmin[map_index] = min( hbondmin[map_index],energy_lookup[atom_type[ia]][indx_n][map_index] * (racc+(1.-racc)*rsph));
+                                else
+                                hbondmin[map_index] = min( hbondmin[map_index],et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (racc+(1.-racc)*rsph));
+                                if (ET)
+                                hbondmax[map_index] = max( hbondmax[map_index],energy_lookup[atom_type[ia]][indx_n][map_index] * (racc+(1.-racc)*rsph));
+                                else
+                                hbondmax[map_index] = max( hbondmax[map_index],et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (racc+(1.-racc)*rsph));
                                 hbondflag[map_index] = TRUE;
-                            } else if ((gridmap[map_index].hbond==1||gridmap[map_index].hbond==2)                                       && (hbond[ia]>2)){/*DS,D1 vs AS,A1,A2*/
+                            } else if ((gridmap[map_index].hbond==1||gridmap[map_index].hbond==2)&& (hbond[ia]>2)){/*DS,D1 vs AS,A1,A2*/
 
                                 /*  PROBE is H-BOND DONOR, */
-                                temp_hbond_enrg = energy_lookup[atom_type[ia]][indx_r][map_index] * (rdon + (1. - rdon)*rsph);
+                                if (ET)
+                                temp_hbond_enrg = energy_lookup[atom_type[ia]][indx_n][map_index] * (rdon + (1. - rdon)*rsph);
+                                else
+                                temp_hbond_enrg = et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (rdon + (1. - rdon)*rsph);
                                 hbondmin[map_index] = min( hbondmin[map_index], temp_hbond_enrg);
                                 hbondmax[map_index] = max( hbondmax[map_index], temp_hbond_enrg);
                                 hbondflag[map_index] = TRUE;
                             } else {
                                 /*  hbonder PROBE-ia cannot form a H-bond..., */
-                                gridmap[map_index].energy += energy_lookup[atom_type[ia]][indx_r][map_index];
+                                if (ET)
+                                gridmap[map_index].energy += energy_lookup[atom_type[ia]][indx_n][map_index];
+                                else
+                                gridmap[map_index].energy += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index];
                             }
                         } else { /*end of is_hbonder*/
                             /*  PROBE does not form H-bonds..., */
-                            gridmap[map_index].energy += energy_lookup[atom_type[ia]][indx_r][map_index];
+                            if (ET)
+                            gridmap[map_index].energy += energy_lookup[atom_type[ia]][indx_n][map_index];
+                            else
+                            gridmap[map_index].energy += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index];
                         }/* end hbonder tests */
 
                         if (not use_vina_potential){
 
                         /* add desolvation energy  */
                         /* forcefield desolv coefficient/weight in sol_fn*/
-                        gridmap[map_index].energy += gridmap[map_index].solpar_probe * vol[ia]*sol_fn[indx_r] + 
-                                        (solpar[ia]+solpar_q*fabs(charge[ia]))*gridmap[map_index].vol_probe*sol_fn[indx_r];
+                        gridmap[map_index].energy += gridmap[map_index].solpar_probe * vol[ia]*et.sol_fn[indx_r] + 
+                                        (solpar[ia]+solpar_q*fabs(charge[ia]))*gridmap[map_index].vol_probe*et.sol_fn[indx_r];
                        }
                     } /* is not covalent */
                 }/* end of loop over all map_index values */
 
                 if (not use_vina_potential){
-                gridmap[dsolvPE].energy += solpar_q * vol[ia] * sol_fn[indx_r];
+                gridmap[dsolvPE].energy += solpar_q * vol[ia] * et.sol_fn[indx_r];
                 }
             }/* ia loop, over all receptor atoms... */
 
