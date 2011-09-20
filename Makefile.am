@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.21 2009/09/09 23:02:11 rhuey Exp $
+# $Id: Makefile.am,v 1.22 2011/09/20 16:14:10 rhuey Exp $
 # 
 # AutoGrid 
 # 
@@ -52,6 +52,8 @@ autogrid4_SOURCES = main.cpp \
        read_parameter_library.cpp \
        parse_param_line.cpp \
        distdepdiel.cpp \
+       calc_vina_potential.cpp \
+       init_gridmap.cpp \
             atom_parameter_manager.h \
             autoglobal.h \
             autogrid.h \
@@ -75,7 +77,9 @@ autogrid4_SOURCES = main.cpp \
             timesyshms.h \
             typedefs.h \
             util.h \
-            version.h
+            calc_vina_potential.h \
+            gridmap.h \
+            version.h 
 
 
 # Define the AutoGrid 4 source code files:
@@ -89,8 +93,9 @@ CLEANFILES = default_parameters.h
 
 AM_CFLAGS = -Wall -O3 # All warnings, Agressive optimization
 
-AM_CPPFLAGS = -Wall -O3 -I$(srcdir)/../autodock # All warnings, Agressive optimization
+AM_CPPFLAGS = -Wall -O3 -I $(srcdir) -I$(srcdir)/../autodock # All warnings, Agressive optimization
 AM_CPPFLAGS += -Wno-write-strings # increase compatibility with pre 4.x compilers for string handling
+AM_CPPFLAGS += -DUSE_8A_NBCUTOFF
 
 # autogrid4_CXXFLAGS = -Wall -O3 -ftree-vectorize # All warnings, Agressive optimization, GCC vectorization in Mac OS X
 
