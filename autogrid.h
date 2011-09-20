@@ -1,6 +1,6 @@
 /*
 
- $Id: autogrid.h,v 1.18 2011/09/13 17:17:15 rhuey Exp $
+ $Id: autogrid.h,v 1.19 2011/09/20 16:08:45 rhuey Exp $
 
  AutoGrid 
 
@@ -63,10 +63,6 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #define CYLINDRICAL 	1
 #define SPHERICAL 	2
 
-#define A_DIVISOR    100     /* Angstrom is divided by this in look-up table. */
-
-#define	NBCUTOFF     8.      /* non-bond cutoff = 8 Angstroms.                */
-
 #define PRECISION 0.0001 /* fabs(Energies) less than this will be written as '0.' */
 
 /*----------------------------------------------------------------------------*/
@@ -85,8 +81,8 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
 #define max(x,y)            ( ((x) > (y)) ? (x) : (y) )
 #define min(x,y)            ( ((x) < (y)) ? (x) : (y) )
-#define angstrom(i)         ( ( (double) (i) ) / A_DIVISOR )
-#define lookup(r)           ( (int) ( (r) * A_DIVISOR ) )
+#define angstrom(i)         ( ( (double) (i) ) * INV_A_DIV )
+#define lookup(r)           ( (int) ( (r) * A_DIV ) )
 
 /*----------------------------------------------------------------------------*/
 /* Prototypes,                                                                */
