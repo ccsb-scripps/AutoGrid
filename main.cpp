@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.84 2011/09/20 16:22:48 rhuey Exp $
+ $Id: main.cpp,v 1.85 2011/09/20 17:59:11 rhuey Exp $
 
  AutoGrid 
 
@@ -553,7 +553,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.84 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.85 $\n\n\n");
 (void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
                             NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
 
@@ -995,11 +995,11 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         dsolvPE = elecPE + 1;
 
         /* num_maps is the number of maps to be created:
-         * the number of ligand atom types, plus 1 for the electrostatic map.
+         * the number of ligand atom types, plus 1 for the electrostatic map plus 1 for the desolvation map.
          * AutoDock can only read in MAX_MAPS maps, which must include
-         * the ligand atom maps and electrostatic map */
-       num_maps = num_atom_maps;
-       if ( not use_vina_potential) num_maps = num_atom_maps + 2;
+         * the ligand atom maps and electrostatic map and the desolvation map*/
+       num_maps = num_atom_maps + 2;
+       if ( use_vina_potential) num_maps = num_atom_maps;
 
         /* Check to see if there is enough memory to store these map objects */
         gridmap = (MapObject *)malloc(sizeof(MapObject) * num_maps);
@@ -2265,7 +2265,9 @@ for (k = 0;  k < num_atom_maps + 1;  k++) {
  * specified in its parameter file...
  *____________________________________________________________________________*/
 /*change num_atom_maps +1 to num_atom_maps + 2 for new dsolvPE map*/
-for (k = 0;  k < num_atom_maps+2;  k++) {
+//for (k = 0;  k < num_atom_maps+2;  k++) {
+for (k = 0;  k < num_maps;  k++) {
+    (void) fprintf( logFile, "\nWriting header to %dth grid\n\n", k);
     (void) fprintf( gridmap[k].map_fileptr, "GRID_PARAMETER_FILE %s\n", grid_param_fn );
     (void) fprintf( gridmap[k].map_fileptr, "GRID_DATA_FILE %s\n", AVS_fld_filename);
     (void) fprintf( gridmap[k].map_fileptr, "MACROMOLECULE %s\n", receptor_filename);
@@ -2305,7 +2307,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
         for (icoord[X] = -ne[X]; icoord[X] <= ne[X]; icoord[X]++) {
             c[X] = ((double)icoord[X]) * spacing;
 
-            for (j = 0;  j < num_atom_maps + 2;  j++) {
+            //for (j = 0;  j < num_atom_maps + 2;  j++) {
+            for (j = 0;  j < num_maps ;  j++) {
                 if (gridmap[j].is_covalent == TRUE) {
                     /* Calculate the distance from the current
                      * grid point, c, to the covalent attachment point, covpos */
@@ -2720,7 +2723,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
              *
              */
             /*2 includes new dsolvPE*/
-            for (k = 0;  k < num_atom_maps+2;  k++) {
+            //for (k = 0;  k < num_atom_maps+2;  k++) {
+            for (k = 0;  k < num_maps;  k++) {
                 if (!problem_wrt) {
                     if (fabs(gridmap[k].energy) < PRECISION) {
                         fprintf_retval = fprintf(gridmap[k].map_fileptr, "0.\n");
@@ -2775,16 +2779,18 @@ for (i = 0;  i < num_atom_maps;  i++) {
     (void) fprintf( logFile, " %d\t %s\t  %6.2lf\t%9.2le\n", i + 1, gridmap[i].type, gridmap[i].energy_min, gridmap[i].energy_max);
 }
 
+if (not use_vina_potential){
 (void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%9.2le\tElectrostatic Potential\n", num_atom_maps + 1, 'e', gridmap[elecPE].energy_min, gridmap[i].energy_max);
 
 (void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%9.2le\tDesolvation Potential\n", num_atom_maps + 2, 'd', gridmap[dsolvPE].energy_min, gridmap[i+1].energy_max);
 (void) fprintf( logFile, "\n\n * Note:  Every pairwise-atomic interaction was clamped at %.2f\n\n", EINTCLAMP);
-
+}
 /*
  * Close all files, ************************************************************
  */
 
-for (i = 0;  i < num_atom_maps+2;  i++) {
+//for (i = 0;  i < num_atom_maps+2;  i++) {
+for (i = 0;  i < num_maps;  i++) {
     (void) fclose( gridmap[i].map_fileptr);
 }
 if (floating_grid) {
