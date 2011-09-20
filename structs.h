@@ -1,6 +1,6 @@
 /*
 
- $Id: structs.h,v 1.7 2009/05/08 23:17:35 rhuey Exp $
+ $Id: structs.h,v 1.8 2011/09/20 16:16:04 rhuey Exp $
 
  AutoGrid 
 
@@ -29,6 +29,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
 #include "constants.h"
 #include "typedefs.h"
+#include "autogrid.h"  // for NUM_RECEPTOR_TYPES
 
 /* *****************************************************************************
  *      Name: structs.h                                                       *
@@ -238,8 +239,10 @@ typedef struct linear_FE_model
 
 typedef struct energy_tables
 {
-    Real e_vdW_Hb[NEINT][MAX_ATOM_TYPES][MAX_ATOM_TYPES];  // vdW & Hb energies
-    Real sol_fn[NEINT];                            // distance-dependent desolvation function
+// static double energy_lookup[NUM_RECEPTOR_TYPES][MAX_DIST][MAX_MAPS];//@@ rm
+    //Real e_vdW_Hb[NDIEL][MAX_ATOM_TYPES][MAX_ATOM_TYPES];  // vdW & Hb energies
+    Real e_vdW_Hb[NDIEL][NUM_RECEPTOR_TYPES][MAX_MAPS];  // vdW & Hb energies
+    Real sol_fn[NDIEL];                            // distance-dependent desolvation function
     Real epsilon_fn[NDIEL];                        // distance-dependent dielectric function
     Real r_epsilon_fn[NDIEL];                      // r * distance-dependent dielectric function
 } EnergyTables;
