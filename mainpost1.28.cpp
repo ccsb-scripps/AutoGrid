@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.85 2011/09/20 17:59:11 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.86 2011/09/21 17:49:47 rhuey Exp $
 
  AutoGrid 
 
@@ -553,7 +553,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.85 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.86 $\n\n\n");
 (void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
                             NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
 
@@ -1612,8 +1612,8 @@ for (ia=0; ia<num_atom_maps; ia++){
                 /* loop over distance index, indx_r, from 0 to NEINT (scaled NBC non-bond cutoff) */ /* GPF_MAP */
 #ifdef DEBUG
                 printf("%d-%d-building  Rij=%6.3lf, map_Rij=%10.8f for %s %s\n",ia,i, Rij, map_Rij, gridmap[ia].type, ligand_types[ia]);
-#endif
                 (void) fprintf( logFile, "Calculating vina energies for %s-%s interactions (%d, %d).\n", gridmap[ia].type, receptor_types[i], ia, i );
+#endif
                 for (indx_r = 1;  indx_r < NEINT;  indx_r++) {
                     r  = angstrom(indx_r);
                     // compute rddist:                                   map_Rij  rddist   Rij
@@ -1689,12 +1689,9 @@ for (ia=0; ia<num_atom_maps; ia++){
             (void) fprintf( logFile, "                r               r \n\n");
             /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
             (void) fprintf( logFile, "Calculating energies for %s-%s interactions.\n", gridmap[ia].type, receptor_types[i] );
-            (void) printf( "Calculating energies for %s-%s interactions.\n", gridmap[ia].type, receptor_types[i] );
 
 	    // do only up to non-bond cutoff distance
             for (indx_r = 1;  indx_r < NEINT;  indx_r++) {
-		if(indx_r==1) printf("sizeof energy_lookup=%d sizeof et.e_vdW_Hb=%d\n", 
-		sizeof energy_lookup[0][0][0], sizeof et.e_vdW_Hb[0][0][0]);
                 r  = angstrom(indx_r);
                 rA = pow( r, dxA);
                 rB = pow( r, dxB);
