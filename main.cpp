@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.86 2011/09/21 17:49:47 rhuey Exp $
+ $Id: main.cpp,v 1.87 2011/09/23 23:55:59 rhuey Exp $
 
  AutoGrid 
 
@@ -553,7 +553,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.86 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.87 $\n\n\n");
 (void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
                             NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
 
@@ -585,7 +585,7 @@ if (gethostname( host_name, MAX_CHARS ) == 0) {
 //
 // Read in default parameters
 //
-setup_parameter_library(outlev, "default Unbound_Same_As_Bound", Unbound_Same_As_Bound );
+setup_parameter_library(logFile, outlev, "default Unbound_Same_As_Bound", Unbound_Same_As_Bound );
 
 
 /******************************************************************************/
@@ -1408,7 +1408,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
         parameter_library_found = sscanf( GPF_line, "%*s %s ", FN_parameter_library);
 
-        read_parameter_library(FN_parameter_library, outlev);
+        read_parameter_library(logFile, outlev, FN_parameter_library);
 
         break;
 
