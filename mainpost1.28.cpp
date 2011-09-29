@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.87 2011/09/23 23:55:59 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.88 2011/09/29 18:42:42 rhuey Exp $
 
  AutoGrid 
 
@@ -152,7 +152,7 @@ static int get_rec_index(const char key[]);
 // to support use_vina_potential
 static int get_map_index(const char key[]);
 
-#define ET 1 //useful switch mp+rh   1 for "energy_table",  0 for "et"
+#define ET 0 //useful switch mp+rh   1 for "energy_table",  0 for "et"
 int main( int argc,  char **argv )
 
 /******************************************************************************/
@@ -553,7 +553,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.87 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.88 $\n\n\n");
 (void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
                             NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
 
@@ -999,11 +999,11 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
          * AutoDock can only read in MAX_MAPS maps, which must include
          * the ligand atom maps and electrostatic map and the desolvation map*/
        num_maps = num_atom_maps + 2;
-       if ( use_vina_potential) num_maps = num_atom_maps;
-
+      
         /* Check to see if there is enough memory to store these map objects */
         gridmap = (MapObject *)malloc(sizeof(MapObject) * num_maps);
 
+        if ( use_vina_potential) num_maps = num_atom_maps;
         if ( gridmap == NULL ) {
             print_error( logFile, ERROR, "Could not allocate memory to create the MapObject \"gridmap\".\n" );
             print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );//exits with FATAL_ERROR return code
@@ -2264,7 +2264,6 @@ for (k = 0;  k < num_atom_maps + 1;  k++) {
 /*change num_atom_maps +1 to num_atom_maps + 2 for new dsolvPE map*/
 //for (k = 0;  k < num_atom_maps+2;  k++) {
 for (k = 0;  k < num_maps;  k++) {
-    (void) fprintf( logFile, "\nWriting header to %dth grid\n\n", k);
     (void) fprintf( gridmap[k].map_fileptr, "GRID_PARAMETER_FILE %s\n", grid_param_fn );
     (void) fprintf( gridmap[k].map_fileptr, "GRID_DATA_FILE %s\n", AVS_fld_filename);
     (void) fprintf( gridmap[k].map_fileptr, "MACROMOLECULE %s\n", receptor_filename);
