@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.22 2011/09/20 16:14:10 rhuey Exp $
+# $Id: Makefile.am,v 1.23 2012/02/02 23:18:30 rhuey Exp $
 # 
 # AutoGrid 
 # 
@@ -53,7 +53,6 @@ autogrid4_SOURCES = main.cpp \
        parse_param_line.cpp \
        distdepdiel.cpp \
        calc_vina_potential.cpp \
-       init_gridmap.cpp \
             atom_parameter_manager.h \
             autoglobal.h \
             autogrid.h \
@@ -71,7 +70,6 @@ autogrid4_SOURCES = main.cpp \
             prototypes.h \
             ranlib.h \
             read_parameter_library.h \
-            structs.h \
             times.h \
             timesys.h \
             timesyshms.h \
