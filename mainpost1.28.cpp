@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.88 2011/09/29 18:42:42 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.89 2012/02/15 16:11:38 rhuey Exp $
 
  AutoGrid 
 
@@ -376,7 +376,7 @@ double rB; /* double e; */
 double rcov = 0.0; /* Distance from current grid point to the covalent attachment point */
 double ri, inv_rd, rd2, r; /* re, r2, rd, */
 double r_min = BIG, inv_r, inv_rmax, racc, rdon, rsph, cos_theta, theta, tmp;
-double r_smooth = 0.;
+double r_smooth = 0.5; //NEW ON BY DEFAULT Feb2012
 double rdot;
 double Rij, epsij;
 double spacing = 0.375; /* One quarter of a C-C bond length. */
@@ -553,7 +553,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.88 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.89 $\n\n\n");
 (void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
                             NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
 
@@ -1333,7 +1333,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         (void) sscanf( GPF_line, "%*s %lf", &r_smooth);
         (void) fprintf( logFile, "\nPotentials will be smoothed by: %.3lf Angstrom\n\n", r_smooth);
         /* Angstrom is divided by A_DIV in look-up table. */
-        /* Typical value of r_smooth is 0.5 Angstroms */
+        /* Typical value of r_smooth is 0.5 Angstroms @@NOW THE DEFAULT Feb2012 */
         /* so i_smooth = 0.5 * 100. / 2 = 25 */
         i_smooth = (int) (r_smooth*A_DIV/2.);
         break;
@@ -2530,12 +2530,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     }
                     if (t0 > 1.) {
                         t0 = 1.;
-                        (void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", t0);
-                        print_error( logFile, WARNING, message );
+                        /*(void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", t0);
+                        print_error( logFile, WARNING, message );Feb2012*/ 
                     } else if (t0 < -1.) {
                         t0 = -1.;
-                        (void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", t0);
-                        print_error( logFile, WARNING, message );
+                        /*(void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", t0);
+                        print_error( logFile, WARNING, message );Feb2012*/
                     }
                     t0 = PI_halved - acos(t0);
                     /*
@@ -2567,12 +2567,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     if (cos_theta >= 0.) {
                         if (ti > 1.) {
                             ti = 1.;
-                            (void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", ti);
-                            print_error( logFile, WARNING, message );
+                            /*(void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", ti);
+                            print_error( logFile, WARNING, message );Feb2012*/
                         } else if (ti < -1.) {
                             ti = -1.;
-                            (void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", ti);
-                            print_error( logFile, WARNING, message );
+                            /*(void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", ti);
+                            print_error( logFile, WARNING, message );Feb2012*/
                         }
                         ti = acos(ti) - PI_halved;
                         if (ti < 0.) {
@@ -2593,12 +2593,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     }
                     if (cos_theta > 1.) {
                         cos_theta = 1.;
-                        (void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", cos_theta);
-                        print_error( logFile, WARNING, message );
+                        /*(void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", cos_theta);
+                        print_error( logFile, WARNING, message );Feb2012*/
                     } else if (cos_theta < -1.) {
                         cos_theta = -1.;
-                        (void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", cos_theta);
-                        print_error( logFile, WARNING, message );
+                        /*(void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", cos_theta);
+                        print_error( logFile, WARNING, message );Feb2012*/
                     }
                     theta = acos(cos_theta);
                     racc = 0.;
