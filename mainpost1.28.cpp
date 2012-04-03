@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.89 2012/02/15 16:11:38 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.90 2012/04/03 21:14:23 rhuey Exp $
 
  AutoGrid 
 
@@ -553,7 +553,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.89 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.90 $\n\n\n");
 (void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
                             NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
 
@@ -1649,8 +1649,8 @@ for (ia=0; ia<num_atom_maps; ia++){
                     //@@TODO: add support for these other hydrophobic interactions:
                     //if (((i==carbon)||(i==arom_carbon)||(i==fluorine)||(i==chlorine)||(i==bromine)||(i==iodine))
                     //&& ((ia==carbon)||(ia==arom_carbon)||(ia==fluorine)||(ia==chlorine)||(ia==bromine)||(ia==iodine))) 
-                    if (((i==carbon)||(i==arom_carbon)) && ((ia==carbon)||(ia==arom_carbon)))
-                     {
+                    //if (((i==carbon)||(i==arom_carbon)) && ((ia==carbon)||(ia==arom_carbon)))
+                    if ((gridmap[ia].hbonder[i]==0)&&(gridmap[i].hbonder[ia]==0)) { //4-3-12:hydrophobic update
                         delta_e = 0.;
                         if (rddist<0.5) {
                            delta_e = 1*wt_hydrophobic;
