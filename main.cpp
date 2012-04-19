@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.90 2012/04/03 21:14:23 rhuey Exp $
+ $Id: main.cpp,v 1.91 2012/04/19 17:21:29 rhuey Exp $
 
  AutoGrid 
 
@@ -553,7 +553,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.90 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.91 $\n\n\n");
 (void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
                             NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
 
@@ -688,7 +688,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 (void) sscanf(&line[77], "%s", thisparm.autogrid_type);
                 found_parm = apm_find(thisparm.autogrid_type);
                 if ( found_parm != NULL ) {
-                    (void) fprintf ( logFile, "DEBUG: found_parm->rec_index = %d", found_parm->rec_index );
+                    (void) fprintf ( logFile, "DEBUG: found_parm->rec_index = %d, ->xs_radius= %f", found_parm->rec_index, found_parm->xs_radius);
                     if ( found_parm->rec_index < 0 ) {
                         strcpy( receptor_types[ receptor_types_ct ], found_parm->autogrid_type );
                         found_parm->rec_index = receptor_types_ct++;
@@ -1463,7 +1463,6 @@ if ( ! floating_grid ) {
     (void) fprintf( logFile, "\n\nNo Floating Grid was requested.\n");
 }
 
-if (not use_vina_potential)  {  
 (void) fprintf( AVS_fld_fileptr, "# AVS field file\n#\n");
 (void) fprintf( AVS_fld_fileptr, "# AutoDock Atomic Affinity and Electrostatic Grids\n#\n");
 (void) fprintf( AVS_fld_fileptr, "# Created by %s.\n#\n", programname);
@@ -1501,7 +1500,6 @@ if (floating_grid) {
     (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_maps, floating_grid_filename);
 }
 (void) fclose( AVS_fld_fileptr);
-}
 
 #ifdef BOINCCOMPOUND
  boinc_fraction_done(0.1);
