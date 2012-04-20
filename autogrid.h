@@ -1,6 +1,6 @@
 /*
 
- $Id: autogrid.h,v 1.19 2011/09/20 16:08:45 rhuey Exp $
+ $Id: autogrid.h,v 1.20 2012/04/20 03:28:28 mp Exp $
 
  AutoGrid 
 
@@ -72,10 +72,12 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #define sq(a)               ( (a) * (a) )
 /* #define hypotenuse(x,y,z)   ( sqrt( (x)*(x) + (y)*(y) + (z)*(z) )  ) */
 #define sq_hyp(x,y,z)       ( (x)*(x) + (y)*(y) + (z)*(z) )
-// we do not want to have a redefinition of the following macro max,min
+// we do not want to have a redefinition of the following macro max,min (_WIN32)
 
-#ifdef _WIN32
+#ifdef min
 #undef min
+#endif
+#ifdef max
 #undef max
 #endif
 
@@ -110,7 +112,7 @@ FILE *ad_fopen(const char *path, const char *mode);
 #define INFORMATION 1
 #define SUGGESTION 2
 
-void print_error( FILE *fileptr, int error_level, char message[LINE_LEN] );
+void print_error( FILE *fileptr, int error_level, char *message);
 
 /*----------------------------------------------------------------------------*/
 /* EOF.                                                                       */

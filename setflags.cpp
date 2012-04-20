@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.14 2011/06/13 21:11:24 rhuey Exp $
+ $Id: setflags.cpp,v 1.15 2012/04/20 03:28:28 mp Exp $
 
  AutoGrid 
 
@@ -39,7 +39,7 @@ extern int  debug;
 
 /*----------------------------------------------------------------------------*/
 
-int setflags( int argc, char **argv )
+int setflags( int argc, char **argv, char *version )
 
 /*----------------------------------------------------------------------------*/
 
@@ -52,7 +52,7 @@ int setflags( int argc, char **argv )
 /*            (Adapted from code supplied by Bruce Duncan, TSRI.)             */
 /*      Date: 06/11/92                                                        */
 /*----------------------------------------------------------------------------*/
-/*    Inputs: argc,argv                                                       */
+/*    Inputs: argc,argv,version                                               */
 /*   Returns: argindex                                                        */
 /*   Globals: *GPF;                                                           */
 /*            *logFile;                                                       */
@@ -132,7 +132,7 @@ int setflags( int argc, char **argv )
             argindex++;
             break;
         case 'v':
-            fprintf(stdout, "AutoGrid %-8s\n", VERSION);
+            fprintf(stdout, "AutoGrid %-8s\n", version);
             fprintf(stdout, " Copyright (C) 2009 The Scripps Research Institute.\n");
 // GNU BEGIN   (see maintenance script update_license_de-GNU)
             fprintf(stdout, " License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>\n");

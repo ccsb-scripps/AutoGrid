@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.91 2012/04/19 17:21:29 rhuey Exp $
+ $Id: main.cpp,v 1.92 2012/04/20 03:28:28 mp Exp $
 
  AutoGrid 
 
@@ -24,15 +24,15 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  */
 
-#include <sys/types.h>
-#ifndef _WIN32
-#include <sys/times.h>
-#include <unistd.h> /* long sysconf(int name) */
 #include <sys/param.h>
-#else
-#include "times.h"
+#include <unistd.h> /* long sysconf(int name) */
+#include <sys/types.h>
+#include <ctype.h> /* tolower */
+#ifdef NOTNEEDED
+#ifdef _WIN32
 #include <Winsock2.h>
 #include "util.h"
+#endif
 #endif
 
 #include <math.h>
@@ -40,9 +40,11 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include <stdio.h>
 #include <search.h>
 #include <string.h>
-#include <stdlib.h>
 #include <time.h>
-#include <ctype.h> /* tolower */
+#include <stdlib.h>
+#ifndef HAVE_SYSCONF
+#include "mingw_sysconf.h" // for sysconf(_SC_CLK_TCK) and possibly gethostname
+#endif
 
 #include <stddef.h> 
 #include <ctype.h> 
@@ -63,6 +65,8 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include "autocomm.h"
 #include "distdepdiel.h"
 #include "read_parameter_library.h"
+#include "timesys.h"
+#include "timesyshms.h"
 
 extern float idct;
 extern Linear_FE_Model AD4;
@@ -76,35 +80,30 @@ extern Linear_FE_Model AD4;
 #endif
 
 
-// print_error() is used with error_level where:
-// error_level = one of the following:
-#define FATAL_ERROR -2
-#define ERROR -1
-#define WARNING  0
-#define INFORMATION 1
-#define SUGGESTION 2
+// print_error() is used with error_level where
+// error_level is defined in autogrid.h
 
-void print_error( FILE *fileptr, int error_level, char message[LINE_LEN] ) 
+void print_error( FILE *fileptr, int error_level, char *message) 
     // print an error or informational message to a file-pointer or
     // standard error
 {
     char output_message[LINE_LEN];
-    char tag[LINE_LEN];
+    char *tag;
 
     switch ( error_level ) {
         case ERROR:
         case FATAL_ERROR:
-            strcpy( tag, "ERROR" );
+            tag =  "ERROR";
             break;
         case WARNING:
-            strcpy( tag, "WARNING" );
+            tag =  "WARNING";
             break;
         default:
         case INFORMATION:
-            strcpy( tag, "INFORMATION" );
+            tag = "INFORMATION";
             break;
         case SUGGESTION:
-            strcpy( tag, "SUGGESTION" );
+            tag =  "SUGGESTION";
             break;
     }
 
@@ -284,17 +283,18 @@ char * receptor_atom_types[NUM_RECEPTOR_TYPES];
 
 
 /* AG_MAX_ATOMS */
-double charge[AG_MAX_ATOMS];
-double vol[AG_MAX_ATOMS];
-double solpar[AG_MAX_ATOMS];
+/* changed these from "double" to "static" to reduce stack usage - MPique 2012 */
+static double charge[AG_MAX_ATOMS];
+static double vol[AG_MAX_ATOMS];
+static double solpar[AG_MAX_ATOMS];
 /*integers are simpler!*/
-int atom_type[AG_MAX_ATOMS];
-hbond_type hbond[AG_MAX_ATOMS];
-int disorder[AG_MAX_ATOMS];
-int rexp[AG_MAX_ATOMS];
-double coord[AG_MAX_ATOMS][XYZ];
-double rvector[AG_MAX_ATOMS][XYZ];
-double rvector2[AG_MAX_ATOMS][XYZ];
+static int atom_type[AG_MAX_ATOMS];
+static hbond_type hbond[AG_MAX_ATOMS];
+static int disorder[AG_MAX_ATOMS];
+static int rexp[AG_MAX_ATOMS];
+static double coord[AG_MAX_ATOMS][XYZ];
+static double rvector[AG_MAX_ATOMS][XYZ];
+static double rvector2[AG_MAX_ATOMS][XYZ];
 
 /*canned receptor atom type number*/
 int hydrogen, carbon, arom_carbon, oxygen, nitrogen; 
@@ -386,10 +386,10 @@ double covhalfwidth = 1.0;
 double covbarrier = 1000.0;
 double cA, cB, tmpconst;
 
-#ifndef VERSION
+#ifndef PACKAGE_VERSION
 static char * version_num = "4.2.2";
 #else
-static char * version_num = VERSION;
+static char * version_num = PACKAGE_VERSION;
 #endif
 
 /*are these necessary??*/
@@ -491,18 +491,6 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
 /*
  * Fetch clock ticks per second.
  */
-#ifdef _WIN32
-if (clktck == 0) {
-    if ( (clktck = CLOCKS_PER_SEC) < 0) {
-        (void) fprintf( stderr, "\"CLOCKS_PER_SEC\" command failed in \"main.c\"\n");
-        (void) fprintf( logFile, "\"CLOCKS_PER_SEC\" command failed in \"main.c\"\n");
-        exit(-1);
-    } else {
-        idct = (float)1. / (float)clktck;
-    }
-}
-
-#else
 if (clktck == 0) {
     if ( (clktck = sysconf(_SC_CLK_TCK)) < 0) {
         (void) fprintf( stderr, "\"sysconf(_SC_CLK_TCK)\" command failed in \"main.c\"\n");
@@ -512,7 +500,6 @@ if (clktck == 0) {
         idct = 1. / (float)clktck;
     }
 }
-#endif
 
 ln_half = (double) log(0.5);
 
@@ -524,7 +511,7 @@ job_start = times( &tms_job_start);
 /*
  * Parse the command line...
  */
-(void) setflags( argc, argv);
+(void) setflags( argc, argv, version_num);
 
 for (i = 0;  i < XYZ;  i++) {
    icoord[i] = 0;
@@ -553,7 +540,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.91 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.92 $\n\n\n");
 (void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
                             NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
 
@@ -572,11 +559,11 @@ printf("       e_vdWHb has %8d entries of size %d\n", sizeof et.e_vdW_Hb/sizeof 
 printdate( logFile, 1);
 
 
-#ifndef _WIN32
-if (gethostname( host_name, MAX_CHARS ) == 0) {
-    (void) fprintf( logFile, "                   using:\t\t\t\"%s\"\n", host_name);
-}
+(void) strcpy(host_name, "unknown_host");
+#ifdef HAVE_GETHOSTNAME
+gethostname( host_name, sizeof host_name );
 #endif
+(void) fprintf( logFile, "                   using:\t\t\t\"%s\"\n", host_name);
 
 
 (void) fprintf( logFile, "\n\n");
@@ -672,6 +659,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
                 /* Read in this receptor atom's coordinates,partial charges, and
                  * solvation parameters in PDBQS format... */
+		// TODO this is unsafe way to read a PDB  !  MP 2012 
 
                 (void) sscanf(&line[30], "%lf", &coord[ia][X]);
                 (void) sscanf(&line[38], "%lf", &coord[ia][Y]);
@@ -2850,6 +2838,7 @@ void boinc_app_key_release(int wParam, int lParam){}
 
 /* Windows entry point WinMain() */
 
+#ifdef NOTNEEDED
 #ifdef _WIN32 
 
 /*******************************************************
@@ -2870,6 +2859,7 @@ int WINAPI WinMain(HINSTANCE hInst, HINSTANCE hPrevInst,
     return main(argc, argv);
 }
 
+#endif
 #endif
 
 

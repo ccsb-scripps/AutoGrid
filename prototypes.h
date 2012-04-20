@@ -1,6 +1,6 @@
 /*
 
- $Id: prototypes.h,v 1.10 2009/05/08 23:17:35 rhuey Exp $
+ $Id: prototypes.h,v 1.11 2012/04/20 03:28:28 mp Exp $
 
  AutoGrid 
 
@@ -24,17 +24,13 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
  */
 
-#ifndef _WIN32
-#include <sys/times.h>
-#endif
-
 #include <sys/types.h>
 #include <stdio.h>
 #include "parameters.h"
 
 
 void	banner( char * version_num );
-int	    setflags( int argc, char **argv );
+int	    setflags( int argc, char **argv, char * version_num );
 ParameterEntry * apm_find( const char key[] );
 void    apm_enter( const char key[], ParameterEntry value );
 int	    check_size( int nelements, char axischar );
@@ -45,7 +41,5 @@ void	prHMSfixed( float t );
 void	printdate( FILE *fp, int flag );
 void	printhms( float t );
 int	    strindex( char s[], char t[] );
-void	timesys( Clock duration, struct tms *start, struct tms *end );
-void	timesyshms( Clock duration, struct tms *start, struct tms *end );
 
 /* EOF */

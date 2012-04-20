@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.24 2012/03/16 00:06:45 rhuey Exp $
+# $Id: Makefile.am,v 1.25 2012/04/20 03:28:28 mp Exp $
 # 
 # AutoGrid 
 # 
@@ -52,6 +52,7 @@ autogrid4_SOURCES = main.cpp \
        read_parameter_library.cpp \
        parse_param_line.cpp \
        distdepdiel.cpp \
+       mingw_getrusage.cpp \
        calc_vina_potential.cpp \
        stop.cpp \
             atom_parameter_manager.h \
@@ -62,6 +63,8 @@ autogrid4_SOURCES = main.cpp \
             distdepdiel.h \
             gpftoken.h \
             grid.h \
+	    mingw_sysconf.h \
+	    mingw_sys_times.h \
             parameters.h \
             parm.h \
             parse_param_line.h \
