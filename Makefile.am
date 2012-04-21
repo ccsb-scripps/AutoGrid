@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.25 2012/04/20 03:28:28 mp Exp $
+# $Id: Makefile.am,v 1.26 2012/04/21 00:10:29 mp Exp $
 # 
 # AutoGrid 
 # 
@@ -133,12 +133,15 @@ test : autogrid4 $(srcdir)/Tests/test_autogrid4.py
 	outputdir=`pwd` ;\
 	umask 0 ;\
 	test -d $$outputdir/Tests || mkdir $$outputdir/Tests ;\
+	chmod a+w $$outputdir/Tests/*;\
 	cp $(srcdir)/Tests/*.py   $$outputdir/Tests;\
 	cp $(srcdir)/Tests/*.gpf  $$outputdir/Tests;\
 	cp $(srcdir)/Tests/*.dat  $$outputdir/Tests;\
 	cp $(srcdir)/Tests/*.pdbqt  $$outputdir/Tests;\
 	cp $(srcdir)/Tests/*.map*  $$outputdir/Tests;\
-	cd Tests ;  python ./test_autogrid4.py -d . -e ../autogrid4$(EXEEXT) -o .
+	chmod a+w $$outputdir/Tests/*;\
+	cd $$outputdir/Tests;\
+	python ./test_autogrid4.py -d . -e ../autogrid4$(EXEEXT) -o .
 #else
 #	@echo " "
 #	@echo "Python version 2.1 or higher needed for 'make test', but not found."
@@ -152,6 +155,7 @@ main.o : $(srcdir)/../autodock/autocomm.h
 default_parameters.h : $(srcdir)/../autodock/paramdat2h.csh  $(srcdir)/../autodock/AD4_parameters.dat $(srcdir)/../autodock/AD4.1_bound.dat
 	rm -f $@
 	csh $(srcdir)/../autodock/paramdat2h.csh $(srcdir)/../autodock/AD4_parameters.dat  $(srcdir)/../autodock/AD4.1_bound.dat > $@
+	cd $(srcdir) && sh copyfilesfromAD
 
 # 2007-04-30 MP & GMM: this line is necessary to be able to compile read_parameter_library.o
 read_parameter_library.o : default_parameters.h
