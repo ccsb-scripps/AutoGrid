@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #
-# $Id: test_autogrid4.py,v 1.13 2009/09/02 21:42:12 rhuey Exp $
+# $Id: test_autogrid4.py,v 1.14 2012/04/24 21:06:34 mp Exp $
 #
 """
 Test AutoGrid.
@@ -14,6 +14,7 @@ import os
 import types
 import unittest
 import getopt
+from subprocess import call
 from string import split, strip
 
 #______________________________________________________________________________
@@ -82,15 +83,18 @@ def run_AutoGrid( gpf_filename, glg_filename ):
     and standard error."""
     gpf = gpf_directory + os.sep + gpf_filename
     glg = test_output_directory + os.sep + glg_filename
-    command = "rm -f " + glg
+    command = "rm -f " + glg # NON PORTABLE
     print "calling ", command
     os.system( command )
-    command = "%s -p %s -l %s" % ( autogrid_executable, gpf, glg )
+    commandstr = "%s -p %s -l %s" % ( autogrid_executable, gpf, glg )
+    command = [ autogrid_executable, '-p', gpf, '-l', glg )
     print '\nRunning ' + autogrid_executable + ' using GPF "'+gpf+'", saving results in "'+glg+'":'
     try:
-        ( i, o, e ) = os.popen3( command ) # trap all the outputs
-        os.wait() # for the child process to finish
+        #( i, o, e ) = os.popen3( command ) # trap all the outputs
+        #os.wait() # for the child process to finish
         #return True
+	rc = subprocess.call( command )
+	print 'autogrid returned ', rc  # DEBUG
         return find_success_in_GLG(glg_filename)
     except:
         print "\nUnable to run " + autogrid_executable + "."
