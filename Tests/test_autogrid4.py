@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #
-# $Id: test_autogrid4.py,v 1.14 2012/04/24 21:06:34 mp Exp $
+# $Id: test_autogrid4.py,v 1.15 2012/04/24 21:46:19 mp Exp $
 #
 """
 Test AutoGrid.
@@ -14,7 +14,7 @@ import os
 import types
 import unittest
 import getopt
-from subprocess import call
+import subprocess
 from string import split, strip
 
 #______________________________________________________________________________
@@ -87,7 +87,7 @@ def run_AutoGrid( gpf_filename, glg_filename ):
     print "calling ", command
     os.system( command )
     commandstr = "%s -p %s -l %s" % ( autogrid_executable, gpf, glg )
-    command = [ autogrid_executable, '-p', gpf, '-l', glg )
+    command = [ autogrid_executable, '-p', gpf, '-l', glg ]
     print '\nRunning ' + autogrid_executable + ' using GPF "'+gpf+'", saving results in "'+glg+'":'
     try:
         #( i, o, e ) = os.popen3( command ) # trap all the outputs
@@ -96,8 +96,8 @@ def run_AutoGrid( gpf_filename, glg_filename ):
 	rc = subprocess.call( command )
 	print 'autogrid returned ', rc  # DEBUG
         return find_success_in_GLG(glg_filename)
-    except:
-        print "\nUnable to run " + autogrid_executable + "."
+    except OSError, e:
+        print "\nUnable to run " + autogrid_executable + " :", e
         return False
 
 #______________________________________________________________________________
