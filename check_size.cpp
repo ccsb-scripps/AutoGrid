@@ -1,6 +1,6 @@
 /*
 
- $Id: check_size.cpp,v 1.12 2012/04/24 20:59:29 mp Exp $
+ $Id: check_size.cpp,v 1.13 2012/04/24 23:33:30 mp Exp $
 
  AutoGrid 
 
@@ -58,22 +58,23 @@ int check_size(int nelements,
 
 {
     int oldnelements;
+    char msg[1000];
 
     if (nelements < 0) {
         fprintf(stderr, "\n%s: Error! Negative number of %c-grid elements!  Aborting.\n\n", programname, axischar);
-        fprintf(logFile, "\n%s: Error! Negative number of %c-grid elements!  Aborting.\n\n", programname, axischar);
-        print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );  // exits
+        sprintf(msg, "\n%s: Error! Negative number of %c-grid elements!  Aborting.\n\n", programname, axischar);
+        print_error( logFile, FATAL_ERROR, msg );  // exits
 
     }
     if (nelements == 0) {
         fprintf(stderr, "\n%s: Error!! 0 %c-grid elements!\n\n", programname, axischar);
-        fprintf(logFile, "\n%s: Error!! 0 %c-grid elements!\n\n", programname, axischar);
-        print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );  // exits
+        sprintf(msg, "\n%s: Error!! 0 %c-grid elements!\n\n", programname, axischar);
+        print_error( logFile, FATAL_ERROR, msg );  // exits
     }
     if (nelements>MAX_GRID_PTS) {
         fprintf(stderr, "\n%s: Error! Maximum number of %c-grid elements allowed is %d.\n", programname, axischar, MAX_GRID_PTS);
-        fprintf(logFile, "\n%s: Error! Maximum number of %c-grid elements allowed is %d.\n", programname, axischar, MAX_GRID_PTS);
-        print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );  // exits
+        sprintf(msg, "\n%s: Error! Maximum number of %c-grid elements allowed is %d.\n", programname, axischar, MAX_GRID_PTS);
+        print_error( logFile, FATAL_ERROR, msg);  // exits
     }
     oldnelements = nelements;
     nelements = (int) ((nelements/2) * 2); // N.B.: integer divide truncates remainder.

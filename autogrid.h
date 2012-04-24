@@ -1,6 +1,6 @@
 /*
 
- $Id: autogrid.h,v 1.20 2012/04/20 03:28:28 mp Exp $
+ $Id: autogrid.h,v 1.21 2012/04/24 23:33:30 mp Exp $
 
  AutoGrid 
 
@@ -93,9 +93,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include "prototypes.h"
 
 
-#define MAX_NUM_AUTOGRID_TYPES 100
-#define NUM_ALL_TYPES 20   /*??? IS THIS REASONABLE???*/
-#define NUM_RECEPTOR_TYPES NUM_ALL_TYPES   
+#define NUM_RECEPTOR_TYPES 20  /*??? IS THIS REASONABLE???*/
 #define MAX_LEN_AUTOGRID_TYPE 7
 
 /* added for port to BOINC 11/17/2004 */
@@ -106,8 +104,9 @@ FILE *ad_fopen(const char *path, const char *mode);
 /*----------------------------------------------------------------------------*/
 // print_error() is used with error_level where:
 // error_level = one of the following:
-#define FATAL_ERROR -2
-#define ERROR -1
+//   FATAL_ERROR causes printing "Unsuccessful Completion" and exit(EXIT_FAILURE) (POSIX)
+#define FATAL_ERROR (-2)
+#define AG_ERROR (-1)
 #define WARNING  0
 #define INFORMATION 1
 #define SUGGESTION 2

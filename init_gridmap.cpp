@@ -1,6 +1,6 @@
 /*
 
- $Id: init_gridmap.cpp,v 1.1 2011/09/23 23:41:56 rhuey Exp $
+ $Id: init_gridmap.cpp,v 1.2 2012/04/24 23:33:31 mp Exp $
 
  AutoGrid 
 
@@ -51,8 +51,8 @@ MapObject * gridmap;
         gridmap = (MapObject *)malloc(sizeof(MapObject) * num_maps);
 
         if ( gridmap == NULL ) {
-            print_error( logFile, ERROR, "Could not allocate memory to create the MapObject \"gridmap\".\n" );
-            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );//exits with FATAL_ERROR return code
+            // exits if FATAL_ERROR return code
+            print_error( logFile, FATAL_ERROR, "Could not allocate memory to create the MapObject \"gridmap\".\n" );
         }
 
         // Initialize the gridmap MapObject
@@ -102,14 +102,12 @@ MapObject * gridmap;
                 free(dummy_map);
             }
         } else {
-            print_error( logFile, ERROR, "You need to set the number of grid points using \"npts\" before setting the ligand atom types, using \"ligand_types\".\n" );
-            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
+            print_error( logFile, FATAL_ERROR, "You need to set the number of grid points using \"npts\" before setting the ligand atom types, using \"ligand_types\".\n" );
         } /* ZZZZZZZZZZZZZZZZZ*/
         if (!gridmap) {
             char message[1000];
             (void) sprintf( message, "Too many ligand atom types; there is not enough memory to create these maps.  Try using fewer atom types than %d.\n", num_ligand_types);
-            print_error( logFile, ERROR, message);
-            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );
+            print_error( logFile, FATAL_ERROR, message);
         }
 
         for (int i = 0;  i < num_ligand_types;  i++) {
