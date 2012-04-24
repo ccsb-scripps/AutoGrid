@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #
-# $Id: test_autogrid4.py,v 1.15 2012/04/24 21:46:19 mp Exp $
+# $Id: test_autogrid4.py,v 1.16 2012/04/24 23:31:02 mp Exp $
 #
 """
 Test AutoGrid.
@@ -83,18 +83,12 @@ def run_AutoGrid( gpf_filename, glg_filename ):
     and standard error."""
     gpf = gpf_directory + os.sep + gpf_filename
     glg = test_output_directory + os.sep + glg_filename
-    command = "rm -f " + glg # NON PORTABLE
-    print "calling ", command
-    os.system( command )
-    commandstr = "%s -p %s -l %s" % ( autogrid_executable, gpf, glg )
+    rm(glg)
     command = [ autogrid_executable, '-p', gpf, '-l', glg ]
     print '\nRunning ' + autogrid_executable + ' using GPF "'+gpf+'", saving results in "'+glg+'":'
     try:
-        #( i, o, e ) = os.popen3( command ) # trap all the outputs
-        #os.wait() # for the child process to finish
-        #return True
 	rc = subprocess.call( command )
-	print 'autogrid returned ', rc  # DEBUG
+	#print 'autogrid returned ', rc  # DEBUG
         return find_success_in_GLG(glg_filename)
     except OSError, e:
         print "\nUnable to run " + autogrid_executable + " :", e
@@ -122,8 +116,13 @@ def find_success_in_GLG( glg_filename ):
 
 
 def rm( filename ):
-    """Removes files in the test_output_directory."""
-    ###os.system( "rm -f "+test_output_directory+"/"+filename )
+    """Remove single file"""
+    # no regular expression wildcards, e.g. * or ?, allowed
+    if os.access(filename, os.F_OK) :
+       try:
+          os.remove( filename )
+       except OSError,e:
+         print 'unable to remove '+filename
 
 #______________________________________________________________________________
 
@@ -138,7 +137,7 @@ class AutoGrid_hsg1_sm_test(unittest.TestCase):
 
         if not built_maps:
             # Make sure you remove all the products of AutoGrid from any previous tests.
-            rm("hsg1_sm.*map*")
+            #rm("hsg1_sm.*map*")
             built_maps = run_AutoGrid('hsg1_sm.gpf', 'hsg1_sm.glg')
 
     def tearDown(self):
@@ -158,12 +157,12 @@ class AutoGrid_hsg1_sm_test(unittest.TestCase):
             allow .526 vs .524 to pass using 0.5 'percentage' check
         """
         # read in 'c' and 'py' maps
-        c_autogrid4_map = test_output_directory + '/' + stem + '.' + maptype +'.map'
+        c_autogrid4_map = test_output_directory + os.sep + stem + '.' + maptype +'.map'
         fptr = open(c_autogrid4_map)
         c_autogrid4_lines = fptr.readlines()
         fptr.close()
         #read in python AutoGrid4 results
-        py_autogrid4_map = gpf_directory + '/' + 'py_' + stem +'.'+ maptype+'.map'
+        py_autogrid4_map = gpf_directory + os.sep + 'py_' + stem +'.'+ maptype+'.map'
         fptr = open(py_autogrid4_map)
         py_autogrid4_lines = fptr.readlines()
         fptr.close()
@@ -184,7 +183,7 @@ class AutoGrid_hsg1_sm_test(unittest.TestCase):
                 self.assertEqual(abs(c_num-py_num)<cutoff, True)
                 #self.assertAlmostEquals(c_num, py_num, precision)
         # clean up
-        rm(stem + "." + maptype + ".map")
+        #rm(c_autogrid4_map)
 
     def test_hsg1_estat(self):
         """test_hsg1 estat case"""
@@ -235,7 +234,7 @@ class AutoGrid_hsg1_sm_no_parameter_library_test(AutoGrid_hsg1_sm_test):
         self.autogrid = autogrid_executable
         if not built_maps_no_parameter_library:
             # Make sure you remove all the products of AutoGrid from any previous tests.
-            rm("hsg1_sm.*map*")
+            #rm("hsg1_sm.*map*")
             built_maps_no_parameter_library = run_AutoGrid( 'hsg1_sm_no_parameter_file.gpf', 'hsg1_sm.glg' )
 
 
@@ -247,7 +246,7 @@ class AutoGrid_hsg1_sm_no_receptor_types_test(AutoGrid_hsg1_sm_test):
         self.autogrid = autogrid_executable
         if not built_maps_no_receptor_types:
             # Make sure you remove all the products of AutoGrid from any previous tests.
-            rm("hsg1_sm.*map*")
+            #rm("hsg1_sm.*map*")
             built_maps_no_receptor_types = run_AutoGrid( 'hsg1_no_receptor_types.gpf', 'hsg1_sm.glg' )
 
 
@@ -259,7 +258,7 @@ class AutoGrid_hsg1_sm_minus_two_types_test(AutoGrid_hsg1_sm_test):
         self.autogrid = autogrid_executable
         if not built_maps_minus_two_types:
             # Make sure you remove all the products of AutoGrid from any previous tests.
-            rm("hsg1_sm.*map*")
+            #rm("hsg1_sm.*map*")
             built_maps_minus_two_types = run_AutoGrid( 'hsg1_no_receptor_types.gpf', 'hsg1_sm.glg' )
 
 
@@ -271,7 +270,7 @@ class AutoGrid_ligand_types_before_receptor_test(AutoGrid_hsg1_sm_test):
         self.autogrid = autogrid_executable
         if not built_maps_ligand_types_before_receptor:
             # Make sure you remove all the products of AutoGrid from any previous tests.
-            rm("hsg1_sm.*map*")
+            #rm("hsg1_sm.*map*")
             built_maps_ligand_types_before_receptor = run_AutoGrid( 'hsg1_ligand_types_before_receptor.gpf', 'hsg1_sm.glg')
 
 #------------------------------------------------------------------
@@ -286,7 +285,7 @@ class AutoGrid_simple_test(unittest.TestCase):
         """ Set up for autogrid4 tests. Locate the autogrid binary now during setUp."""
         self.glg_filename = "test_" + self.gpf_stem + ".glg"
         self.computed = run_AutoGrid(self.gpf_stem + ".gpf", self.glg_filename)
-        print "after call to run_AutoGrid"
+        #print "after call to run_AutoGrid"
 
     def test_glg_exists(self):
         #Check that autogrid calculation finished and a new GLG has been computed
