@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.92 2012/04/20 03:28:28 mp Exp $
+ $Id: main.cpp,v 1.93 2012/04/24 20:59:29 mp Exp $
 
  AutoGrid 
 
@@ -123,7 +123,7 @@ void print_error( FILE *fileptr, int error_level, char *message)
 
     // If this is a fatal error, exit now.
     if (error_level == FATAL_ERROR) {
-        exit( error_level );
+        exit( EXIT_FAILURE ); // POSIX, defined in stdlib.h (usually 1)
     }
 }
 
@@ -495,7 +495,7 @@ if (clktck == 0) {
     if ( (clktck = sysconf(_SC_CLK_TCK)) < 0) {
         (void) fprintf( stderr, "\"sysconf(_SC_CLK_TCK)\" command failed in \"main.c\"\n");
         (void) fprintf( logFile, "\"sysconf(_SC_CLK_TCK)\" command failed in \"main.c\"\n");
-        exit(-1);
+        exit(EXIT_FAILURE);
     } else {
         idct = 1. / (float)clktck;
     }
@@ -540,7 +540,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.92 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.93 $\n\n\n");
 (void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
                             NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
 
@@ -692,7 +692,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                     ++receptor_atom_type_count[found_parm->rec_index];
                 } else {
                     fprintf(logFile, "\n\nreceptor file contains unknown type: '%s'\nadd parameters for it to the parameter library first\n", thisparm.autogrid_type);
-                    exit(-1);
+                    print_error(logFile, FATAL_ERROR,"Unsuccessful completion.\n\n");
                 }
                     
                 /* if from pdbqs: convert cal/molA**3 to kcal/molA**3 */
@@ -773,7 +773,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                     print_error( logFile, SUGGESTION, "in the source file \"autogrid.h\", and re-compile AutoGrid." );
                     (void) fflush( logFile);
                     // FATAL_ERROR will cause AutoGrid to exit...
-                    print_error( logFile, FATAL_ERROR, "Sorry, AutoGrid cannot continue.");
+                    print_error( logFile, ERROR, "Sorry, AutoGrid cannot continue.");
+                    print_error(logFile, FATAL_ERROR,"Unsuccessful completion.\n\n");
                 } /* endif */
             } /* endif */
         } /* endwhile */
@@ -787,7 +788,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 (void) sprintf( message, "The number of atom types found in the receptor PDBQT (%d) does not match the number specified by the \"receptor_types\" command (%d) in the GPF!\n\n", receptor_types_ct, receptor_types_gpf_ct );
                 print_error( logFile, ERROR, message );
                 // FATAL_ERROR will cause AutoGrid to exit...
-                print_error( logFile, FATAL_ERROR, "Sorry, AutoGrid cannot continue.");
+                print_error( logFile, ERROR, "Sorry, AutoGrid cannot continue.");
+                print_error(logFile, FATAL_ERROR,"Unsuccessful completion.\n\n");
             }
         }
         /* Update the total number of atoms in the receptor */
@@ -800,7 +802,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             (void) sprintf( message, "No partial atomic charges were found in the receptor PDBQT file %s!\n\n", receptor_filename );
             print_error( logFile, ERROR, message );
             // FATAL_ERROR will cause AutoGrid to exit...
-            print_error( logFile, FATAL_ERROR, "Sorry, AutoGrid cannot continue.");
+            print_error( logFile, ERROR, "Sorry, AutoGrid cannot continue.");
+            print_error(logFile, FATAL_ERROR,"Unsuccessful completion.\n\n");
         } /* if  there are no charges EXIT*/
 
         for (ia = 0;  ia < num_receptor_atoms;  ia++) {
@@ -975,7 +978,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             else {
                  // return error here
                 (void) fprintf( logFile, "unknown ligand atom type %s\nadd parameters for it to the parameter library first!\n", ligand_atom_types[i]);
-                 exit(-1);
+                 print_error(logFile, FATAL_ERROR,"Unsuccessful completion.\n\n"); // exits
              }
         };
 
@@ -994,7 +997,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         if ( use_vina_potential) num_maps = num_atom_maps;
         if ( gridmap == NULL ) {
             print_error( logFile, ERROR, "Could not allocate memory to create the MapObject \"gridmap\".\n" );
-            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );//exits with FATAL_ERROR return code
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );//exits 
         }
 
         // Initialize the gridmap MapObject
@@ -1419,8 +1422,7 @@ if ( map_index < num_atom_maps -1 ) {
              (void) fprintf( logFile, "Too few \"map\" keywords (%d);  the \"ligand_types\" command declares %d atom types.\nAdd a \"map\" keyword from the GPF.\n", map_index + 1, num_atom_maps );
              (void) sprintf( message, "Not enough map keywords found.\n" );
             print_error( logFile, ERROR, message );
-            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" ); 
-	exit( FATAL_ERROR );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );  // exits
 	} 
 
 /* Desolvation map */
@@ -1428,8 +1430,7 @@ if (( not use_vina_potential) && (strlen( gridmap[dsolvPE].map_filename ) == 0  
              (void) fprintf( logFile, "The desolvation map file is not defined in the GPF.\n" );
              (void) sprintf( message, "No desolvation map file defined.\n" );
             print_error( logFile, ERROR, message );
-            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" ); 
-	exit( FATAL_ERROR );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );  // exits
 	}
 
 /* Electrostatic map */
@@ -1437,8 +1438,7 @@ if ((not use_vina_potential) &&( strlen( gridmap[elecPE].map_filename ) == 0  ))
              (void) fprintf( logFile, "The electrostatic map file is not defined in the GPF.\n" );
              (void) sprintf( message, "No electrostatic map file defined.\n" );
             print_error( logFile, ERROR, message );
-            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" ); 
-	exit( FATAL_ERROR );
+            print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );  // exits
 	}
 /* End of map files checkpoint SF */
 
@@ -2781,8 +2781,7 @@ if (floating_grid) {
 /* Free up the memory allocated to the gridmap objects... */
 free(gridmap);
 
-//(void) fprintf( stderr, "\n%s: Successful Completion.\n", programname);
-(void) fprintf( logFile, "\n%s: Successful Completion.\n", programname);
+(void) fprintf( logFile, "\n%s: Successful Completion.\n", programname); // do not tinker with this, used by ADT and by automated tests
 
 job_end = times( &tms_job_end);
 timesyshms( job_end - job_start, &tms_job_start, &tms_job_end);
@@ -2798,7 +2797,7 @@ timesyshms( job_end - job_start, &tms_job_start, &tms_job_end);
     boinc_finish(0);       /* should not return */
 #endif
 
-return 0;
+return EXIT_SUCCESS; // POSIX, defined in stdlib.h
 }
 /*
  * End of main function.

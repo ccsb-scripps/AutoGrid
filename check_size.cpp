@@ -1,6 +1,6 @@
 /*
 
- $Id: check_size.cpp,v 1.11 2011/07/15 04:07:10 mp Exp $
+ $Id: check_size.cpp,v 1.12 2012/04/24 20:59:29 mp Exp $
 
  AutoGrid 
 
@@ -27,7 +27,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include <iostream>
 #include <math.h>
 #include <cstdlib>
-#include "autogrid.h"
+#include "autogrid.h" // for print_error 
 
 
 extern char *programname;
@@ -62,17 +62,18 @@ int check_size(int nelements,
     if (nelements < 0) {
         fprintf(stderr, "\n%s: Error! Negative number of %c-grid elements!  Aborting.\n\n", programname, axischar);
         fprintf(logFile, "\n%s: Error! Negative number of %c-grid elements!  Aborting.\n\n", programname, axischar);
-        exit(-2);
+        print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );  // exits
+
     }
     if (nelements == 0) {
         fprintf(stderr, "\n%s: Error!! 0 %c-grid elements!\n\n", programname, axischar);
         fprintf(logFile, "\n%s: Error!! 0 %c-grid elements!\n\n", programname, axischar);
-	exit(-2);
+        print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );  // exits
     }
     if (nelements>MAX_GRID_PTS) {
         fprintf(stderr, "\n%s: Error! Maximum number of %c-grid elements allowed is %d.\n", programname, axischar, MAX_GRID_PTS);
         fprintf(logFile, "\n%s: Error! Maximum number of %c-grid elements allowed is %d.\n", programname, axischar, MAX_GRID_PTS);
-        exit(-1);
+        print_error( logFile, FATAL_ERROR, "Unsuccessful completion.\n\n" );  // exits
     }
     oldnelements = nelements;
     nelements = (int) ((nelements/2) * 2); // N.B.: integer divide truncates remainder.

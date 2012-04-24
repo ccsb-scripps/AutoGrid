@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.15 2012/04/20 03:28:28 mp Exp $
+ $Id: setflags.cpp,v 1.16 2012/04/24 20:59:29 mp Exp $
 
  AutoGrid 
 
@@ -29,6 +29,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include <string.h>
 #include "autogrid.h"
 #include <unistd.h>
+#include <stdlib.h> // POSIX definitions of EXIT_SUCCESS and EXIT_FAILURE
 
 extern FILE *GPF;
 extern FILE *logFile;
@@ -98,17 +99,17 @@ int setflags( int argc, char **argv, char *version )
         case 'u':
         case 'h':
 	        fprintf(stdout, "usage: AutoGrid %s\n", AutoGridHelp);
-	        exit(0);
+	        exit(EXIT_SUCCESS);
             break;
         case 'l':
             if (argc < 3){
                 fprintf(stderr, "\n%s: Sorry, -l requires a filename.\n\t%s\n", programname, AutoGridHelp);
-                exit(-1);
+                exit(EXIT_FAILURE);
             }
             if ( (logFile = ad_fopen(argv[2], "w")) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't create the log file \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
-                exit(-1);
+                exit(EXIT_FAILURE);
             }
             argv++;
             argc--;
@@ -117,7 +118,7 @@ int setflags( int argc, char **argv, char *version )
         case 'p':
             if (argc < 3){
                 fprintf(stderr, "\n%s: Sorry, -p requires a filename.\n\t%s\n", programname, AutoGridHelp);
-                exit(-1);
+                exit(EXIT_FAILURE);
             }
             strncpy(grid_param_fn, argv[2], PATH_MAX);
             grid_param_fn[PATH_MAX-1] = '\0';
@@ -125,7 +126,7 @@ int setflags( int argc, char **argv, char *version )
             if ( (GPF = ad_fopen(argv[2], "r")) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't find or open Grid Parameter File \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
-                exit(-1);
+                exit(EXIT_FAILURE);
             }
             argv++;
             argc--;
@@ -139,11 +140,11 @@ int setflags( int argc, char **argv, char *version )
             fprintf(stdout, " This is free software: you are free to change and redistribute it.\n");
 // GNU END   (see maintenance script update_license_de-GNU)
             fprintf(stdout, " There is NO WARRANTY, to the extent permitted by law.\n");
-            exit(0);
+            exit(EXIT_SUCCESS);
             break;
         default:
             fprintf(stderr,"%s: unknown switch -%c\n",programname,argv[1][1]);
-            exit(1);
+            exit(EXIT_FAILURE);
             break;
         }
         argindex++;
@@ -153,7 +154,7 @@ int setflags( int argc, char **argv, char *version )
     //no gpf specified and input is terminal, very likely an error
     if (GPF==stdin && isatty(fileno(stdin))){
 	    fprintf(stdout, "usage: AutoGrid %s\n", AutoGridHelp);
-	    exit(-1); 
+	    exit(EXIT_FAILURE); 
     }
     return(argindex);
 }
