@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.94 2012/04/24 23:33:31 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.95 2012/04/25 01:25:17 mp Exp $
 
  AutoGrid 
 
@@ -541,12 +541,12 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.94 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.95 $\n\n\n");
 (void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
                             NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
 
-printf(" energy_lookup has %8d entries of size %d\n", sizeof energy_lookup/sizeof ***energy_lookup, sizeof ***energy_lookup);
-printf("       e_vdWHb has %8d entries of size %d\n", sizeof et.e_vdW_Hb/sizeof ***et.e_vdW_Hb, sizeof ***et.e_vdW_Hb);
+printf(" energy_lookup has %8ld entries of size %ld\n", sizeof energy_lookup/sizeof ***energy_lookup, sizeof ***energy_lookup);
+printf("       e_vdWHb has %8ld entries of size %ld\n", sizeof et.e_vdW_Hb/sizeof ***et.e_vdW_Hb, sizeof ***et.e_vdW_Hb);
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
