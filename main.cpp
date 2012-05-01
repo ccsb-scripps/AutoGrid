@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.96 2012/04/25 01:41:05 mp Exp $
+ $Id: main.cpp,v 1.97 2012/05/01 00:20:54 mp Exp $
 
  AutoGrid 
 
@@ -69,7 +69,6 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include "timesyshms.h"
 
 extern float idct;
-extern Linear_FE_Model AD4;
 
 // round() is a C99 function and not universally available
 // Required to round %.3f consistently on different platforms
@@ -365,6 +364,7 @@ static FILE *receptor_fileptr,
 double solpar_q = .01097;  /*unweighted value restored 3:9:05 */
 /*double solpar_q = 0.0013383; =.01097 * 0.122*/
 
+Linear_FE_Model AD4; // set in setup_parameter_library and read_parameter_library
 double q_tot = 0.0;
 double diel, invdielcal=0.;//expected never used if uninitialized
 double dxA;
@@ -541,7 +541,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.96 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.97 $\n\n\n");
 (void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
                             NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
 
@@ -575,7 +575,7 @@ gethostname( host_name, sizeof host_name );
 //
 // Read in default parameters
 //
-setup_parameter_library(logFile, outlev, "default Unbound_Same_As_Bound", Unbound_Same_As_Bound );
+setup_parameter_library(logFile, outlev, "default Unbound_Same_As_Bound", Unbound_Same_As_Bound, &AD4);
 
 
 /******************************************************************************/
@@ -1385,7 +1385,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
         parameter_library_found = sscanf( GPF_line, "%*s %s ", FN_parameter_library);
 
-        read_parameter_library(logFile, outlev, FN_parameter_library);
+        read_parameter_library(logFile, outlev, FN_parameter_library, &AD4);
 
         break;
 

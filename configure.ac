@@ -2,7 +2,7 @@
 # Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.61)
-AC_INIT([autogrid], [4.2.4.x.20120424], [autodock@scripps.edu])
+AC_INIT([autogrid], [4.2.4.x.20120430], [autodock@scripps.edu])
 AC_CONFIG_SRCDIR([atom_parameter_manager.cpp])
 #AC_CONFIG_HEADER([config.h])
 
