@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.98 2012/08/20 22:11:21 mp Exp $
+ $Id: main.cpp,v 1.99 2012/08/20 22:29:46 mp Exp $
 
  AutoGrid 
 
@@ -424,7 +424,7 @@ int outlev = -1;
 
 #define INIT_NUM_GRID_PTS -1
 int num_grid_points_per_map = INIT_NUM_GRID_PTS;
-register int i = 0, ii = 0, j = 0, k = 0, indx_r = 0, i_smooth = 0;
+register int i = 0, ii = 0, j = 0, k = 0, indx_r = 0, i_smooth;
 register int ia = 0, ib = 0, ic = 0, map_index = -1, iat = 0, i1 = 0, i2 = 0, i3 = 0;
 register int closestH = 0;
 
@@ -541,7 +541,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.98 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.99 $\n\n\n");
 (void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
                             NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
 
@@ -1310,10 +1310,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_SMOOTH:
         (void) sscanf( GPF_line, "%*s %lf", &r_smooth);
         (void) fprintf( logFile, "\nPotentials will be smoothed by: %.3lf Angstrom\n\n", r_smooth);
-        /* Angstrom is divided by A_DIV in look-up table. */
-        /* Typical value of r_smooth is 0.5 Angstroms @@NOW THE DEFAULT Feb2012 */
-        /* so i_smooth = 0.5 * 100. / 2 = 25 */
-        i_smooth = (int) (r_smooth*A_DIV/2.);
         break;
 
 /******************************************************************************/
@@ -1702,6 +1698,11 @@ for (ia=0; ia<num_atom_maps; ia++){
             (void) fprintf( logFile, "\n");*/
 
             /* smooth with min function */ /* GPF_MAP */
+
+	    /* Angstrom is divided by A_DIV in look-up table. */
+	    /* Typical value of r_smooth is 0.5 Angstroms  */
+	    /* so i_smooth = 0.5 * 100. / 2 = 25 */
+	    i_smooth = (int) (r_smooth*A_DIV/2.);
             if (i_smooth > 0) {
                 for (indx_r = 1;  indx_r < NEINT;  indx_r++) {
                     energy_smooth[indx_r] = 100000.;
