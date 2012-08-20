@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.97 2012/05/01 00:20:54 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.98 2012/08/20 22:11:21 mp Exp $
 
  AutoGrid 
 
@@ -541,7 +541,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.97 $\n\n\n");
+(void) fprintf(logFile, "                           $Revision: 1.98 $\n\n\n");
 (void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
                             NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
 
@@ -1705,7 +1705,7 @@ for (ia=0; ia<num_atom_maps; ia++){
             if (i_smooth > 0) {
                 for (indx_r = 1;  indx_r < NEINT;  indx_r++) {
                     energy_smooth[indx_r] = 100000.;
-                    for (j = max(0, indx_r - i_smooth);  j < min(NEINT, indx_r + i_smooth);  j++) {
+                    for (j = max(0, indx_r - i_smooth);  j < min(NEINT, indx_r + i_smooth + 1);  j++) {
                       if (ET)
                       energy_smooth[indx_r] = min(energy_smooth[indx_r], energy_lookup[i][j][ia]);
                       else
