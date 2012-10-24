@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.99 2012/08/20 22:29:46 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.100 2012/10/24 22:12:31 mp Exp $
 
  AutoGrid 
 
@@ -541,18 +541,20 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.99 $\n\n\n");
-(void) printf(" NUM_RECEPTOR_TYPES=%d MAX_DIST=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n\n",
-                            NUM_RECEPTOR_TYPES,MAX_DIST,MAX_MAPS,NDIEL,MAX_ATOM_TYPES);
+(void) fprintf(logFile, "                           $Revision: 1.100 $\n");
+(void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d MAX_DIST=%d\n",
+    NUM_RECEPTOR_TYPES, MAX_DIST);
+(void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
+    MAX_MAPS, NDIEL, MAX_ATOM_TYPES);
 
-printf(" energy_lookup has %8ld entries of size %ld\n", 
+fprintf(logFile, " energy_lookup table has %8ld entries of size %ld\n", 
   (long)(sizeof energy_lookup/sizeof ***energy_lookup), (long)(sizeof ***energy_lookup));
-printf("       e_vdWHb has %8ld entries of size %ld\n",
+fprintf(logFile,"        e_vdWHb table has %8ld entries of size %ld\n",
   (long)(sizeof et.e_vdW_Hb/sizeof ***et.e_vdW_Hb), (long)(sizeof ***et.e_vdW_Hb));
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
-(void) fprintf(logFile, "\nMaximum number of maps that can be computed = %d (defined by MAX_MAPS in \"autocomm.h\").\n\n\n", MAX_MAPS);
+(void) fprintf(logFile, "Maximum number of maps that can be computed = %d (defined by MAX_MAPS in \"autocomm.h\").\n", MAX_MAPS);
 
 
 /*
