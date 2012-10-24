@@ -2,7 +2,7 @@
 # script to run AutoGrid automated tests (if "make" is not available)
 # usage: (from source directory):  cd $ARCHOSV; ../makecheck
 #
-# $Ident$
+# $Id: makecheck,v 1.2 2012/10/24 23:40:27 mp Exp $
 #
 echo "Running the Python test_autogrid4.py unit-tests on ../autogrid4"
 outputdir=`pwd` ;\

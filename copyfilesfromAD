@@ -7,7 +7,7 @@
 # 
 # option -r   : removes these files, does not copy 
 #
-# $Id: copyfilesfromAD,v 1.1 2012/04/20 03:28:28 mp Exp $
+# $Id: copyfilesfromAD,v 1.2 2012/10/24 23:40:27 mp Exp $
 #
 # M Pique
 
@@ -36,3 +36,8 @@ for c in  \
    test $copy = y && test -r ../autodock/$c.cc && $DO  ../autodock/$c.cc $c.cpp
    test $copy = y && test -r ../autodock/$c.h && $DO  ../autodock/$c.h  $c.h
 done
+
+# other needed files
+
+test $copy = y && test -r ../autodock/configure-universalDarwin \
+ && $DO ../autodock/configure-universalDarwin configure-universalDarwin
