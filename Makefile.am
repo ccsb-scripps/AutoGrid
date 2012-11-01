@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.26 2012/04/21 00:10:29 mp Exp $
+# $Id: Makefile.am,v 1.27 2012/11/01 22:17:05 rhuey Exp $
 # 
 # AutoGrid 
 # 
@@ -155,7 +155,7 @@ main.o : $(srcdir)/../autodock/autocomm.h
 default_parameters.h : $(srcdir)/../autodock/paramdat2h.csh  $(srcdir)/../autodock/AD4_parameters.dat $(srcdir)/../autodock/AD4.1_bound.dat
 	rm -f $@
 	csh $(srcdir)/../autodock/paramdat2h.csh $(srcdir)/../autodock/AD4_parameters.dat  $(srcdir)/../autodock/AD4.1_bound.dat > $@
-	cd $(srcdir) && sh copyfilesfromAD
+	sh ../copyfilesfromAD -b  # copying from build dir , not source dir
 
 # 2007-04-30 MP & GMM: this line is necessary to be able to compile read_parameter_library.o
 read_parameter_library.o : default_parameters.h

@@ -5,11 +5,17 @@
 # remove local AutoGrid versions of key source files shared with AutoDock,
 #  replacing them with copies from ../autodock
 # 
+# option -b   : is being run from build dir rather src dir
 # option -r   : removes these files, does not copy 
 #
-# $Id: copyfilesfromAD,v 1.2 2012/10/24 23:40:27 mp Exp $
+# $Id: copyfilesfromAD,v 1.3 2012/11/01 22:17:05 rhuey Exp $
 #
 # M Pique
+
+prefix=".."  # where 'autodock' dir is from src dir
+if [ test$1 = test-b ]; then
+   prefix="../.."  # where 'autodock' dir is from build dir
+fi
 
 copy=y
 if [ test$1 = test-r ]; then
@@ -33,11 +39,7 @@ for c in  \
 	timesyshms \
   ; do
    rm -f $c.cpp $c.h
-   test $copy = y && test -r ../autodock/$c.cc && $DO  ../autodock/$c.cc $c.cpp
-   test $copy = y && test -r ../autodock/$c.h && $DO  ../autodock/$c.h  $c.h
+   test $copy = y && test -r ${prefix}/autodock/$c.cc && $DO  ${prefix}/autodock/$c.cc $c.cpp
+   test $copy = y && test -r ${prefix}/autodock/$c.h && $DO  ${prefix}/autodock/$c.h  $c.h
 done
 
-# other needed files
-
-test $copy = y && test -r ../autodock/configure-universalDarwin \
- && $DO ../autodock/configure-universalDarwin configure-universalDarwin
