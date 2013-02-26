@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.27 2012/11/01 22:17:05 rhuey Exp $
+# $Id: Makefile.am,v 1.28 2013/02/26 23:58:01 mp Exp $
 # 
 # AutoGrid 
 # 
@@ -89,6 +89,8 @@ autogrid4_SOURCES = main.cpp \
 # "default_parameters.h" is generated using the rules below
 # which invoke "paramdat2h.csh" to convert the AD4.1_bound.dat
 # parameter library file into a C++ header file.
+# This same step runs "copyfilesfromAD" to copy common source files 
+# from the autodock source directory to the autogrid build directory.
 BUILT_SOURCES = default_parameters.h
 
 CLEANFILES = default_parameters.h
@@ -127,20 +129,22 @@ test : autogrid4 $(srcdir)/Tests/test_autogrid4.py
 	@echo " "
 	@echo "Running the Python test_autogrid4.py unit-tests on autogrid4"
 	@echo " "
-# for technical reasons, autogrid must be run in the Tests
-# directory because it writes its maps into its current directory
+# for technical reasons, autogrid must be run in the directory where the
+# test files reside because it writes its maps into its current directory
 # and expects to find AD4.1_bound.dat in that same directory.
+# We create a run-time Testruns directory for this purpose.
+# The name is different to allow "configure;make;make check" in the source dir.
 	outputdir=`pwd` ;\
 	umask 0 ;\
-	test -d $$outputdir/Tests || mkdir $$outputdir/Tests ;\
-	chmod a+w $$outputdir/Tests/*;\
-	cp $(srcdir)/Tests/*.py   $$outputdir/Tests;\
-	cp $(srcdir)/Tests/*.gpf  $$outputdir/Tests;\
-	cp $(srcdir)/Tests/*.dat  $$outputdir/Tests;\
-	cp $(srcdir)/Tests/*.pdbqt  $$outputdir/Tests;\
-	cp $(srcdir)/Tests/*.map*  $$outputdir/Tests;\
-	chmod a+w $$outputdir/Tests/*;\
-	cd $$outputdir/Tests;\
+	test -d $$outputdir/Testruns && chmod -fR a+w $$outputdir/Testruns;\
+	test -d $$outputdir/Testruns || mkdir $$outputdir/Testruns ;\
+	cp $(srcdir)/Tests/*.py   $$outputdir/Testruns;\
+	cp $(srcdir)/Tests/*.gpf  $$outputdir/Testruns;\
+	cp $(srcdir)/Tests/*.dat  $$outputdir/Testruns;\
+	cp $(srcdir)/Tests/*.pdbqt  $$outputdir/Testruns;\
+	cp $(srcdir)/Tests/*.map*  $$outputdir/Testruns;\
+	chmod -fR a+w $$outputdir/Testruns;\
+	cd $$outputdir/Testruns;\
 	python ./test_autogrid4.py -d . -e ../autogrid4$(EXEEXT) -o .
 #else
 #	@echo " "
@@ -155,7 +159,7 @@ main.o : $(srcdir)/../autodock/autocomm.h
 default_parameters.h : $(srcdir)/../autodock/paramdat2h.csh  $(srcdir)/../autodock/AD4_parameters.dat $(srcdir)/../autodock/AD4.1_bound.dat
 	rm -f $@
 	csh $(srcdir)/../autodock/paramdat2h.csh $(srcdir)/../autodock/AD4_parameters.dat  $(srcdir)/../autodock/AD4.1_bound.dat > $@
-	sh ../copyfilesfromAD -b  # copying from build dir , not source dir
+	sh $(srcdir)/copyfilesfromAD
 
 # 2007-04-30 MP & GMM: this line is necessary to be able to compile read_parameter_library.o
 read_parameter_library.o : default_parameters.h
@@ -165,6 +169,12 @@ read_parameter_library.o : default_parameters.h
 srcdir = @srcdir@
 VPATH  = @srcdir@
 
+# see Autoconf manual for how to extend 'make clean' to directories:
+clean-local: clean-local-check
+.PHONY: clean-local-check
+clean-local-check:
+	sh $(srcdir)/copyfilesfromAD -r
+	-rm -rf Testruns
 #
 # EOF
 #
