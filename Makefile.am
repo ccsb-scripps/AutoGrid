@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.28 2013/02/26 23:58:01 mp Exp $
+# $Id: Makefile.am,v 1.29 2013/03/05 23:15:51 mp Exp $
 # 
 # AutoGrid 
 # 
@@ -138,9 +138,9 @@ test : autogrid4 $(srcdir)/Tests/test_autogrid4.py
 	umask 0 ;\
 	test -d $$outputdir/Testruns && chmod -fR a+w $$outputdir/Testruns;\
 	test -d $$outputdir/Testruns || mkdir $$outputdir/Testruns ;\
+	cp $(srcdir)/Tests/AD4.1_bound.dat   $$outputdir/Testruns;\
 	cp $(srcdir)/Tests/*.py   $$outputdir/Testruns;\
 	cp $(srcdir)/Tests/*.gpf  $$outputdir/Testruns;\
-	cp $(srcdir)/Tests/*.dat  $$outputdir/Testruns;\
 	cp $(srcdir)/Tests/*.pdbqt  $$outputdir/Testruns;\
 	cp $(srcdir)/Tests/*.map*  $$outputdir/Testruns;\
 	chmod -fR a+w $$outputdir/Testruns;\
