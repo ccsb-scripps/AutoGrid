@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.100 2012/10/24 22:12:31 mp Exp $
+ $Id: main.cpp,v 1.101 2013/09/09 21:05:02 rhuey Exp $
 
  AutoGrid 
 
@@ -315,7 +315,7 @@ double cgridmin[XYZ];
 double cmax[XYZ];
 double cmin[XYZ];
 double csum[XYZ];
-double cmean[XYZ];
+double cmean[XYZ]={0.,0.,0.};
 double center[XYZ];
 double covpos[XYZ]; /* Cartesian-coordinate of covalent affinity well. */
 double d[XYZ];
@@ -396,7 +396,7 @@ static char * version_num = PACKAGE_VERSION;
 /*are these necessary??*/
 double temp_vol, temp_solpar;
 double temp_hbond_enrg, hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
-double rmin, Hramp;
+double rmin, Hramp=0; /*Used to cover case where vina potential is used;initialized here to quiet compiler warning*/
 double factor=332.0L;  /* Used to convert between calories and SI units */
 
 /*int num_rec_types = 0;*/
@@ -526,6 +526,8 @@ for (i = 0;  i < XYZ;  i++) {
 }
 
 PI_halved = PI/2.;
+racc = 1.; /*to quiet compiler warnings*/
+rdon = 1.; /*to quiet compiler warnings*/
 
 /*
  * Initialize int receptor_atom_type_count[] array to 0
@@ -541,7 +543,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.100 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.101 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d MAX_DIST=%d\n",
     NUM_RECEPTOR_TYPES, MAX_DIST);
 (void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -2385,7 +2387,6 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
                 if (not use_vina_potential){ 
 
-                /*** racc = rdon = 1.; ***/
                 racc = 1.;
                 rdon = 1.;
 /* NEW2 Hramp ramps in Hbond acceptor probes */
