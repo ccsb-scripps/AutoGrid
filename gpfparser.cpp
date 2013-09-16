@@ -1,6 +1,6 @@
 /*
 
- $Id: gpfparser.cpp,v 1.11 2010/10/20 20:58:58 rhuey Exp $
+ $Id: gpfparser.cpp,v 1.12 2013/09/16 21:09:30 mp Exp $
 
  AutoGrid 
 
@@ -102,7 +102,7 @@ int gpfparser( char line[LINE_LEN] )
     } else if (equal(c,"elecmap",7)) {
         token = GPF_ELECMAP;
 
-    } else if (equal(c,"dsolvmap",8)) {
+    } else if (equal(c,"dsolvmap",8) || equal(c,"desolvmap",9)) {
         token = GPF_DSOLVMAP;
 
     } else if (equal(c,"covalentmap",11)) {
