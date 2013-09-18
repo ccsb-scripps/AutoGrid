@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.101 2013/09/09 21:05:02 rhuey Exp $
+ $Id: mainpost1.28.cpp,v 1.102 2013/09/18 02:48:24 mp Exp $
 
  AutoGrid 
 
@@ -543,7 +543,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.101 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.102 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d MAX_DIST=%d\n",
     NUM_RECEPTOR_TYPES, MAX_DIST);
 (void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1679,7 +1679,8 @@ for (ia=0; ia<num_atom_maps; ia++){
             et.e_vdW_Hb[0][i][ia] = EINTCLAMP;
             et.e_vdW_Hb[NEINT-1][i][ia] = 0.;
 
-            /*PRINT OUT INITIAL VALUES before smoothing here 
+#ifdef PRINT_BEFORE_SMOOTHING
+            /*PRINT OUT INITIAL VALUES before smoothing here */
             (void) fprintf( logFile, "before smoothing\n  r ");
             for (iat = 0;  iat < receptor_types_ct;  iat++) {
                 (void) fprintf( logFile, "    %s    ", receptor_types[iat]);
@@ -1689,7 +1690,7 @@ for (ia=0; ia<num_atom_maps; ia++){
                 (void) fprintf( logFile, " ________");
             }
             (void) fprintf( logFile, "\n");
-            for (j = 0;  j <= 500;  j += 10) {
+	    for (j = 0;  j <= min(500,NEINT);  j += 10) {
                 (void) fprintf( logFile, "%4.1lf", angstrom(j));
                 for (iat = 0;  iat < receptor_types_ct;  iat++) {
 		    if(ET)
@@ -1699,7 +1700,8 @@ for (ia=0; ia<num_atom_maps; ia++){
 				} 
                 (void) fprintf( logFile, "\n");
             } 
-            (void) fprintf( logFile, "\n");*/
+            (void) fprintf( logFile, "\n");
+#endif
 
             /* smooth with min function */ /* GPF_MAP */
 
