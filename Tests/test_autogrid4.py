@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #
-# $Id: test_autogrid4.py,v 1.16 2012/04/24 23:31:02 mp Exp $
+# $Id: test_autogrid4.py,v 1.17 2013/10/09 20:49:48 mp Exp $
 #
 """
 Test AutoGrid.
@@ -285,7 +285,7 @@ class AutoGrid_simple_test(unittest.TestCase):
         """ Set up for autogrid4 tests. Locate the autogrid binary now during setUp."""
         self.glg_filename = "test_" + self.gpf_stem + ".glg"
         self.computed = run_AutoGrid(self.gpf_stem + ".gpf", self.glg_filename)
-        #print "after call to run_AutoGrid"
+        print "after call to run_AutoGrid"
 
     def test_glg_exists(self):
         #Check that autogrid calculation finished and a new GLG has been computed
@@ -315,6 +315,26 @@ class AutoGrid_missing_dsolvmap_test(AutoGrid_simple_test):
     gpf_stem = 'x1hpv_CASE3'  #missing dsolvmap
     expected_outcome = False
 
+#------------------------------------------------------------------
+class AutoGrid_nbpreps_test(AutoGrid_simple_test):
+    gpf_stem = 'hsg1_sm_nbpreps'  # nbp_r_eps
+    expected_outcome = True
+
+#------------------------------------------------------------------
+class AutoGrid_nbpreps_illegal_atom_test(AutoGrid_simple_test):
+    gpf_stem = 'hsg1_sm_nbpreps_illegal_atom'  # nbp_r_eps
+    expected_outcome = False
+
+#------------------------------------------------------------------
+class AutoGrid_nbpreps_toofew_test(AutoGrid_simple_test):
+    gpf_stem = 'hsg1_sm_nbpreps_toofew'  # nbp_r_eps
+    expected_outcome = False
+
+#------------------------------------------------------------------
+class AutoGrid_nbpcoeffs_test(AutoGrid_simple_test):
+    gpf_stem = 'hsg1_sm_nbpcoeffs'  # nbp_coeffs
+    expected_outcome = True
+
 
 
 if __name__ == '__main__':
@@ -329,6 +349,10 @@ if __name__ == '__main__':
         'AutoGrid_control_test',
         #'AutoGrid_ligand_types_before_receptor_test', 
         #3/18/09 not sure of status of ligand_types_before_receptor test, rh
+	'AutoGrid_nbpreps_test',
+	'AutoGrid_nbpreps_illegal_atom_test',
+	'AutoGrid_nbpreps_toofew_test',
+	'AutoGrid_nbpcoeffs_test',
     ]
     unittest.main( argv=([__name__,] + test_cases))  # non-verbose output
     # optional:  for verbose output, use this:
