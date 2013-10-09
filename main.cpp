@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.102 2013/09/18 02:48:24 mp Exp $
+ $Id: main.cpp,v 1.103 2013/10/09 23:26:55 rhuey Exp $
 
  AutoGrid 
 
@@ -251,6 +251,7 @@ typedef struct mapObject {
     double Rij_hb;
     double epsij_hb;
     /*per receptor type parameters, ordered as in receptor_types*/
+    double cA[NUM_RECEPTOR_TYPES], cB[NUM_RECEPTOR_TYPES];/*coefficients if specified in gpf*/
     double nbp_r[NUM_RECEPTOR_TYPES]; /*radius of energy-well minimum*/
     double nbp_eps[NUM_RECEPTOR_TYPES];/*depth of energy-well minimum*/
     int xA[NUM_RECEPTOR_TYPES]; /*generally 12*/
@@ -543,7 +544,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.102 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.103 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d MAX_DIST=%d\n",
     NUM_RECEPTOR_TYPES, MAX_DIST);
 (void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -991,7 +992,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
        num_maps = num_atom_maps + 2;
       
         /* Check to see if there is enough memory to store these map objects */
-        gridmap = (MapObject *)malloc(sizeof(MapObject) * num_maps);
+        gridmap = (MapObject *)calloc(sizeof(MapObject), num_maps);
 
         if ( use_vina_potential) num_maps = num_atom_maps;
         if ( gridmap == NULL ) {
@@ -1020,6 +1021,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             gridmap[i].epsij_hb = 0.0L;
             /*per gridmap[i].receptor type parameters, ordered as in receptor_types*/
             for (j=0; j<NUM_RECEPTOR_TYPES; j++) {
+                gridmap[i].cA[j] =0; /*default is to automatically calculate from r,eps*/
+                gridmap[i].cB[j] =0; /*ditto*/
                 gridmap[i].nbp_r[j] = 0.0L; /*radius of energy-well minimum*/
                 gridmap[i].nbp_eps[j] = 0.0L;/*depth of energy-well minimum*/
                 gridmap[i].xA[j] =0; /*generally 12*/
@@ -1392,6 +1395,85 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
 /******************************************************************************/
 
+    case GPF_NBP_COEFFS:
+    case GPF_NBP_R_EPS:
+        /* 
+        ** nbp_r_eps
+        ** override energy parameters:
+        ** Lennard-Jones and Hydrogen Bond Potentials,
+        ** GPF_NBP_REQM_EPS: Using epsilon and r-equilibrium values...
+        ** for the interaction of the specified types 
+        */
+
+        Real epsij;
+        Real Rij;
+        char param[2][LINE_LEN];
+        int xA, xB, nfields;
+        static ParameterEntry * foundParameter;
+        //char error_message[LINE_LEN+100];
+        //Real sigma;
+
+        nfields = sscanf( GPF_line, "%*s " FDFMT2 " %d %d %s %s", &Rij, &epsij, &xA, &xB, param[0], param[1] );
+        if(nfields!=6) {
+         (void) sprintf( message,  "syntax error, not 6 values in NBP_R_EPS line");
+         print_error(logFile, FATAL_ERROR, message);
+        }
+        /* check values? 
+        if ((Rij < RIJ_MIN) || (Rij > RIJ_MAX)) {
+            (void) fprintf( logFile,
+	    "WARNING: pairwise distance, Rij, %.2f, is not a very reasonable value for the equilibrium separation of two atoms! (%.2f Angstroms <= Rij <= %.2f Angstroms)\n\n", Rij, RIJ_MIN, RIJ_MAX);        
+        */
+
+        if ( GPF_keyword == GPF_NBP_R_EPS ) {
+           // Calculate the coefficients from Rij and epsij                      
+           /* Defend against division by zero... */
+           if (xA != xB) { 
+    	       double tmpconst = epsij / (Real)(xA - xB);
+               cA = tmpconst * pow( (double)Rij, (double)xA ) * (Real)xB;
+               cB = tmpconst * pow( (double)Rij, (double)xB ) * (Real)xA;
+           } else {           
+               (void) sprintf( message, "exponents xA and xB cannot be equal.\n");
+               print_error( logFile, FATAL_ERROR, message );
+          } 
+        } else {
+               cA = Rij;
+               cB = epsij;
+ 
+        } //@@
+        int a[2]; /* array holding atom types of this interaction pair from main.cc ~2317 */
+        //Boole is_hbond = FALSE;  // MPique 2012 not implemented here
+        //Boole B_havenbp = TRUE;
+        for (int i=0;i<2;i++) {
+            int ligtype, rectype;
+            ligtype = get_map_index(param[i%2]);
+            rectype = get_rec_index(param[(i+1)%2]);
+            //foundParameter = apm_find(ligtype);
+            //if ( !foundParameter ) {
+            if (ligtype>=0 && rectype>=0){
+                pr(logFile, "\n nbp_r_eps or nbp_coeffs: map_index(%s)= %d  rec_index(%s)= %d\n",param[i%2],ligtype, param[(i+1)%2],rectype);
+                //sprintf( message,"ERROR:  Unknown ligand atom type \"%s\"; add parameters for it to the parameter library first!\n", param[i]);
+               //print_error(logFile, FATAL_ERROR, message);
+		/* NOTREACHED */
+                gridmap[ligtype].cA[rectype] = cA;
+                gridmap[ligtype].cB[rectype] = cB;
+                gridmap[ligtype].nbp_r[rectype] = Rij;
+                gridmap[ligtype].nbp_eps[rectype] = epsij;
+            } //if
+           
+        } //iloop
+        pr(logFile, "\nOverriding non-bonded interaction energies for docking calculation;\n"); //@@@@VERIFY
+
+        //ad_tables->e_vdW_Hb[i][a1][a2]  =  ad_tables->e_vdW_Hb[i][a2][a1]  =  min( EINTCLAMP, (cA/rA - cB/rB) );
+        //nbtable( &B_havenbp, a[0], a[1], info, cA, cB, xA, xB, is_hbond, r_smooth, AD4, sigma, ad_energy_tables, BOUND_CALCULATION, logFile, outlev);
+       /*pr(logFile, "\nCalculating internal non-bonded interaction energies for unbound conformation calculation;\n");
+       intnbtable( &B_havenbp, a[0], a[1], info, cA_unbound, cB_unbound, xA_unbound, xB_unbound, is_hbond, r_smooth, AD4, sigma, unbound_energy_tables, UNBOUND_CALCULATION, logFile, outlev );*/        
+        
+        break;
+
+
+
+/******************************************************************************/
+
     default:
         break;
 
@@ -1564,6 +1646,8 @@ for (ia=0; ia<num_atom_maps; ia++){
         ParameterEntry * lig_parm = apm_find(ligand_types[ia]);
         for (i = 0;  i < receptor_types_ct;  i++) {
             /*for each receptor_type*/
+            cA = gridmap[ia].cA[i];
+            cB = gridmap[ia].cB[i];
             xA = gridmap[ia].xA[i];
             xB = gridmap[ia].xB[i];
             Rij = gridmap[ia].nbp_r[i];
@@ -1635,8 +1719,10 @@ for (ia=0; ia<num_atom_maps; ia++){
              } /* END use_vina_potential*/
             else { //use regular autogrid potential
             /*for each receptor_type get its parms and fill in tables*/
-            cA = (tmpconst = epsij / (double)(xA - xB)) * pow( Rij, (double)xA ) * (double)xB;
-            cB = tmpconst * pow( Rij, (double)xB ) * (double)xA;
+            if (cA==0 && cB==0){
+                cA = (tmpconst = epsij / (double)(xA - xB)) * pow( Rij, (double)xA ) * (double)xB;
+                cB = tmpconst * pow( Rij, (double)xB ) * (double)xA;
+            }
             if ( isnan( cA ) ) {
                 print_error( logFile, FATAL_ERROR, "Van der Waals coefficient cA is not a number.  AutoGrid must exit." );
             }
