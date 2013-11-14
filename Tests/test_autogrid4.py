@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #
-# $Id: test_autogrid4.py,v 1.17 2013/10/09 20:49:48 mp Exp $
+# $Id: test_autogrid4.py,v 1.18 2013/11/14 22:16:02 mp Exp $
 #
 """
 Test AutoGrid.
@@ -323,7 +323,8 @@ class AutoGrid_nbpreps_test(AutoGrid_simple_test):
 #------------------------------------------------------------------
 class AutoGrid_nbpreps_illegal_atom_test(AutoGrid_simple_test):
     gpf_stem = 'hsg1_sm_nbpreps_illegal_atom'  # nbp_r_eps
-    expected_outcome = False
+    # illegal atoms in nbb_r_eps statements are not considered an error
+    expected_outcome = True
 
 #------------------------------------------------------------------
 class AutoGrid_nbpreps_toofew_test(AutoGrid_simple_test):
