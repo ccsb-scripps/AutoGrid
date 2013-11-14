@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.103 2013/10/09 23:26:55 rhuey Exp $
+ $Id: main.cpp,v 1.104 2013/11/14 22:16:57 mp Exp $
 
  AutoGrid 
 
@@ -544,7 +544,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.103 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.104 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d MAX_DIST=%d\n",
     NUM_RECEPTOR_TYPES, MAX_DIST);
 (void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1439,35 +1439,24 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                cA = Rij;
                cB = epsij;
  
-        } //@@
-        int a[2]; /* array holding atom types of this interaction pair from main.cc ~2317 */
-        //Boole is_hbond = FALSE;  // MPique 2012 not implemented here
-        //Boole B_havenbp = TRUE;
+        } 
         for (int i=0;i<2;i++) {
+	    /* try both orderings of "ligand,receptor" and "receptor,ligand": not error if not found  */
             int ligtype, rectype;
             ligtype = get_map_index(param[i%2]);
             rectype = get_rec_index(param[(i+1)%2]);
-            //foundParameter = apm_find(ligtype);
-            //if ( !foundParameter ) {
             if (ligtype>=0 && rectype>=0){
                 pr(logFile, "\n nbp_r_eps or nbp_coeffs: map_index(%s)= %d  rec_index(%s)= %d\n",param[i%2],ligtype, param[(i+1)%2],rectype);
-                //sprintf( message,"ERROR:  Unknown ligand atom type \"%s\"; add parameters for it to the parameter library first!\n", param[i]);
-               //print_error(logFile, FATAL_ERROR, message);
-		/* NOTREACHED */
                 gridmap[ligtype].cA[rectype] = cA;
                 gridmap[ligtype].cB[rectype] = cB;
                 gridmap[ligtype].nbp_r[rectype] = Rij;
                 gridmap[ligtype].nbp_eps[rectype] = epsij;
-            } //if
+                gridmap[ligtype].xA[rectype] = xA;
+                gridmap[ligtype].xB[rectype] = xB;
+            }
            
-        } //iloop
-        pr(logFile, "\nOverriding non-bonded interaction energies for docking calculation;\n"); //@@@@VERIFY
-
-        //ad_tables->e_vdW_Hb[i][a1][a2]  =  ad_tables->e_vdW_Hb[i][a2][a1]  =  min( EINTCLAMP, (cA/rA - cB/rB) );
-        //nbtable( &B_havenbp, a[0], a[1], info, cA, cB, xA, xB, is_hbond, r_smooth, AD4, sigma, ad_energy_tables, BOUND_CALCULATION, logFile, outlev);
-       /*pr(logFile, "\nCalculating internal non-bonded interaction energies for unbound conformation calculation;\n");
-       intnbtable( &B_havenbp, a[0], a[1], info, cA_unbound, cB_unbound, xA_unbound, xB_unbound, is_hbond, r_smooth, AD4, sigma, unbound_energy_tables, UNBOUND_CALCULATION, logFile, outlev );*/        
-        
+        }
+        pr(logFile, "\nOverriding non-bonded interaction energies for docking calculation;\n");
         break;
 
 
