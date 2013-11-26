@@ -3,7 +3,7 @@
 
 AC_PREREQ(2.61)
 # 4.2.5 November 2 2012
-AC_INIT([autogrid], [4.2.5.x.20131114], [autodock@scripps.edu])
+AC_INIT([autogrid], [4.2.5.x.20131125], [autodock@scripps.edu])
 AC_CONFIG_SRCDIR([atom_parameter_manager.cpp])
 #AC_CONFIG_HEADER([config.h])
 

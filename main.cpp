@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.104 2013/11/14 22:16:57 mp Exp $
+ $Id: main.cpp,v 1.105 2013/11/26 01:31:15 mp Exp $
 
  AutoGrid 
 
@@ -544,7 +544,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.104 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.105 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d MAX_DIST=%d\n",
     NUM_RECEPTOR_TYPES, MAX_DIST);
 (void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1785,7 +1785,7 @@ for (ia=0; ia<num_atom_maps; ia++){
 	    /* so i_smooth = 0.5 * 100. / 2 = 25 */
 	    i_smooth = (int) (r_smooth*A_DIV/2.);
             if (i_smooth > 0) {
-                for (indx_r = 1;  indx_r < NEINT;  indx_r++) {
+                for (indx_r = 0;  indx_r < NEINT;  indx_r++) {
                     energy_smooth[indx_r] = 100000.;
                     for (j = max(0, indx_r - i_smooth);  j < min(NEINT, indx_r + i_smooth + 1);  j++) {
                       if (ET)
@@ -1794,8 +1794,8 @@ for (ia=0; ia<num_atom_maps; ia++){
                       energy_smooth[indx_r] = min(energy_smooth[indx_r], et.e_vdW_Hb[j][i][ia]);
                     }
                 }
-                for (indx_r = 1;  indx_r < NEINT;  indx_r++) {
-                    energy_lookup[i][indx_r][ia] = energy_smooth[indx_r]; //@@!
+                for (indx_r = 0;  indx_r < NEINT;  indx_r++) {
+                    energy_lookup[i][indx_r][ia] = energy_smooth[indx_r];
                     et.e_vdW_Hb[indx_r][i][ia] = energy_smooth[indx_r];
                 }
             } /* endif smoothing */
