@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.16 2012/04/24 20:59:29 mp Exp $
+ $Id: setflags.cpp,v 1.17 2014/06/25 01:06:37 mp Exp $
 
  AutoGrid 
 
@@ -77,7 +77,7 @@ int setflags( int argc, char **argv, char *version )
     argindex = 1;
     programname = argv[0];
     GPF = stdin;
-    logFile = stdout;
+    logFile = stderr;
 /*----------------------------------------------------------------------------*/
 /* Loop over arguments                                                        */
 /*----------------------------------------------------------------------------*/
@@ -106,7 +106,7 @@ int setflags( int argc, char **argv, char *version )
                 fprintf(stderr, "\n%s: Sorry, -l requires a filename.\n\t%s\n", programname, AutoGridHelp);
                 exit(EXIT_FAILURE);
             }
-            if ( (logFile = ad_fopen(argv[2], "w")) == NULL ) {
+            if ( (logFile = ad_fopen(argv[2], "w", logFile)) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't create the log file \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
                 exit(EXIT_FAILURE);
@@ -123,7 +123,7 @@ int setflags( int argc, char **argv, char *version )
             strncpy(grid_param_fn, argv[2], PATH_MAX);
             grid_param_fn[PATH_MAX-1] = '\0';
 
-            if ( (GPF = ad_fopen(argv[2], "r")) == NULL ) {
+            if ( (GPF = ad_fopen(argv[2], "r", logFile)) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't find or open Grid Parameter File \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
                 exit(EXIT_FAILURE);

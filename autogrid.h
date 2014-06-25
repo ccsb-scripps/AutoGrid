@@ -1,6 +1,6 @@
 /*
 
- $Id: autogrid.h,v 1.21 2012/04/24 23:33:30 mp Exp $
+ $Id: autogrid.h,v 1.22 2014/06/25 01:06:37 mp Exp $
 
  AutoGrid 
 
@@ -97,7 +97,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #define MAX_LEN_AUTOGRID_TYPE 7
 
 /* added for port to BOINC 11/17/2004 */
-FILE *ad_fopen(const char *path, const char *mode);
+FILE *ad_fopen(const char *path, const char *mode, FILE *logFile);
 
 /*----------------------------------------------------------------------------*/
 /* transplants from main                    */

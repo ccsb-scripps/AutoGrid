@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.105 2013/11/26 01:31:15 mp Exp $
+ $Id: main.cpp,v 1.106 2014/06/25 01:06:37 mp Exp $
 
  AutoGrid 
 
@@ -128,7 +128,7 @@ void print_error( FILE *fileptr, int error_level, char *message)
 }
 
 /* fopen rewrite to either use BOINC api or normal system call */
-FILE *ad_fopen(const char *path, const char *mode)
+FILE *ad_fopen(const char *path, const char *mode, FILE *logFile)
 {
   FILE *filep;
 #ifdef BOINC
@@ -544,7 +544,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.105 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.106 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d MAX_DIST=%d\n",
     NUM_RECEPTOR_TYPES, MAX_DIST);
 (void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -640,7 +640,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         (void) fprintf( logFile, "\nReceptor Input File :\t%s\n\nReceptor Atom Type Assignments:\n\n", receptor_filename);
 
         /* try to open receptor file */
-        if ( (receptor_fileptr = ad_fopen(receptor_filename, "r")) == NULL ) {
+        if ( (receptor_fileptr = ad_fopen(receptor_filename, "r", logFile)) == NULL ) {
             (void) sprintf( message, "can't find or open receptor PDBQT file \"%s\".\n", receptor_filename);
             print_error( logFile, FATAL_ERROR, message );
         }
@@ -862,13 +862,13 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             xyz_filename[infld + 1] = 'y';
             xyz_filename[infld + 2] = 'z';
         }
-        if ( (AVS_fld_fileptr = ad_fopen(AVS_fld_filename, "w")) == NULL ) {
+        if ( (AVS_fld_fileptr = ad_fopen(AVS_fld_filename, "w", logFile)) == NULL ) {
             (void) sprintf( message, "can't create grid dimensions data file %s\n", AVS_fld_filename);
             print_error( logFile, FATAL_ERROR, message );
         } else {
             (void) fprintf( logFile, "\nCreating (AVS-readable) grid maps file : %s\n", AVS_fld_filename);
         }
-        if ( (xyz_fileptr = ad_fopen(xyz_filename, "w")) == NULL ) {
+        if ( (xyz_fileptr = ad_fopen(xyz_filename, "w", logFile)) == NULL ) {
             (void) sprintf( message, "can't create grid extrema data file %s\n", xyz_filename);
             print_error( logFile, FATAL_ERROR, message );
         } else {
@@ -1263,7 +1263,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         }
         /* Read in the filename for this grid map */ /* GPF_MAP */
         (void) sscanf( GPF_line, "%*s %s", gridmap[map_index].map_filename);
-        if ( (gridmap[map_index].map_fileptr = ad_fopen( gridmap[map_index].map_filename, "w")) == NULL ) {
+        if ( (gridmap[map_index].map_fileptr = ad_fopen( gridmap[map_index].map_filename, "w", logFile)) == NULL ) {
             (void) sprintf( message, "Cannot open grid map \"%s\" for writing.", gridmap[map_index].map_filename);
             print_error( logFile, FATAL_ERROR, message );
         }
@@ -1275,7 +1275,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 /******************************************************************************/
     case GPF_ELECMAP:
         (void) sscanf( GPF_line, "%*s %s", gridmap[elecPE].map_filename);
-        if ( (gridmap[elecPE].map_fileptr = ad_fopen( gridmap[elecPE].map_filename, "w" )) == NULL){
+        if ( (gridmap[elecPE].map_fileptr = ad_fopen( gridmap[elecPE].map_filename, "w", logFile)) == NULL){
             (void) sprintf( message, "can't open grid map \"%s\" for writing.\n", gridmap[elecPE].map_filename);
             print_error( logFile, FATAL_ERROR, message );
         }
@@ -1285,7 +1285,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 /******************************************************************************/
     case GPF_DSOLVMAP:
         (void) sscanf( GPF_line, "%*s %s", gridmap[dsolvPE].map_filename);
-        if ( (gridmap[dsolvPE].map_fileptr = ad_fopen( gridmap[dsolvPE].map_filename, "w" )) == NULL){
+        if ( (gridmap[dsolvPE].map_fileptr = ad_fopen( gridmap[dsolvPE].map_filename, "w", logFile)) == NULL){
             (void) sprintf( message, "can't open grid map \"%s\" for writing.\n", gridmap[dsolvPE].map_filename);
             print_error( logFile, FATAL_ERROR, message );
         }
@@ -1372,7 +1372,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
     case GPF_FMAP:
         (void) sscanf( GPF_line, "%*s %s", floating_grid_filename);
-        if ( (floating_grid_fileptr = ad_fopen( floating_grid_filename, "w" )) == NULL) {
+        if ( (floating_grid_fileptr = ad_fopen( floating_grid_filename, "w", logFile)) == NULL) {
             (void) sprintf( message, "can't open grid map \"%s\" for writing.\n", floating_grid_filename);
             print_error( logFile, FATAL_ERROR, message );
         }
@@ -2803,7 +2803,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
     (void) fprintf( logFile, " %6d   %8.3lf   %5.1lf%%   ", icoord[Z], cgridmin[Z] + c[Z], percentdone*(double)++ic);
     prHMSfixed( timeRemaining);
     (void) fprintf( logFile, "  ");
-    timesys( grd_end - grd_start, &tms_grd_start, &tms_grd_end);
+    timesys( grd_end - grd_start, &tms_grd_start, &tms_grd_end, logFile);
     (void) fflush( logFile);
 } /* icoord[Z] loop */
 
@@ -2848,7 +2848,7 @@ free(gridmap);
 (void) fprintf( logFile, "\n%s: Successful Completion.\n", programname); // do not tinker with this, used by ADT and by automated tests
 
 job_end = times( &tms_job_end);
-timesyshms( job_end - job_start, &tms_job_start, &tms_job_end);
+timesyshms( job_end - job_start, &tms_job_start, &tms_job_end, logFile);
 
 (void) fclose( logFile);
 
