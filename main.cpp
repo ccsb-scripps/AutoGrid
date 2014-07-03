@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.106 2014/06/25 01:06:37 mp Exp $
+ $Id: main.cpp,v 1.107 2014/07/03 20:31:40 mp Exp $
 
  AutoGrid 
 
@@ -68,7 +68,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include "timesys.h"
 #include "timesyshms.h"
 
-extern float idct;
+extern Real idct;
 
 // round() is a C99 function and not universally available
 // Required to round %.3f consistently on different platforms
@@ -544,7 +544,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.106 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.107 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d MAX_DIST=%d\n",
     NUM_RECEPTOR_TYPES, MAX_DIST);
 (void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1409,9 +1409,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         Real Rij;
         char param[2][LINE_LEN];
         int xA, xB, nfields;
-        static ParameterEntry * foundParameter;
-        //char error_message[LINE_LEN+100];
-        //Real sigma;
 
         nfields = sscanf( GPF_line, "%*s " FDFMT2 " %d %d %s %s", &Rij, &epsij, &xA, &xB, param[0], param[1] );
         if(nfields!=6) {

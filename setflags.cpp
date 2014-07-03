@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.17 2014/06/25 01:06:37 mp Exp $
+ $Id: setflags.cpp,v 1.18 2014/07/03 20:31:40 mp Exp $
 
  AutoGrid 
 
@@ -134,7 +134,24 @@ int setflags( int argc, char **argv, char *version )
             break;
         case 'v':
             fprintf(stdout, "AutoGrid %-8s\n", version);
-            fprintf(stdout, " Copyright (C) 2009 The Scripps Research Institute.\n");
+	    fprintf(stdout, "compilation options:\n");
+            fprintf(stdout, "  Double-precision calculations (USE_DOUBLE): ");
+#ifdef USE_DOUBLE
+	    fprintf(stdout, " yes\n");
+#else
+	    fprintf(stdout, " no\n");
+#endif
+	    fprintf(stdout, "  Maximum number of receptor atom types (NUM_RECEPTOR_TYPES): %d\n", NUM_RECEPTOR_TYPES);
+	    fprintf(stdout, "  Maximum number of atom types (MAX_ATOM_TYPES): %d\n", MAX_ATOM_TYPES);
+	    fprintf(stdout, "  Maximum number of maps (MAX_MAPS): %d\n", MAX_MAPS);
+	    fprintf(stdout, "  Maximum dimension of map x, y, or z (MAX_GRID_PTS): %d\n", MAX_GRID_PTS);
+	    /* print sizes of key types for this compilation */
+	    fprintf(stdout, "  Size of int %d, long %d, FourByteLong %d, float %d, double %d, Real %d bytes.\n",
+		(int)(sizeof(int)), (int)(sizeof(long)), (int)(sizeof(FourByteLong)),
+		(int)(sizeof(float)), (int)(sizeof(double)), (int)(sizeof(Real)) );
+
+
+            fprintf(stdout, "\n Copyright (C) 2009 The Scripps Research Institute.\n");
 // GNU BEGIN   (see maintenance script update_license_de-GNU)
             fprintf(stdout, " License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>\n");
             fprintf(stdout, " This is free software: you are free to change and redistribute it.\n");
