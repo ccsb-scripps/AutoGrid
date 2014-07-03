@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.29 2013/03/05 23:15:51 mp Exp $
+# $Id: Makefile.am,v 1.30 2014/07/03 20:32:23 mp Exp $
 # 
 # AutoGrid 
 # 
@@ -93,13 +93,13 @@ autogrid4_SOURCES = main.cpp \
 # from the autodock source directory to the autogrid build directory.
 BUILT_SOURCES = default_parameters.h
 
-CLEANFILES = default_parameters.h
 
 AM_CFLAGS = -Wall -O3 # All warnings, Agressive optimization
 
 AM_CPPFLAGS = -Wall -O3 -I $(srcdir) -I$(srcdir)/../autodock # All warnings, Agressive optimization
 AM_CPPFLAGS += -Wno-write-strings # increase compatibility with pre 4.x compilers for string handling
-AM_CPPFLAGS += -DUSE_8A_NBCUTOFF
+#  M Pique - add USE_DOUBLE to define Real as double instead of float, see typedefs.h
+AM_CPPFLAGS += -DUSE_DOUBLE
 
 # autogrid4_CXXFLAGS = -Wall -O3 -ftree-vectorize # All warnings, Agressive optimization, GCC vectorization in Mac OS X
 
