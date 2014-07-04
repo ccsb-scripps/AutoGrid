@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.18 2014/07/03 20:31:40 mp Exp $
+ $Id: setflags.cpp,v 1.19 2014/07/04 01:28:18 mp Exp $
 
  AutoGrid 
 
@@ -28,6 +28,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include <stdlib.h>
 #include <string.h>
 #include "autogrid.h"
+#include "constants.h"
 #include <unistd.h>
 #include <stdlib.h> // POSIX definitions of EXIT_SUCCESS and EXIT_FAILURE
 
@@ -141,13 +142,21 @@ int setflags( int argc, char **argv, char *version )
 #else
 	    fprintf(stdout, " no\n");
 #endif
+	    fprintf(stdout, "  Non-bond cutoff for internal energy calculation (NBC): %.2f\n", NBC);
+            fprintf(stdout, "  Optimize internal energy scoring (USE_8A_NBCUTOFF): ");
+#ifdef USE_8A_NBCUTOFF
+	    fprintf(stdout, " yes\n");
+#else
+	    fprintf(stdout, " no\n");
+#endif
+
 	    fprintf(stdout, "  Maximum number of receptor atom types (NUM_RECEPTOR_TYPES): %d\n", NUM_RECEPTOR_TYPES);
 	    fprintf(stdout, "  Maximum number of atom types (MAX_ATOM_TYPES): %d\n", MAX_ATOM_TYPES);
 	    fprintf(stdout, "  Maximum number of maps (MAX_MAPS): %d\n", MAX_MAPS);
 	    fprintf(stdout, "  Maximum dimension of map x, y, or z (MAX_GRID_PTS): %d\n", MAX_GRID_PTS);
 	    /* print sizes of key types for this compilation */
-	    fprintf(stdout, "  Size of int %d, long %d, FourByteLong %d, float %d, double %d, Real %d bytes.\n",
-		(int)(sizeof(int)), (int)(sizeof(long)), (int)(sizeof(FourByteLong)),
+	    fprintf(stdout, "  Size of int %d, long %d, float %d, double %d, Real %d bytes.\n",
+		(int)(sizeof(int)), (int)(sizeof(long)), 
 		(int)(sizeof(float)), (int)(sizeof(double)), (int)(sizeof(Real)) );
 
 
