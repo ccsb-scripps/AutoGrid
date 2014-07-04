@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.30 2014/07/03 20:32:23 mp Exp $
+# $Id: Makefile.am,v 1.31 2014/07/04 01:27:43 mp Exp $
 # 
 # AutoGrid 
 # 
@@ -98,6 +98,8 @@ AM_CFLAGS = -Wall -O3 # All warnings, Agressive optimization
 
 AM_CPPFLAGS = -Wall -O3 -I $(srcdir) -I$(srcdir)/../autodock # All warnings, Agressive optimization
 AM_CPPFLAGS += -Wno-write-strings # increase compatibility with pre 4.x compilers for string handling
+#  M Pique - add USE_8A_NBCUTOFF
+AM_CPPFLAGS += -DUSE_8A_NBCUTOFF
 #  M Pique - add USE_DOUBLE to define Real as double instead of float, see typedefs.h
 AM_CPPFLAGS += -DUSE_DOUBLE
 
@@ -174,6 +176,7 @@ clean-local: clean-local-check
 .PHONY: clean-local-check
 clean-local-check:
 	sh $(srcdir)/copyfilesfromAD -r
+	-rm -f default_parameters.h
 	-rm -rf Testruns
 #
 # EOF
