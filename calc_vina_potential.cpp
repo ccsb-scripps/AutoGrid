@@ -150,12 +150,12 @@ int calc_vina_potential( const int num_ligand_types,
             map_Rij = rec_parm->xs_radius; //see read_parameter_library
             rec_hbond = rec_parm->hbond;
             //@@TODO@@: add SER-OG,THR-OG, TYR_OH: X(1.2) Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
-            /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
+            /* loop over distance index, indx_r, from 0 to NDIEL */ /* GPF_MAP */
 #ifdef DEBUG
             printf("%d-%d-building  Rij=%6.3lf, map_Rij=%10.8f for %s %s\n",ia,i, Rij, map_Rij, receptor_types[i], ligand_types[ia]);
 #endif
             //(void) fprintf( logFile, "Calculating vina energies for %s-%s interactions (%d, %d).\n", gridmap[ia].type, receptor_types[i], ia, i );
-            for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
+            for (indx_r = 1;  indx_r < NDIEL;  indx_r++) {
                 r  = angstrom(indx_r);
                 // compute rddist:                                   map_Rij  rddist   Rij
                 //  interatom_distance - xs_radius(t1) -xs_radius(t2)    .--|........|-----.  

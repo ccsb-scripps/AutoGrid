@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.107 2014/07/03 20:31:40 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.108 2014/07/04 01:29:18 mp Exp $
 
  AutoGrid 
 
@@ -63,6 +63,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include "autogrid.h"
 #include "autoglobal.h"
 #include "autocomm.h"
+#include "constants.h"
 #include "distdepdiel.h"
 #include "read_parameter_library.h"
 #include "timesys.h"
@@ -182,7 +183,7 @@ int main( int argc,  char **argv )
 /*                                                                            */
 /*    Inputs: Control file, receptor PDBQT file, parameter file               */
 /*   Returns: Atomic affinity, desolvation and electrostatic grid maps.       */
-/*   Globals: MAX_DIST, MAX_MAPS                                              */
+/*   Globals: NDIEL, MAX_MAPS                                              */
 /*             increased from 8 to 16  6/4/2004                               */
 /*                                                                            */
 /* Modification Record                                                        */
@@ -225,9 +226,8 @@ char ligand_types[MAX_MAPS][3];
 char * ligand_atom_types[MAX_MAPS];
 
 /*malloc this after the number of receptor types is parsed*/
-/*MAX_DIST is really NBC times 100 */
 static EnergyTables et;
-static double energy_lookup[NUM_RECEPTOR_TYPES][MAX_DIST][MAX_MAPS];//@@ rm
+static double energy_lookup[NUM_RECEPTOR_TYPES][NEINT][MAX_MAPS]; // vdW and Hb only
 
 
 typedef struct mapObject {
@@ -339,11 +339,10 @@ char line[LINE_LEN];
 char GPF_line[LINE_LEN];
 int length = LINE_LEN;
 
-/* MAX_DIST */
-double epsilon[MAX_DIST]; //@@ rm
-#define MD_1  (MAX_DIST-1)
-//static double sol_fn[MAX_DIST]; //@@ rm
-double energy_smooth[MAX_DIST];
+/* NDIEL (old name MAX_DIST) for dielectric and desolvation interactions  */
+double epsilon[NDIEL];
+/* NEINT - for vdW and Hb interactions */
+double energy_smooth[NEINT];
 
 int ctr;
 
@@ -544,15 +543,15 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.107 $\n");
-(void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d MAX_DIST=%d\n",
-    NUM_RECEPTOR_TYPES, MAX_DIST);
+(void) fprintf(logFile, "                           $Revision: 1.108 $\n");
+(void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
+    NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
     MAX_MAPS, NDIEL, MAX_ATOM_TYPES);
 
 fprintf(logFile, " energy_lookup table has %8ld entries of size %ld\n", 
   (long)(sizeof energy_lookup/sizeof ***energy_lookup), (long)(sizeof ***energy_lookup));
-fprintf(logFile,"        e_vdWHb table has %8ld entries of size %ld\n",
+fprintf(logFile,"        e_vdW_Hb table has %8ld entries of size %ld\n",
   (long)(sizeof et.e_vdW_Hb/sizeof ***et.e_vdW_Hb), (long)(sizeof ***et.e_vdW_Hb));
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
@@ -1339,18 +1338,18 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 	    epsilon[0] = 1.0;
 	    else
             et.epsilon_fn[0] = 1.0;
-            for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
+            for (indx_r = 1;  indx_r < NDIEL;  indx_r++) {
                 et.epsilon_fn[indx_r] = calc_ddd_Mehler_Solmajer( angstrom(indx_r), APPROX_ZERO );
 		if(ET)epsilon[indx_r] = et.epsilon_fn[indx_r];
             }
             (void) fprintf( logFile, "  d   Dielectric\n ___  __________\n");
-            for (i = 0;  i <= min(500,MAX_DIST);  i += 10) {
+            for (i = 0;  i <= min(500,NDIEL);  i += 10) {
                 ri = angstrom(i);
                 (void) fprintf( logFile, "%4.1lf%9.2lf\n", ri, et.epsilon_fn[i]);
             }
             (void) fprintf( logFile, "\n");
             /* convert epsilon to factor / epsilon */
-            for (i = 0;  i < MAX_DIST;  i++) {
+            for (i = 0;  i < NDIEL;  i++) {
 		if(ET)
                 epsilon[i] = factor / epsilon[i];
 		else
@@ -1728,23 +1727,21 @@ for (ia=0; ia<num_atom_maps; ia++){
             (void) fprintf( logFile, "    E    =  -----------  -  -----------\n");
             (void) fprintf( logFile, "     %s, %s         %2d              %2d\n", gridmap[ia].type, receptor_types[i], xA, xB);
             (void) fprintf( logFile, "                r               r \n\n");
-            /* loop over distance index, indx_r, from 0 to MAX_DIST */ /* GPF_MAP */
+            /* loop over distance index, indx_r, from 0 to max(NEINT,NDIEL) */ /* GPF_MAP */
             (void) fprintf( logFile, "Calculating energies for %s-%s interactions.\n", gridmap[ia].type, receptor_types[i] );
 
-	    // do only up to non-bond cutoff distance
+	    // do up to non-bond cutoff distance
             for (indx_r = 1;  indx_r < NEINT;  indx_r++) {
                 r  = angstrom(indx_r);
                 rA = pow( r, dxA);
                 rB = pow( r, dxB);
-                energy_lookup[i][indx_r][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
-    //Real e_vdW_Hb[NDIEL][NUM_RECEPTOR_TYPES][MAX_MAPS];  // vdW & Hb energies
-		if(indx_r>=NDIEL) printf("indx_r>=%d %d\n", NDIEL, indx_r);
-		else if(i>=NUM_RECEPTOR_TYPES) printf("i>=%d %d\n", NUM_RECEPTOR_TYPES,i);
-		else if(ia>=MAX_MAPS) printf("ia>=%d %d\n", MAX_MAPS, ia);
-                else et.e_vdW_Hb[indx_r][i][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
-                if ( fabs(energy_lookup[i][indx_r][ia]-et.e_vdW_Hb[indx_r][i][ia])>0.01) \
-                printf("i=%d indx_r=%d ia = %d %lf != %lf\n",i, indx_r, ia, energy_lookup[i][indx_r][ia], et.e_vdW_Hb[indx_r][i][ia]);
-                //assert( energy_lookup[i][indx_r][ia]==et.e_vdW_Hb[indx_r][i][ia]);
+		// these should probably be assert()s - MP TODO
+		if(i>=NUM_RECEPTOR_TYPES) printf("i>=%d %d\n", NUM_RECEPTOR_TYPES,i);
+		if(ia>=MAX_MAPS) printf("ia>=%d %d\n", MAX_MAPS, ia);
+                et.e_vdW_Hb[indx_r][i][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
+		//energy_lookup[i][indx_r][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
+		//if ( fabs(energy_lookup[i][indx_r][ia]-et.e_vdW_Hb[indx_r][i][ia])>0.01) 
+                 //  printf("i=%d indx_r=%d ia = %d %lf != %lf\n",i, indx_r, ia, energy_lookup[i][indx_r][ia], et.e_vdW_Hb[indx_r][i][ia]);
             } /*for each distance*/ 
             energy_lookup[i][0][ia]    = EINTCLAMP;
             energy_lookup[i][NEINT-1][ia] = 0.;
@@ -1853,7 +1850,7 @@ for (ia=0; ia<num_atom_maps; ia++){
  * and will not be smoothed 
  */
 double sigma = 3.6;
-for (indx_r = 1;  indx_r < MAX_DIST;  indx_r++) {
+for (indx_r = 1;  indx_r < NDIEL;  indx_r++) {
      r  = angstrom(indx_r);
      et.sol_fn[indx_r] = AD4.coeff_desolv * exp(-sq(r)/(2.*sq(sigma)));
 }
@@ -2420,8 +2417,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     d[i] *= inv_r;
                 }
                 /* make sure both lookup indices are in the tables */
-                indx_r = min(lookup(r), MD_1);
-		int indx_n = min(indx_r, NEINT-1);
+                indx_r = min(lookup(r), NDIEL-1);
+		int indx_n = min(lookup(r), NEINT-1);
 
                 if (floating_grid) {
                     /* Calculate the so-called "Floating Grid"... */

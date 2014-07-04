@@ -1,6 +1,6 @@
 /*
 
- $Id: autogrid.h,v 1.22 2014/06/25 01:06:37 mp Exp $
+ $Id: autogrid.h,v 1.23 2014/07/04 01:29:18 mp Exp $
 
  AutoGrid 
 
@@ -53,7 +53,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 /* 04/01/93 GMM     Created for use in makefile.                              */
 /******************************************************************************/
 
-#define MAX_DIST     16384   /* Maximum distance in 100ths of an Angstrom.    */
+//#define MAX_DIST     16384   /* Maximum distance in 100ths of an Angstrom.    */
                              /*  = 163.84 Angstroms                           */
 #define AG_MAX_ATOMS    32768   /* Maximum number of atoms in macromolecule.     */
 /*    32768 = 2^15	*/
