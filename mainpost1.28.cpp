@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.108 2014/07/04 01:29:18 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.109 2014/07/16 23:11:27 mp Exp $
 
  AutoGrid 
 
@@ -543,7 +543,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.108 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.109 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -682,11 +682,11 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 (void) sscanf(&line[77], "%s", thisparm.autogrid_type);
                 found_parm = apm_find(thisparm.autogrid_type);
                 if ( found_parm != NULL ) {
-                    (void) fprintf ( logFile, "DEBUG: found_parm->rec_index = %d, ->xs_radius= %f", found_parm->rec_index, found_parm->xs_radius);
+                    //(void) fprintf ( logFile, "DEBUG: found_parm->rec_index = %d, ->xs_radius= %f", found_parm->rec_index, found_parm->xs_radius);
                     if ( found_parm->rec_index < 0 ) {
                         strcpy( receptor_types[ receptor_types_ct ], found_parm->autogrid_type );
                         found_parm->rec_index = receptor_types_ct++;
-                        (void) fprintf ( logFile, "DEBUG: found_parm->rec_index => %d", found_parm->rec_index );
+                        //(void) fprintf ( logFile, "DEBUG: found_parm->rec_index => %d", found_parm->rec_index );
                     }
                     atom_type[ia] = found_parm->rec_index;
                     solpar[ia] = found_parm->solpar;
