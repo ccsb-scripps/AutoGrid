@@ -1,6 +1,6 @@
 /*
 
- $Id: banner.cpp,v 1.16 2009/05/08 23:36:15 rhuey Exp $
+ $Id: banner.cpp,v 1.17 2015/03/31 00:20:56 forli Exp $
 
  AutoGrid 
 
@@ -72,6 +72,7 @@ void banner( char * version_num )
 (void) fprintf(logFile,"               |            Ruth Huey, TSRI           |\n");
 (void) fprintf(logFile,"               |        David S. Goodsell, TSRI       |\n");
 (void) fprintf(logFile,"               |         Arthur J. Olson, TSRI        |\n");
+(void) fprintf(logFile,"               |     (MODIFIED VERSION DUAL HB)       |\n");
 (void) fprintf(logFile,"               |                                      |\n");
 (void) fprintf(logFile,"               |        (C) 1989-2009, TSRI           |\n");
 (void) fprintf(logFile,"               |   The Scripps Research Institute     |\n");
