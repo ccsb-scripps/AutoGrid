@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.109 2014/07/16 23:11:27 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.110 2015/03/31 00:20:28 forli Exp $
 
  AutoGrid 
 
@@ -543,7 +543,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.109 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.110 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -691,7 +691,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                     atom_type[ia] = found_parm->rec_index;
                     solpar[ia] = found_parm->solpar;
                     vol[ia] = found_parm->vol;
-                    hbond[ia] = found_parm->hbond; /*NON=0, DS,D1, AS, A1, A2*/
+                    hbond[ia] = found_parm->hbond; /*NON=0, DS,D1, AS, A1, A2, AD */ /* N3P: added AD*/
 #ifdef DEBUG
                     printf("%d:key=%s, type=%d,solpar=%f,vol=%f\n",ia,thisparm.autogrid_type, atom_type[ia],solpar[ia],vol[ia]);
 #endif
@@ -1069,7 +1069,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             gridmap[i].hbond = found_parm->hbond;
             gridmap[i].Rij_hb = found_parm->Rij_hb;
             gridmap[i].epsij_hb = found_parm->epsij_hb;
-            if (gridmap[i].hbond>0){       //enum: NON,DS,D1,AS,A1,A2
+            if (gridmap[i].hbond>0){       //enum: NON,DS,D1,AS,A1,A2,AD /* N3P added AD type*/
                 gridmap[i].is_hbonder=TRUE;}
 
 #ifdef DEBUG
@@ -1086,8 +1086,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 /*setup hbond dependent stuff*/
                 gridmap[i].xB[j] = 6;
                 gridmap[i].hbonder[j] = 0;
-                if ((int)(gridmap[i].hbond)>2 &&
-                        ((int)found_parm->hbond==1||(int)found_parm->hbond==2)){ /*AS,A1,A2 map vs DS,D1 probe*/
+                if ( ((int)(gridmap[i].hbond)>2 || (int)(gridmap[i].hbond==6) )&&
+                        ((int)found_parm->hbond==1||(int)found_parm->hbond==2||(int)found_parm->hbond==6)){ /*AS,A1,A2, AD map vs DS,D1,AD probe N3P modified */
                     gridmap[i].xB[j] = 10;
                     gridmap[i].hbonder[j] = 1;
                     gridmap[i].is_hbonder = TRUE;
@@ -1102,8 +1102,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 #ifdef DEBUG
                     (void) fprintf(logFile, "set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
 #endif
-                } else if (((int)gridmap[i].hbond==1||(int)gridmap[i].hbond==2) &&
-                            ((int)found_parm->hbond>2)) { /*DS,D1 map vs AS,A1,A2 probe*/
+                } else if ( ( (int)gridmap[i].hbond==1||(int)gridmap[i].hbond==2||(int)gridmap[i].hbond==6) &&
+                            (((int)found_parm->hbond>2))) { /*DS,D1,AS map vs AS,A1,A2,AS probe N3P: modified*/
                     gridmap[i].xB[j] = 10;
                     gridmap[i].hbonder[j] = 1;
                     gridmap[i].is_hbonder = TRUE;
@@ -2382,7 +2382,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
             rmin=999999.;
             closestH=0;
             for (ia = 0;  ia < num_receptor_atoms;  ia++) {
-                if ((hbond[ia]==1)||(hbond[ia]==2))  {/*DS or D1*/
+                // if ((hbond[ia]==1)||(hbond[ia]==2)||(hbond[ia]==6))  {/*DS or D1 or AD*/ // N3P: directionality for AD not required, right?
+                if ((hbond[ia]==1)||(hbond[ia]==2))  {/*DS or D1 or AD*/
                     for (i = 0;  i < XYZ;  i++) { 
                         d[i]  = coord[ia][i] - c[i]; 
                     }
@@ -2451,7 +2452,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 if ( r > NBC) {
                     continue; /* onto the next atom... */
                 }
-                if ((atom_type[ia] == hydrogen) && (disorder[ia] == TRUE)) {
+                if ((atom_type[ia] == hydrogen) && (disorder[ia] == TRUE)) { /* N3P: add check for AD here too?*/
                     continue; /* onto the next atom... */
                 }
                 } /*not use_vina_potential*/
@@ -2678,8 +2679,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                             rsph = et.e_vdW_Hb[indx_n][atom_type[ia]][map_index]/100.;
                             rsph = max(rsph, 0.);
                             rsph = min(rsph, 1.);
-                            if ((gridmap[map_index].hbond==3||gridmap[map_index].hbond==5) /*AS or A2*/
-                                      &&(hbond[ia]==1||hbond[ia]==2)){/*DS or D1*/
+                            if ((gridmap[map_index].hbond==3||gridmap[map_index].hbond==5||gridmap[map_index].hbond==6) /*AS or A2 or AD N3P:modified*/ 
+                                      &&(hbond[ia]==1||hbond[ia]==2||hbond[ia]==6)){/*DS or D1 or AD N3P:modified*/
                                   /* PROBE can be an H-BOND ACCEPTOR, */
                                 if (disorder[ia] == FALSE ) {
                                     if (ET)
@@ -2693,8 +2694,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                                     gridmap[map_index].energy += et.e_vdW_Hb[max(0, indx_n - 110)][hydrogen][map_index] * Hramp * (racc + (1. - racc)*rsph);
 
                                 }
-                            } else if ((gridmap[map_index].hbond==4) /*A1*/
-                                             &&(hbond[ia]==1||hbond[ia]==2)) { /*DS,D1*/
+                            } else if ((gridmap[map_index].hbond==4 || gridmap[map_index].hbond==6 ) /*A1, AD: N3P: modified*/
+                                             &&(hbond[ia]==1||hbond[ia]==2||hbond[ia]==6)) { /*DS,D1, AD: N3P: modified*/
                                 if (ET)
                                 hbondmin[map_index] = min( hbondmin[map_index],energy_lookup[atom_type[ia]][indx_n][map_index] * (racc+(1.-racc)*rsph));
                                 else
@@ -2704,7 +2705,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                                 else
                                 hbondmax[map_index] = max( hbondmax[map_index],et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (racc+(1.-racc)*rsph));
                                 hbondflag[map_index] = TRUE;
-                            } else if ((gridmap[map_index].hbond==1||gridmap[map_index].hbond==2)&& (hbond[ia]>2)){/*DS,D1 vs AS,A1,A2*/
+                            } else if ((gridmap[map_index].hbond==1||gridmap[map_index].hbond==2||gridmap[map_index].hbond==6)&& (hbond[ia]>2||hbond[ia]==6)){/*DS,D1 vs AS,A1,A2,AD N3P:modified*/
 
                                 /*  PROBE is H-BOND DONOR, */
                                 if (ET)
