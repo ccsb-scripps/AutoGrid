@@ -1,6 +1,6 @@
 /*
 
- $Id: parameters.h,v 1.5 2010/10/22 16:19:55 rhuey Exp $
+ $Id: parameters.h,v 1.6 2015/03/31 00:20:46 forli Exp $
 
  AutoGrid 
 
@@ -34,7 +34,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #define MAX_LEN_AUTOGRID_TYPE 7
 
 enum hbond_type
-{ NON, DS, D1, AS, A1, A2 };	/* hbonding character: */
+{ NON, DS, D1, AS, A1, A2, AD };	/* hbonding character: */ /* N3P: added acceptor/donor type "AD" */
 
 typedef struct parameter_entry
 {				// was "parm_info" in earlier AutoGrid 4 code
@@ -50,7 +50,9 @@ typedef struct parameter_entry
 				   D1: directional donor
 				   AS: spherical acceptor
 				   A1: acceptor of 1 directional hbond
-				   A2: acceptor of 2 directional hbonds */
+				   A2: acceptor of 2 directional hbonds
+                   AD: acceptor/donor type
+                   */
   double Rij_hb;		/* 12-10 Lennard-Jones equilibrium separation */
   double epsij_hb;		/* 12-10 Lennard-Jones energy well-depth */
   int rec_index;		/* used to set up receptor atom_types */
