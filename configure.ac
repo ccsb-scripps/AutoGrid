@@ -4,12 +4,12 @@
 AC_PREREQ(2.61)
 # 4.2.5 November 2 2012
 # 4.2.5.1 December 2012
-# 4.2.6 June 2014
-AC_INIT([autogrid], [4.2.6], [autodock@scripps.edu])
+# 4.2.6 July 2014
+#AC_INIT([autogrid], [4.2.6], [autodock@scripps.edu])
 # the m4_esyscmd following creates a string such as VERSION='4.2.5.x.2014-12-25'
 # indicating when the "autoreconf" was most recently run.
 # This date is also inserted into PACKAGE_VERSION and PACKAGE_STRING
-#AC_INIT([autogrid], m4_esyscmd([date +4.2.6.%Y-%m-%d|tr -d '\n']), [autodock@scripps.edu])
+AC_INIT([autogrid], m4_esyscmd([date +4.2.6.x.%Y-%m-%d|tr -d '\n']), [autodock@scripps.edu])
 AC_CONFIG_SRCDIR([atom_parameter_manager.cpp])
 #AC_CONFIG_HEADER([config.h])
 
