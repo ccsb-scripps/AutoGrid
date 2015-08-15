@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.31 2014/07/04 01:27:43 mp Exp $
+# $Id: Makefile.am,v 1.32 2015/08/15 00:54:13 sanner Exp $
 # 
 # AutoGrid 
 # 
@@ -37,6 +37,7 @@ dist-hook:
 bin_PROGRAMS = autogrid4 
 
 autogrid4_SOURCES = main.cpp \
+       bhtree.cpp \
        check_size.cpp \
        setflags.cpp \
        timesys.cpp \
@@ -58,6 +59,7 @@ autogrid4_SOURCES = main.cpp \
             atom_parameter_manager.h \
             autoglobal.h \
             autogrid.h \
+            bhtree.h \
             constants.h \
             default_parameters.h \
             distdepdiel.h \
@@ -65,6 +67,7 @@ autogrid4_SOURCES = main.cpp \
             grid.h \
 	    mingw_sysconf.h \
 	    mingw_sys_times.h \
+            mystdlib.h \
             parameters.h \
             parm.h \
             parse_param_line.h \
@@ -102,6 +105,8 @@ AM_CPPFLAGS += -Wno-write-strings # increase compatibility with pre 4.x compiler
 AM_CPPFLAGS += -DUSE_8A_NBCUTOFF
 #  M Pique - add USE_DOUBLE to define Real as double instead of float, see typedefs.h
 AM_CPPFLAGS += -DUSE_DOUBLE
+#  MS 2015 Pique - add USE_BHTREE to speed up calculations
+AM_CPPFLAGS += -DUSE_BHTREE
 
 # autogrid4_CXXFLAGS = -Wall -O3 -ftree-vectorize # All warnings, Agressive optimization, GCC vectorization in Mac OS X
 
