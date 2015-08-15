@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.110 2015/03/31 00:20:28 forli Exp $
+ $Id: mainpost1.28.cpp,v 1.111 2015/08/15 00:54:43 sanner Exp $
 
  AutoGrid 
 
@@ -68,6 +68,9 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include "read_parameter_library.h"
 #include "timesys.h"
 #include "timesyshms.h"
+
+// MS 2015 add bhtree to speed up calculation using spatial hashing
+#include "bhtree.h"
 
 extern Real idct;
 
@@ -282,6 +285,14 @@ int receptor_atom_type_count[NUM_RECEPTOR_TYPES];
 /*array of ptrs used to parse input line*/
 char * receptor_atom_types[NUM_RECEPTOR_TYPES];
 
+// MS 2015 BHTREE
+ BHtree *bht;
+ BHpoint **BHat;
+ int *closeAtomsIndices;
+ float *closeAtomsDistances;
+ int bhTreeNbIndices;
+ int inreceptor = 0;
+// MS 2015 BHTREE END
 
 /* AG_MAX_ATOMS */
 /* changed these from "double" to "static" to reduce stack usage - MPique 2012 */
@@ -543,7 +554,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.110 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.111 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -811,6 +822,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         for (ia = 0;  ia < num_receptor_atoms;  ia++) {
             rexp[ia] = 0;
         }
+
         (void) fprintf( logFile, "Atom\tAtom\tNumber of this Type\n");
         (void) fprintf( logFile, "Type\t ID \t in Receptor\n");
         (void) fprintf( logFile, "____\t____\t___________________\n");
@@ -845,6 +857,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         cmean[1] = csum[1] / (double)num_receptor_atoms;
         cmean[2] = csum[2] / (double)num_receptor_atoms;
         (void) fflush( logFile);
+
         break;
 
 /******************************************************************************/
@@ -1467,6 +1480,24 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     } /* second switch */
 
 } /* while: finished reading gpf */
+
+// MS 2015 BHTREE
+// build BHTREE for receptor atoms	
+ BHat = (BHpoint **)malloc(num_receptor_atoms*sizeof(BHpoint *));
+
+ for (ia=0;ia<num_receptor_atoms;ia++) {
+   BHat[ia] = (BHpoint *)malloc(sizeof(BHpoint));
+   BHat[ia]->x[0]=coord[ia][X];
+   BHat[ia]->x[1]=coord[ia][Y];
+   BHat[ia]->x[2]=coord[ia][Z];
+   BHat[ia]->r=2.0;
+   BHat[ia]->at=ia;
+ }
+ bht = generateBHtree(BHat, num_receptor_atoms, 10);
+ closeAtomsIndices = (int *)malloc(num_receptor_atoms*sizeof(int));
+ closeAtomsDistances = (float *)malloc(num_receptor_atoms*sizeof(float));
+// MS 2015 BHTREE END
+	
 
 /* Map files checkpoint  (number of maps, desolv and elec maps )    SF  */
 
@@ -2377,17 +2408,57 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 hbondmax[map_index] = -999999.;
                 hbondflag[map_index] = FALSE;
             }
-                        
-            /* NEW2: Find Closest Hbond */
+            
+// MS 2015 use BHTree to find atoms close to grid point
+#ifdef USE_BHTREE
+	    {
+	      float fcc[3];
+	      int nb;
+	      fcc[0] = c[X];
+	      fcc[1] = c[Y];
+	      fcc[2] = c[Z];
+	      // check for collision with receptor atoms
+	      bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, 2.0, closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
+	      if (bhTreeNbIndices > 0) {
+		  inreceptor +=1;
+		  gridmap[map_index].energy = 99999;
+		  for (k = 0;  k < num_maps;  k++) {
+		    if (!problem_wrt) {
+		      fprintf_retval = fprintf(gridmap[k].map_fileptr, "99999.\n");
+		      if (fprintf_retval < 0) {
+                        problem_wrt = TRUE;
+		      }
+		    }
+		  }
+		  continue;
+		}
+	      else
+		{
+		  bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, 8., closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
+		}
+	      //printf("FUGU %f %f %f %d %d %d %d\n", fcc[0], fcc[1], fcc[2], icoord[X], icoord[Y], icoord[Z], bhTreeNbIndices);
+	    }
+#endif
+	    /* NEW2: Find Closest Hbond */
             rmin=999999.;
             closestH=0;
+#ifdef USE_BHTREE
+            for (int ibh = 0;  ibh < bhTreeNbIndices;  ibh++) {
+	      ia = closeAtomsIndices[ibh];
+
+#else
             for (ia = 0;  ia < num_receptor_atoms;  ia++) {
+#endif
                 // if ((hbond[ia]==1)||(hbond[ia]==2)||(hbond[ia]==6))  {/*DS or D1 or AD*/ // N3P: directionality for AD not required, right?
                 if ((hbond[ia]==1)||(hbond[ia]==2))  {/*DS or D1 or AD*/
+#ifdef USE_BHTREE
+		  r = closeAtomsDistances[ibh];
+#else
                     for (i = 0;  i < XYZ;  i++) { 
                         d[i]  = coord[ia][i] - c[i]; 
                     }
                     r = hypotenuse( d[X],d[Y],d[Z] );
+#endif
                     if (r < rmin) {
                         rmin = r;
                         closestH = ia; 
@@ -2400,6 +2471,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
             /*
              *  Do all Receptor (protein, DNA, etc.) atoms...
              */
+#ifdef USE_BHTREE
+            for (int ibh = 0;  ibh < bhTreeNbIndices;  ibh++) {
+	      ia = closeAtomsIndices[ibh];
+	      r = closeAtomsDistances[ibh];
+
+#else
             for (ia = 0;  ia < num_receptor_atoms;  ia++) {
                 /*
                  *  Get distance, r, from current grid point, c, to this receptor atom, coord,
@@ -2408,6 +2485,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     d[i]  = coord[ia][i] - c[i];
                 }
                 r = hypotenuse( d[X], d[Y], d[Z]);
+#endif
                 if (r < APPROX_ZERO) {
                     r = APPROX_ZERO;
                 }
@@ -2802,6 +2880,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
     (void) fflush( logFile);
 } /* icoord[Z] loop */
 
+	printf("INRECEPTOR %d\n", inreceptor);
 #ifdef BOINCCOMPOUND
  boinc_fraction_done(0.9);
 #endif
