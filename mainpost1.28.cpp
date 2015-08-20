@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.111 2015/08/15 00:54:43 sanner Exp $
+ $Id: mainpost1.28.cpp,v 1.112 2015/08/20 02:24:08 mp Exp $
 
  AutoGrid 
 
@@ -71,6 +71,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
 // MS 2015 add bhtree to speed up calculation using spatial hashing
 #include "bhtree.h"
+#undef USE_BHTREE
 
 extern Real idct;
 
@@ -292,6 +293,11 @@ char * receptor_atom_types[NUM_RECEPTOR_TYPES];
  float *closeAtomsDistances;
  int bhTreeNbIndices;
  int inreceptor = 0;
+ int incutoff = 0;
+#define BH_collision_dist 2.0
+//#define BH_cutoff_dist 8.0
+//#define BH_collision_dist -1.0
+#define BH_cutoff_dist 200.0
 // MS 2015 BHTREE END
 
 /* AG_MAX_ATOMS */
@@ -554,7 +560,7 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.111 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.112 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -2043,7 +2049,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
             }
             if (rd2 < APPROX_ZERO) {
                 if ((rd2 == 0.) && (warned == 'F')) {
-                    (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, i1 + 1);
+                    (void) sprintf ( message, "At receptor carbonyl oxygen i1:\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, i1 + 1);
                     print_error( logFile, WARNING, message );
                     warned = 'T';
                 }
@@ -2074,7 +2080,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                         }
                         if (rd2 < APPROX_ZERO) {
                             if ((rd2 == 0.) && (warned == 'F')) {
-                                (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", i1 + 1, i2 + 1);
+                                (void) sprintf ( message, "At receptor carbonyl oxygen i2:\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", i1 + 1, i2 + 1);
                                 print_error( logFile, WARNING, message );
                                 warned = 'T';
                             }
@@ -2095,7 +2101,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                         }
                         if (rd2 < APPROX_ZERO) {
                             if ((rd2 == 0.) && (warned == 'F')) {
-                                (void) sprintf ( message, "Attempt to divide by zero was just prevented.\n\n" );
+                                (void) sprintf ( message, "At receptor carbonyl oxygen C==O cross C-X:\n:Attempt to divide by zero was just prevented.\n\n" );
                                 print_error( logFile, WARNING, message );
                                 warned = 'T';
                             }
@@ -2128,7 +2134,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 }
                 if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
+                        (void) sprintf ( message, "At disordered hydroxyl:\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
                         print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
@@ -2151,7 +2157,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 }
                 if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", i1 + 1, i2 + 1);
+                        (void) sprintf ( message, "At not disordered hydroxyl:\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", i1 + 1, i2 + 1);
                         print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
@@ -2179,7 +2185,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 }
                 if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\n\n" );
+                        (void) sprintf ( message, "At disordered hydroxyl lone pair vector:\nAttempt to divide by zero was just prevented.\n\n" );
                         print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
@@ -2253,7 +2259,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
             }
             if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        (void) sprintf ( message, "At azide nitrogen 1 bond:\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
                         print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
@@ -2276,7 +2282,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 }
                 if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        (void) sprintf ( message, "At azide nitrogen 2 bonds:\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
                         print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
@@ -2300,7 +2306,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 }
                 if (rd2 < APPROX_ZERO) {
                     if ((rd2 == 0.) && (warned == 'F')) {
-                        (void) sprintf ( message, "Attempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
+                        (void) sprintf ( message, "At azide nitrogen 3 bonds:\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia, ib);
                         print_error( logFile, WARNING, message );
                         warned = 'T';
                     }
@@ -2418,7 +2424,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 	      fcc[1] = c[Y];
 	      fcc[2] = c[Z];
 	      // check for collision with receptor atoms
-	      bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, 2.0, closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
+	      bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_collision_dist, closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
 	      if (bhTreeNbIndices > 0) {
 		  inreceptor +=1;
 		  gridmap[map_index].energy = 99999;
@@ -2434,7 +2440,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 		}
 	      else
 		{
-		  bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, 8., closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
+		  bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_cutoff_dist, closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
+	          if (bhTreeNbIndices > 0) incutoff +=1; // MP DEBUG
 		}
 	      //printf("FUGU %f %f %f %d %d %d %d\n", fcc[0], fcc[1], fcc[2], icoord[X], icoord[Y], icoord[Z], bhTreeNbIndices);
 	    }
@@ -2451,12 +2458,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 #endif
                 // if ((hbond[ia]==1)||(hbond[ia]==2)||(hbond[ia]==6))  {/*DS or D1 or AD*/ // N3P: directionality for AD not required, right?
                 if ((hbond[ia]==1)||(hbond[ia]==2))  {/*DS or D1 or AD*/
-#ifdef USE_BHTREE
-		  r = closeAtomsDistances[ibh];
-#else
                     for (i = 0;  i < XYZ;  i++) { 
                         d[i]  = coord[ia][i] - c[i]; 
                     }
+#ifdef USE_BHTREE
+		  r = closeAtomsDistances[ibh];
+#else
                     r = hypotenuse( d[X],d[Y],d[Z] );
 #endif
                     if (r < rmin) {
@@ -2478,12 +2485,14 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
 #else
             for (ia = 0;  ia < num_receptor_atoms;  ia++) {
+#endif
                 /*
                  *  Get distance, r, from current grid point, c, to this receptor atom, coord,
                  */
                 for (i = 0;  i < XYZ;  i++) {
                     d[i]  = coord[ia][i] - c[i];
                 }
+#ifndef USE_BHTREE
                 r = hypotenuse( d[X], d[Y], d[Z]);
 #endif
                 if (r < APPROX_ZERO) {
@@ -2673,7 +2682,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     rd2 = sq(cross[0]) + sq(cross[1]) + sq(cross[2]);
                     if (rd2 < APPROX_ZERO) {
                         if ((rd2 == 0.) && (warned == 'F')) {
-                            (void) sprintf ( message, "Attempt to divide by zero was just prevented.\n\n" );
+                            (void) sprintf ( message, "At receptor H-bond acceptor, oxygen:\nAttempt to divide by zero was just prevented.\n\n" );
                             print_error( logFile, WARNING, message );
                             warned = 'T';
                         }
@@ -2880,7 +2889,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
     (void) fflush( logFile);
 } /* icoord[Z] loop */
 
-	printf("INRECEPTOR %d\n", inreceptor);
+	//fprintf(logFile, "INRECEPTOR %d\n", inreceptor);
+	//fprintf(stderr, "INRECEPTOR %d;  INCUTOFF %d\n", inreceptor,incutoff);
 #ifdef BOINCCOMPOUND
  boinc_fraction_done(0.9);
 #endif
