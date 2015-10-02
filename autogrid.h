@@ -1,6 +1,6 @@
 /*
 
- $Id: autogrid.h,v 1.23 2014/07/04 01:29:18 mp Exp $
+ $Id: autogrid.h,v 1.24 2015/10/02 19:56:40 mp Exp $
 
  AutoGrid 
 
@@ -55,9 +55,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
 //#define MAX_DIST     16384   /* Maximum distance in 100ths of an Angstrom.    */
                              /*  = 163.84 Angstroms                           */
-#define AG_MAX_ATOMS    32768   /* Maximum number of atoms in macromolecule.     */
-/*    32768 = 2^15	*/
-/*    int 16-bit two's complement ranges 0-32767, 0 to (2^15 - 1)	*/
+#define AG_MAX_ATOMS    100000   /* Maximum number of atoms in macromolecule. */
 
 #define ORDERED 	0
 #define CYLINDRICAL 	1
