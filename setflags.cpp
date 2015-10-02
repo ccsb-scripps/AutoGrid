@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.19 2014/07/04 01:28:18 mp Exp $
+ $Id: setflags.cpp,v 1.20 2015/10/02 01:31:32 mp Exp $
 
  AutoGrid 
 
@@ -150,6 +150,7 @@ int setflags( int argc, char **argv, char *version )
 	    fprintf(stdout, " no\n");
 #endif
 
+	    fprintf(stdout, "  Maximum number of receptor atoms (AG_MAX_ATOMS): %d\n", AG_MAX_ATOMS);
 	    fprintf(stdout, "  Maximum number of receptor atom types (NUM_RECEPTOR_TYPES): %d\n", NUM_RECEPTOR_TYPES);
 	    fprintf(stdout, "  Maximum number of atom types (MAX_ATOM_TYPES): %d\n", MAX_ATOM_TYPES);
 	    fprintf(stdout, "  Maximum number of maps (MAX_MAPS): %d\n", MAX_MAPS);
