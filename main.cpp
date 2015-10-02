@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.113 2015/10/02 20:55:55 mp Exp $
+ $Id: main.cpp,v 1.114 2015/10/02 21:04:36 mp Exp $
 
  AutoGrid 
 
@@ -266,9 +266,6 @@ typedef struct mapObject {
 
 char * maptypeptr; /*ptr for current map->type*/
 MapObject *gridmap = NULL; /* was statically assigned  MapObject gridmap[MAX_MAPS]; */
-
-/* needed to make regression tests work between platforms*/
-Real *dummy_map;
 
 /*variables for RECEPTOR:*/
 /*each type is now at most two characters, eg 'NA\0'*/
@@ -560,7 +557,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.113 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.114 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1007,15 +1004,17 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
          * the number of ligand atom types, plus 1 for the electrostatic map plus 1 for the desolvation map.
          * AutoDock can only read in MAX_MAPS maps, which must include
          * the ligand atom maps and electrostatic map and the desolvation map*/
-       num_maps = num_atom_maps + 2;
+        if ( use_vina_potential) num_maps = num_atom_maps;
+	else num_maps = num_atom_maps + 2;
       
         /* Check to see if there is enough memory to store these map objects */
         gridmap = (MapObject *)calloc(sizeof(MapObject), num_maps);
 
-        if ( use_vina_potential) num_maps = num_atom_maps;
         if ( gridmap == NULL ) {
-            print_error( logFile, FATAL_ERROR, "Could not allocate memory to create the MapObject \"gridmap\".\n" );
+            (void) sprintf( message, "Too many ligand atom types; there is not enough memory to create these maps.  Try using fewer atom types than %d.\n", num_atom_maps);
+            print_error( logFile, FATAL_ERROR, message);
         }
+
 
         // Initialize the gridmap MapObject
         for (int i=0; i<num_maps; i++) {
@@ -1050,25 +1049,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         } // i
 
 
-        /* Check to see if the number of grid points requested will be
-         * feasible; give warning if not enough memory. */
-        if (num_grid_points_per_map != INIT_NUM_GRID_PTS) {
-            dummy_map = (Real *)malloc(sizeof(Real) * (num_maps * num_grid_points_per_map));
-            if (!dummy_map) {
-                /* Too many maps requested */
-                (void) sprintf( message, "There will not be enough memory to store these grid maps in AutoDock; \ntry reducing the number of ligand atom types (you have %d including electrostatics) \nor reducing the size of the grid maps (you asked for %d x %d x %d grid points); \n or try running AutoDock on a machine with more RAM than this one.\n", num_maps, n1[X], n1[Y], n1[Z] );
-                print_error( logFile, WARNING, message );
-            } else {
-                /* free up this memory right away; we were just testing to
-                 * see if we had enough when we try to run AutoDock */
-                free(dummy_map);
-            }
-        } else {
+        if (num_grid_points_per_map == INIT_NUM_GRID_PTS) {
             print_error( logFile, FATAL_ERROR, "You need to set the number of grid points using \"npts\" before setting the ligand atom types, using \"ligand_types\".\n" );
-        } /* ZZZZZZZZZZZZZZZZZ*/
-        if (!gridmap) {
-            (void) sprintf( message, "Too many ligand atom types; there is not enough memory to create these maps.  Try using fewer atom types than %d.\n", num_atom_maps);
-            print_error( logFile, FATAL_ERROR, message);
         }
 
         for (int i = 0;  i < num_atom_maps;  i++) {
