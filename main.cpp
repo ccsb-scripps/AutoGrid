@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.112 2015/08/20 02:24:08 mp Exp $
+ $Id: main.cpp,v 1.113 2015/10/02 20:55:55 mp Exp $
 
  AutoGrid 
 
@@ -441,7 +441,7 @@ int outlev = -1;
 
 #define INIT_NUM_GRID_PTS -1
 int num_grid_points_per_map = INIT_NUM_GRID_PTS;
-register int i = 0, ii = 0, j = 0, k = 0, indx_r = 0, i_smooth;
+register int ii = 0, j = 0, k = 0, indx_r = 0, i_smooth;
 register int ia = 0, ib = 0, ic = 0, map_index = -1, iat = 0, i1 = 0, i2 = 0, i3 = 0;
 register int closestH = 0;
 
@@ -459,11 +459,11 @@ struct tms tms_grd_start;
 struct tms tms_grd_end;
 
 
-for (i=0; i<MAX_MAPS; i++) {
+for (int i=0; i<MAX_MAPS; i++) {
     /* initialize to "" */
     strcpy(ligand_types[i], "");
 }
-for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
+for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
     /* initialize to "" */
     strcpy(receptor_types[i], "");
     receptor_atom_type_count[i]=0;
@@ -531,11 +531,11 @@ job_start = times( &tms_job_start);
  */
 (void) setflags( argc, argv, version_num);
 
-for (i = 0;  i < XYZ;  i++) {
+for (int i = 0;  i < XYZ;  i++) {
    icoord[i] = 0;
 }
  /* Initialize max and min coodinate bins */
-for (i = 0;  i < XYZ;  i++) {
+for (int i = 0;  i < XYZ;  i++) {
         cmax[i] = -BIG;
         cmin[i] = BIG;
         csum[i] = 0.;
@@ -549,7 +549,7 @@ rdon = 1.; /*to quiet compiler warnings*/
 /*
  * Initialize int receptor_atom_type_count[] array to 0
  */
-for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
+for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
     receptor_atom_type_count[i] = 0;
 }
 
@@ -560,11 +560,11 @@ for (i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.112 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.113 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
-(void) fprintf(logFile, "   MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
-    MAX_MAPS, NDIEL, MAX_ATOM_TYPES);
+(void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
+    AG_MAX_ATOMS, MAX_MAPS, NDIEL, MAX_ATOM_TYPES);
 
 fprintf(logFile, " energy_lookup table has %8ld entries of size %ld\n", 
   (long)(sizeof energy_lookup/sizeof ***energy_lookup), (long)(sizeof ***energy_lookup));
@@ -668,6 +668,19 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             if (equal(record, "ATOM", 4) || /* Amino Acid or DNA/RNA atoms */
                 equal(record, "HETA", 4) || /* Non-standard heteroatoms */
                 equal(record, "CHAR", 4)) { /* Partial Atomic Charge - not a PDB record */
+                /* Check that there aren't too many atoms... */
+                if (ia >= AG_MAX_ATOMS) {
+                    (void) sprintf( message, "Too many atoms in receptor PDBQT file %s;", receptor_filename );
+                    print_error( logFile, AG_ERROR, message );
+                    (void) sprintf( message, "-- the maximum number of atoms, AG_MAX_ATOMS, allowed is %d.", AG_MAX_ATOMS );
+                    print_error( logFile, AG_ERROR, message );
+                    (void) sprintf( message, "Increase the value in the \"#define AG_MAX_ATOMS %d\" line", AG_MAX_ATOMS );
+                    print_error( logFile, SUGGESTION, message );
+                    print_error( logFile, SUGGESTION, "in the source file \"autogrid.h\", and re-compile AutoGrid." );
+                    (void) fflush( logFile);
+                    // FATAL_ERROR will cause AutoGrid to exit...
+                    print_error( logFile, FATAL_ERROR, "Sorry, AutoGrid cannot continue.");
+                } /* endif */
 
                 (void) strncpy( atom_name, &line[12], 4);
                 /* atom_name is declared as an array of 6 characters,
@@ -775,7 +788,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 /*++receptor_atom_type_count[ atom_type[ia] ];*/
 
                 /* Keep track of the extents of the receptor */
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     cmax[i] = max(cmax[i], coord[ia][i]);
                     cmin[i] = min(cmin[i], coord[ia][i]);
                     csum[i] += coord[ia][i];
@@ -786,19 +799,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 /* Increment the atom counter */
                 ia++;
 
-                /* Check that there aren't too many atoms... */
-                if (ia > AG_MAX_ATOMS) {
-                    (void) sprintf( message, "Too many atoms in receptor PDBQT file %s;", receptor_filename );
-                    print_error( logFile, AG_ERROR, message );
-                    (void) sprintf( message, "-- the maximum number of atoms, AG_MAX_ATOMS, allowed is %d.", AG_MAX_ATOMS );
-                    print_error( logFile, AG_ERROR, message );
-                    (void) sprintf( message, "Increase the value in the \"#define AG_MAX_ATOMS %d\" line", AG_MAX_ATOMS );
-                    print_error( logFile, SUGGESTION, message );
-                    print_error( logFile, SUGGESTION, "in the source file \"autogrid.h\", and re-compile AutoGrid." );
-                    (void) fflush( logFile);
-                    // FATAL_ERROR will cause AutoGrid to exit...
-                    print_error( logFile, FATAL_ERROR, "Sorry, AutoGrid cannot continue.");
-                } /* endif */
             } /* endif */
         } /* endwhile */
         /* Finished reading in the lines of the receptor file */
@@ -835,10 +835,10 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         (void) fflush( logFile);
         /*2. CHANGE HERE: need to count number of each receptor_type*/
         for (ia = 0;  ia < receptor_types_ct;  ia++) {
-            i = 0;
+            //i = 0;
             if(receptor_atom_type_count[ia]!=0){
                 (void) fprintf( logFile, " %d\t %s\t\t%6d\n", (ia), receptor_types[ia], receptor_atom_type_count[ia]);
-                i++;
+                //i++;
             };
         }
         (void) fprintf( logFile, "\nTotal number of atoms :\t\t%d atoms \n", num_receptor_atoms);
@@ -899,7 +899,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
     case GPF_NPTS:
         (void) sscanf( GPF_line, "%*s %d %d %d", &nelements[X], &nelements[Y], &nelements[Z]);
-        for (i = 0;  i < XYZ;  i++) {
+        for (int i = 0;  i < XYZ;  i++) {
             nelements[i] = check_size(nelements[i], xyz[i]);
             ne[i] = nelements[i] / 2;
             n1[i] = nelements[i] + 1;
@@ -928,7 +928,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_GRIDCENTER:
         (void) sscanf( GPF_line, "%*s %s", token);
         if (equal( token, "auto", 4)) {
-            for (i = 0;  i < XYZ;  i++) {
+            for (int i = 0;  i < XYZ;  i++) {
                 center[i] = cmean[i];
             }
             (void) fprintf( logFile, "Grid maps will be centered on the center of mass.\n");
@@ -939,11 +939,11 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         }
         /* centering stuff... */
         for (ia = 0;  ia < num_receptor_atoms;  ia++) {
-            for (i = 0;  i < XYZ;  i++) {
+            for (int i = 0;  i < XYZ;  i++) {
                 coord[ia][i] -= center[i];        /* transform to center of gridmaps */
             }
         }
-        for (i = 0;  i < XYZ;  i++) {
+        for (int i = 0;  i < XYZ;  i++) {
             cext[i]     = spacing * (double)ne[i];
             cgridmax[i] = center[i] + cext[i];
             cgridmin[i] = center[i] - cext[i];
@@ -958,12 +958,12 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         (void) fprintf( logFile, "                | /    | /\n");
         (void) fprintf( logFile, "                |/_____|/\n");
         (void) fprintf( logFile, "(%.1lf, %.1lf, %.1lf)      \n\n", cgridmin[X], cgridmin[Y], cgridmin[Z]);
-        for (i = 0;  i < XYZ;  i++) {
+        for (int i = 0;  i < XYZ;  i++) {
             (void) fprintf( logFile, "Grid map %c-dimension :\t\t%.1lf Angstroms\n", xyz[i], 2.*cext[i]);
         }
         (void) fprintf( logFile, "\nMaximum coordinates :\t\t(%.3lf, %.3lf, %.3lf)\n", cgridmax[X], cgridmax[Y], cgridmax[Z]);
         (void) fprintf( logFile, "Minimum coordinates :\t\t(%.3lf, %.3lf, %.3lf)\n\n", cgridmin[X], cgridmin[Y], cgridmin[Z]);
-        for (i = 0;  i < XYZ;  i++) {
+        for (int i = 0;  i < XYZ;  i++) {
             (void) fprintf(xyz_fileptr, "%.3lf %.3lf\n", cgridmin[i], cgridmax[i]);
         }
         (void) fclose(xyz_fileptr);
@@ -976,13 +976,13 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         // Read in the list of atom types in the ligand.
         // GPF_line e.g.: "ligand_types N O A C HH NH"
         num_atom_maps = parsetypes(GPF_line, ligand_atom_types, MAX_ATOM_TYPES);
-        for (i=0; i<num_atom_maps; i++) {
+        for (int i=0; i<num_atom_maps; i++) {
             strcpy(ligand_types[i], ligand_atom_types[i]);
 #ifdef DEBUG
             (void) fprintf(logFile, "%d %s ->%s\n",i, ligand_atom_types[i], ligand_types[i]);
 #endif
         }
-        for(i=0; i<num_atom_maps; i++){
+        for (int i=0; i<num_atom_maps; i++){
             found_parm = apm_find(ligand_types[i]);
             if (found_parm != NULL) {
                 found_parm->map_index = i;
@@ -1018,7 +1018,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         }
 
         // Initialize the gridmap MapObject
-        for (i=0; i<num_maps; i++) {
+        for (int i=0; i<num_maps; i++) {
             gridmap[i].atom_type = 0; /*corresponds to receptor numbers????*/
             gridmap[i].map_index = 0;
             gridmap[i].is_covalent = 0;
@@ -1071,7 +1071,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             print_error( logFile, FATAL_ERROR, message);
         }
 
-        for (i = 0;  i < num_atom_maps;  i++) {
+        for (int i = 0;  i < num_atom_maps;  i++) {
             gridmap[i].is_covalent = FALSE;
             gridmap[i].is_hbonder = FALSE;
             gridmap[i].map_index = i;
@@ -1145,7 +1145,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             }; /*initialize energy parms for each possible receptor type*/
         } /*for each map*/
         (void) fprintf( logFile, "\nAtom type names for ligand atom types 1-%d used for ligand-atom affinity grid maps:\n\n", num_atom_maps);
-        for (i = 0;  i < num_atom_maps;  i++) {
+        for (int i = 0;  i < num_atom_maps;  i++) {
             (void) fprintf( logFile, "\t\t\tAtom type number %d corresponds to atom type name \"%s\".\n", gridmap[i].map_index, gridmap[i].type);
             if (gridmap[i].is_covalent == TRUE) {
               (void) fprintf( logFile, "\nAtom type number %d will be used to calculate a covalent affinity grid map\n\n", i + 1);
@@ -1185,13 +1185,13 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         printf("receptor_types_gpf_ct=%d\n",receptor_types_gpf_ct);
         printf("receptor_types_ct=%d\n",receptor_types_ct);
 #endif
-        for(i=0; i<receptor_types_ct; i++){
+        for (int i=0; i<receptor_types_ct; i++){
             strcpy(receptor_types[i], receptor_atom_types[i]);
 #ifdef DEBUG
             printf("%d %s  ->%s\n",i, receptor_atom_types[i],  receptor_types[i]);
 #endif
         }
-        for (i=0; i<receptor_types_ct; i++) {
+        for (int i=0; i<receptor_types_ct; i++) {
             found_parm = apm_find(receptor_atom_types[i]);
             if (found_parm != NULL){
                 found_parm->rec_index = i;
@@ -1231,12 +1231,12 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         if (found_parm != NULL) {
             found_parm->vol = temp_vol;
             found_parm->solpar = temp_solpar;
-            i = found_parm->map_index;
-            if (i>=0){
+            int mapi = found_parm->map_index;
+            if (mapi>=0){
                 /*DON'T!!!*/
                 /*convert cal/molA^3 to kcal/molA^3 */
-                /*gridmap[i].solpar_probe = temp_solpar * 0.001;*/
-                gridmap[i].solpar_probe = temp_solpar ;
+                /*gridmap[mapi].solpar_probe = temp_solpar * 0.001;*/
+                gridmap[mapi].solpar_probe = temp_solpar ;
                 (void) fprintf( logFile, "\nProbe %s solvation parameters: \n\n\tatomic fragmental volume: %.2f A^3\n\tatomic solvation parameter: %.4f cal/mol A^3\n\n", found_parm->autogrid_type, found_parm->vol,found_parm->solpar);
                 (void) fflush( logFile);
             }
@@ -1317,7 +1317,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         (void) fprintf( logFile, "\nCovalent well's half-width in Angstroms:         %8.3f\n", covhalfwidth);
         (void) fprintf( logFile, "\nCovalent barrier energy in kcal/mol:             %8.3f\n", covbarrier);
         (void) fprintf( logFile, "\nCovalent attachment point will be positioned at: (%8.3f, %8.3f, %8.3f)\n\n", covpos[X], covpos[Y], covpos[Z]);
-        for (i = 0;  i < XYZ;  i++) {
+        for (int i = 0;  i < XYZ;  i++) {
             /* center covpos in the grid maps frame of reference, */
             covpos[i] -= center[i];
         }
@@ -1362,13 +1362,13 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 		if(ET)epsilon[indx_r] = et.epsilon_fn[indx_r];
             }
             (void) fprintf( logFile, "  d   Dielectric\n ___  __________\n");
-            for (i = 0;  i <= min(500,NDIEL);  i += 10) {
+            for (int i = 0;  i <= min(500,NDIEL);  i += 10) {
                 ri = angstrom(i);
                 (void) fprintf( logFile, "%4.1lf%9.2lf\n", ri, et.epsilon_fn[i]);
             }
             (void) fprintf( logFile, "\n");
             /* convert epsilon to factor / epsilon */
-            for (i = 0;  i < NDIEL;  i++) {
+            for (int i = 0;  i < NDIEL;  i++) {
 		if(ET)
                 epsilon[i] = factor / epsilon[i];
 		else
@@ -1554,10 +1554,10 @@ if ( ! floating_grid ) {
 (void) fprintf( AVS_fld_fileptr, "veclen=%d\t\t# number of affinity values at each point\n", num_maps);
 (void) fprintf( AVS_fld_fileptr, "data=float\t\t# data type (byte, integer, float, double)\n");
 (void) fprintf( AVS_fld_fileptr, "field=uniform\t\t# field type (uniform, rectilinear, irregular)\n");
-for (i = 0;  i < XYZ;  i++) {
+for (int i = 0;  i < XYZ;  i++) {
     (void) fprintf( AVS_fld_fileptr, "coord %d file=%s filetype=ascii offset=%d\n", (i + 1), xyz_filename, (i*2));
 }
-for (i = 0;  i < num_atom_maps;  i++) {
+for (int i = 0;  i < num_atom_maps;  i++) {
     (void) fprintf( AVS_fld_fileptr, "label=%s-affinity\t# component label for variable %d\n", gridmap[i].type, (i + 1));
 } /* i */
 (void) fprintf( AVS_fld_fileptr, "label=Electrostatics\t# component label for variable %d\n", num_maps-2);
@@ -1566,7 +1566,7 @@ if (floating_grid) {
     (void) fprintf( AVS_fld_fileptr, "label=Floating_Grid\t# component label for variable %d\n", num_maps);
 }
 (void) fprintf( AVS_fld_fileptr, "#\n# location of affinity grid files and how to read them\n#\n");
-for (i = 0;  i < num_atom_maps;  i++) {
+for (int i = 0;  i < num_atom_maps;  i++) {
     (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", (i + 1), gridmap[i].map_filename);
 }
 (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_atom_maps + 1, gridmap[elecPE].map_filename);
@@ -1666,7 +1666,7 @@ for (ia=0; ia<num_atom_maps; ia++){
         printf("receptor_types_ct=%d\n", receptor_types_ct);
 #endif
         ParameterEntry * lig_parm = apm_find(ligand_types[ia]);
-        for (i = 0;  i < receptor_types_ct;  i++) {
+        for (int i = 0;  i < receptor_types_ct;  i++) {
             /*for each receptor_type*/
             cA = gridmap[ia].cA[i];
             cB = gridmap[ia].cB[i];
@@ -1940,7 +1940,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                      * Calculate the square of the N-H or O-H bond distance, rd2,
                      *                            ib-ia  ib-ia
                      */
-                    for (i = 0;  i < XYZ;  i++) {
+                    for (int i = 0;  i < XYZ;  i++) {
                         d[i] = coord[ia][i] - coord[ib][i];
                     }
                     rd2 = sq( d[X] ) + sq( d[Y] ) + sq( d[Z]);
@@ -1973,7 +1973,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                         /*
                          * Normalize the vector from ib to ia, N->H or O->H...
                          */
-                        for (i = 0;  i < XYZ;  i++) {
+                        for (int i = 0;  i < XYZ;  i++) {
                             rvector[ia][i] = d[i] * inv_rd;
                         }
                         /*
@@ -2001,13 +2001,13 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
             if ( ib != ia ) {
                 rd2 = 0.;
 
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     dc[i] = coord[ia][i] - coord[ib][i];
                     rd2 += sq( dc[i]);
                 }
 
                 /*
-                    for (i = 0;  i < XYZ;  i++) {
+                    for (int i = 0;  i < XYZ;  i++) {
                         rd2 += sq(coord[ia][i] - coord[ib][i]);
                     }
                 */
@@ -2043,7 +2043,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
             /* calculate normalized carbonyl bond vector rvector[ia][] */
 
             rd2 = 0.;
-            for (i = 0;  i < XYZ;  i++) {
+            for (int i = 0;  i < XYZ;  i++) {
                 rvector[ia][i] = coord[ia][i]-coord[i1][i];
                 rd2 += sq(rvector[ia][i]);
             }
@@ -2056,7 +2056,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 rd2 = APPROX_ZERO;
             }
             inv_rd = 1./sqrt(rd2);
-            for (i = 0;  i < XYZ;  i++) {
+            for (int i = 0;  i < XYZ;  i++) {
                 rvector[ia][i] *= inv_rd;
             }
 
@@ -2064,7 +2064,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
             for ( i2 = from; i2 <= to; i2++) {
                 if (( i2 != i1 ) && ( i2 != ia )) {
                     rd2 = 0.;
-                    for (i = 0;  i < XYZ;  i++) {
+                    for (int i = 0;  i < XYZ;  i++) {
                         dc[i] = coord[i1][i] - coord[i2][i]; /*NEW*/
                         rd2 += sq( dc[i]);
                     }
@@ -2074,7 +2074,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                         /* found one */
                         /* d[i] vector from carbon to second atom */
                         rd2 = 0.;
-                        for (i = 0;  i < XYZ;  i++) {
+                        for (int i = 0;  i < XYZ;  i++) {
                             d[i] = coord[i2][i]-coord[i1][i];
                             rd2 += sq( d[i]);
                         }
@@ -2087,7 +2087,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                             rd2 = APPROX_ZERO;
                         }
                         inv_rd = 1./sqrt(rd2);
-                        for (i = 0;  i < XYZ;  i++) {
+                        for (int i = 0;  i < XYZ;  i++) {
                             d[i] *= inv_rd;
                         }
 
@@ -2096,7 +2096,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                         rvector2[ia][1] = rvector[ia][2]*d[0] - rvector[ia][0]*d[2];
                         rvector2[ia][2] = rvector[ia][0]*d[1] - rvector[ia][1]*d[0];
                         rd2 = 0.;
-                        for (i = 0;  i < XYZ;  i++) {
+                        for (int i = 0;  i < XYZ;  i++) {
                             rd2 += sq(rvector2[ia][i]);
                         }
                         if (rd2 < APPROX_ZERO) {
@@ -2108,7 +2108,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                             rd2 = APPROX_ZERO;
                         }
                         inv_rd = 1./sqrt(rd2);
-                        for (i = 0;  i < XYZ;  i++) {
+                        for (int i = 0;  i < XYZ;  i++) {
                             rvector2[ia][i] *= inv_rd;
                         }
                     }
@@ -2128,7 +2128,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 if ((atom_type[i2] == carbon)||(atom_type[i1] == arom_carbon)) ib = i2;
                 disorder[ia] = TRUE;
                 rd2 = 0.;
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     rvector[ia][i] = coord[ia][i] - coord[ib][i];
                     rd2 += sq(rvector[ia][i]);
                 }
@@ -2141,7 +2141,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                     rd2 = APPROX_ZERO;
                 }
                 inv_rd = 1./sqrt(rd2);
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     rvector[ia][i] *= inv_rd;
                 }
 
@@ -2151,7 +2151,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 /* normalized X1 to X2 vector, defines lone pair plane */
 
                 rd2 = 0.;
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     rvector2[ia][i] = coord[i2][i] - coord[i1][i];
                     rd2 += sq(rvector2[ia][i]);
                 }
@@ -2164,7 +2164,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                     rd2 = APPROX_ZERO;
                 }
                 inv_rd = 1./sqrt(rd2);
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     rvector2[ia][i] *= inv_rd;
                 }
 
@@ -2175,11 +2175,11 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 ** back of the vector.
                 */
                 rdot = 0.;
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     rdot += (coord[ia][i] - coord[i1][i]) * rvector2[ia][i] ;
                 }
                 rd2 = 0.;
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     rvector[ia][i] = coord[ia][i] - ( (rdot*rvector2[ia][i]) + coord[i1][i] ) ;
                     rd2 += sq(rvector[ia][i]);
                 }
@@ -2192,7 +2192,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                     rd2 = APPROX_ZERO;
                 }
                 inv_rd = 1./sqrt(rd2);
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     rvector[ia][i] *= inv_rd;
                 }
 
@@ -2211,13 +2211,13 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
             if ( ib != ia ) {
                 rd2 = 0.;
 
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     dc[i] = coord[ia][i] - coord[ib][i];
                     rd2 += sq( dc[i] );
                 }
 
                 /*
-                    for (i = 0;  i < XYZ;  i++) {
+                    for (int i = 0;  i < XYZ;  i++) {
                         rd2 += sq(coord[ia][i] - coord[ib][i]);
                     }
                 */
@@ -2253,7 +2253,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
             /* calculate normalized N=C bond vector rvector[ia][] */
 
             rd2 = 0.;
-            for (i = 0;  i < XYZ;  i++) {
+            for (int i = 0;  i < XYZ;  i++) {
                     rvector[ia][i] = coord[ia][i]-coord[i1][i];
                     rd2 += sq(rvector[ia][i]);
             }
@@ -2266,7 +2266,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                     rd2 = APPROX_ZERO;
             }
             inv_rd = 1./sqrt(rd2);
-            for (i = 0;  i < XYZ;  i++) {
+            for (int i = 0;  i < XYZ;  i++) {
                     rvector[ia][i] *= inv_rd;
             }
         } /* endif nbond==1 */
@@ -2276,7 +2276,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 /* normalized vector from Nitrogen to midpoint between X1 and X2 */
 
                 rd2 = 0.;
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     rvector[ia][i] = coord[ia][i]-(coord[i2][i]+coord[i1][i])/2.;
                     rd2 += sq(rvector[ia][i]);
                 }
@@ -2289,7 +2289,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                     rd2 = APPROX_ZERO;
                 }
                 inv_rd = 1./sqrt(rd2);
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     rvector[ia][i] *= inv_rd;
                 }
 
@@ -2300,7 +2300,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 /* normalized vector from Nitrogen to midpoint between X1, X2, and X3 */
 
                 rd2 = 0.;
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     rvector[ia][i] = coord[ia][i]-(coord[i1][i]+coord[i2][i]+coord[i3][i])/3.;
                     rd2 += sq(rvector[ia][i]);
                 }
@@ -2313,7 +2313,7 @@ for (ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                     rd2 = APPROX_ZERO;
                 }
                 inv_rd = 1./sqrt(rd2);
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     rvector[ia][i] *= inv_rd;
                 }
 
@@ -2458,7 +2458,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 #endif
                 // if ((hbond[ia]==1)||(hbond[ia]==2)||(hbond[ia]==6))  {/*DS or D1 or AD*/ // N3P: directionality for AD not required, right?
                 if ((hbond[ia]==1)||(hbond[ia]==2))  {/*DS or D1 or AD*/
-                    for (i = 0;  i < XYZ;  i++) { 
+                    for (int i = 0;  i < XYZ;  i++) { 
                         d[i]  = coord[ia][i] - c[i]; 
                     }
 #ifdef USE_BHTREE
@@ -2489,7 +2489,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 /*
                  *  Get distance, r, from current grid point, c, to this receptor atom, coord,
                  */
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     d[i]  = coord[ia][i] - c[i];
                 }
 #ifndef USE_BHTREE
@@ -2501,7 +2501,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 inv_r  = 1./r;
                 inv_rmax = 1./max(r, 0.5);
 
-                for (i = 0;  i < XYZ;  i++) {
+                for (int i = 0;  i < XYZ;  i++) {
                     d[i] *= inv_r;
                 }
                 /* make sure both lookup indices are in the tables */
@@ -2564,7 +2564,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                      *  d[] = Unit vector from current grid pt to ia_th m/m atom.
                      *  cos_theta = d dot rvector == cos(angle) subtended.
                      */
-                    for (i = 0;  i < XYZ;  i++) {
+                    for (int i = 0;  i < XYZ;  i++) {
                         cos_theta -= d[i] * rvector[ia][i];
                     }
                     if (cos_theta <= 0.) {
@@ -2597,7 +2597,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                             Hramp = 1.;
                         } else {
                             cos_theta = 0.;
-                            for (i = 0;  i < XYZ;  i++) {
+                            for (int i = 0;  i < XYZ;  i++) {
                                 cos_theta += rvector[closestH][i] * rvector[ia][i];
                             }
                             cos_theta = min(cos_theta, 1.0); 
@@ -2620,7 +2620,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     **  d[] = Unit vector from current grid pt to ia_th m/m atom.
                     **  cos_theta = d dot rvector == cos(angle) subtended.
                     */
-                    for (i = 0;  i < XYZ;  i++) {
+                    for (int i = 0;  i < XYZ;  i++) {
                         cos_theta -= d[i] * rvector[ia][i];
                     }
 
@@ -2648,7 +2648,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
                     /* check to see that probe is in front of oxygen, not behind */
                     cos_theta = 0.;
-                    for (i = 0;  i < XYZ;  i++) {
+                    for (int i = 0;  i < XYZ;  i++) {
                         cos_theta -= d[i] * rvector[ia][i];
                     }
                     /*
@@ -2657,7 +2657,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     ** plane normal)
                     */
                     t0 = 0.;
-                    for (i = 0;  i < XYZ;  i++) {
+                    for (int i = 0;  i < XYZ;  i++) {
                         t0 += d[i] * rvector2[ia][i];
                     }
                     if (t0 > 1.) {
@@ -2690,7 +2690,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     }
                     inv_rd = 1./sqrt(rd2);
                     ti = 0.;
-                    for (i = 0;  i < XYZ;  i++) {
+                    for (int i = 0;  i < XYZ;  i++) {
                         ti += cross[i] * inv_rd * rvector[ia][i];
                     }
 
@@ -2720,7 +2720,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 } else if ((hbond[ia] == 5) && (disorder[ia] == TRUE)) {/*A2*/
                     /* cylindrically disordered hydroxyl */
                     cos_theta = 0.;
-                    for (i = 0;  i < XYZ;  i++) {
+                    for (int i = 0;  i < XYZ;  i++) {
                         cos_theta -= d[i] * rvector[ia][i];
                     }
                     if (cos_theta > 1.) {
@@ -2905,22 +2905,22 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 (void) fprintf(logFile, "\t\t(kcal/mol)\t(kcal/mol)\n");
 (void) fprintf(logFile, "____\t____\t_____________\t_____________\n");
 
-for (i = 0;  i < num_atom_maps;  i++) {
+for (int i = 0;  i < num_atom_maps;  i++) {
     (void) fprintf( logFile, " %d\t %s\t  %6.2lf\t%9.2le\n", i + 1, gridmap[i].type, gridmap[i].energy_min, gridmap[i].energy_max);
 }
 
 if (not use_vina_potential){
-(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%9.2le\tElectrostatic Potential\n", num_atom_maps + 1, 'e', gridmap[elecPE].energy_min, gridmap[i].energy_max);
+(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%9.2le\tElectrostatic Potential\n", num_atom_maps + 1, 'e', gridmap[elecPE].energy_min, gridmap[num_atom_maps+0].energy_max);
 
-(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%9.2le\tDesolvation Potential\n", num_atom_maps + 2, 'd', gridmap[dsolvPE].energy_min, gridmap[i+1].energy_max);
+(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%9.2le\tDesolvation Potential\n", num_atom_maps + 2, 'd', gridmap[dsolvPE].energy_min, gridmap[num_atom_maps+1].energy_max);
 (void) fprintf( logFile, "\n\n * Note:  Every pairwise-atomic interaction was clamped at %.2f\n\n", EINTCLAMP);
 }
 /*
  * Close all files, ************************************************************
  */
 
-//for (i = 0;  i < num_atom_maps+2;  i++) {
-for (i = 0;  i < num_maps;  i++) {
+//for (int i = 0;  i < num_atom_maps+2;  i++) {
+for (int i = 0;  i < num_maps;  i++) {
     (void) fclose( gridmap[i].map_fileptr);
 }
 if (floating_grid) {
