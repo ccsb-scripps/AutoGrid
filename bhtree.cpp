@@ -22,11 +22,14 @@
 **      Date: 11/3/99                                                        **
 **__________________________________________________________________________**/
 
-/* $Header: /Users/mp/facil/autodock/git-luna/autogrid-cvstar/bhtree.cpp,v 1.1 2015/08/15 00:55:21 sanner Exp $
+/* $Header: /Users/mp/facil/autodock/git-luna/autogrid-cvstar/bhtree.cpp,v 1.2 2015/10/02 20:03:29 mp Exp $
  *
- * $Id: bhtree.cpp,v 1.1 2015/08/15 00:55:21 sanner Exp $
+ * $Id: bhtree.cpp,v 1.2 2015/10/02 20:03:29 mp Exp $
  *
  * $Log: bhtree.cpp,v $
+ * Revision 1.2  2015/10/02 20:03:29  mp
+ * Changed 'include "mystdlib.h"' to 'include <stdlib.h>'
+ *
  * Revision 1.1  2015/08/15 00:55:21  sanner
  * - first commit
  *
@@ -50,7 +53,7 @@
    provided by Armin Widmer
 */
 #include <stdio.h>
-#include "mystdlib.h"
+#include <stdlib.h>
 #include <math.h>
 #include "bhtree.h"
 
