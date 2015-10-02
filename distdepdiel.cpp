@@ -1,6 +1,6 @@
 /*
 
- $Id: distdepdiel.cpp,v 1.3 2009/05/08 23:17:34 rhuey Exp $
+ $Id: distdepdiel.cpp,v 1.4 2015/10/02 20:06:03 mp Exp $
 
  AutoGrid 
 
@@ -41,6 +41,13 @@ double calc_ddd_Mehler_Solmajer( double distance, double approx_zero ) {
     double lambda_B;
     lambda_B = -lambda * B;
         
+    // Programming note 2015-10
+    //  I suspected a problme in the next line
+    //  where I saw  l = 0.003627  not "1" according to manual for AD 3.0.5
+    //  as downloaded from http://www.csb.yale.edu/userguides/datamanip/autodock/html/Using_AutoDock_305.c.html
+    // Checking out the cited publication, I now believe the "1" is correct.
+    // I have not, however, yet located a local copy of the 3.0.5 guide.
+    // M Pique
     epsilon = A + B / (1.0L + rk*exp(lambda_B * distance));
     
     if (epsilon < approx_zero) {
