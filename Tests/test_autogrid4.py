@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #
-# $Id: test_autogrid4.py,v 1.18 2013/11/14 22:16:02 mp Exp $
+# $Id: test_autogrid4.py,v 1.19 2015/10/14 06:28:18 mp Exp $
 #
 """
 Test AutoGrid.
@@ -44,6 +44,7 @@ for o,a in opts:
 
 
 built_maps = False
+built_maps_no_elec = False # MP
 #no parameter library keyword 
 built_maps_no_parameter_library = False
 #parse all the receptor types from the receptor input file
@@ -134,6 +135,8 @@ class AutoGrid_hsg1_sm_test(unittest.TestCase):
         """
         global built_maps
         self.autogrid = autogrid_executable
+	self.elecmaps = True # default
+	print "setUp class AutoGrid_hsg1_sm_test(unittest.TestCase)"
 
         if not built_maps:
             # Make sure you remove all the products of AutoGrid from any previous tests.
@@ -185,12 +188,31 @@ class AutoGrid_hsg1_sm_test(unittest.TestCase):
         # clean up
         #rm(c_autogrid4_map)
 
-    def test_hsg1_estat(self):
+    def test_hsg1_sm_atommaps(self):
+        # compare resulting map with saved map
+	(
+          self.compare_autogrid4_maps("hsg1_sm", 'A') and
+          self.compare_autogrid4_maps("hsg1_sm", 'C') and
+          self.compare_autogrid4_maps("hsg1_sm", 'N') and
+          self.compare_autogrid4_maps("hsg1_sm", 'HD') and
+          self.compare_autogrid4_maps("hsg1_sm", 'NA') and
+          self.compare_autogrid4_maps("hsg1_sm", 'OA') 
+	  )
+    def test_hsg1_sm_elecmaps(self):
+        # compare resulting map with saved map
+	if self.elecmaps:
+		(
+		  self.compare_autogrid4_maps("hsg1_sm", 'e') and
+		  self.compare_autogrid4_maps("hsg1_sm", 'd') 
+		  )
+	else:
+		True
+    def Ttest_hsg1_estat(self):
         """test_hsg1 estat case"""
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'e')
 
-    def test_hsg1_dsolv(self):
+    def Ttest_hsg1_dsolv(self):
         """test_hsg1 dsolv case"""
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'd')
@@ -207,6 +229,7 @@ class AutoGrid_hsg1_sm_test(unittest.TestCase):
  
     def test_hsg1_N(self):
         """test_hsg1 N case"""
+	print "test_hsg1_N comparing N map with saved map"
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'N')
 
@@ -226,12 +249,26 @@ class AutoGrid_hsg1_sm_test(unittest.TestCase):
         self.compare_autogrid4_maps("hsg1_sm", 'OA')
 
 
+class AutoGrid_hsg1_sm_no_elec_test(AutoGrid_hsg1_sm_test):
+
+    def setUp(self):
+        """Set up for autogrid4 tests.  Locate the autogrid binary now during setUp."""
+        global built_maps_no_elec
+        self.autogrid = autogrid_executable
+	self.elecmaps = False # override default
+	print "setUp class AutoGrid_hsg1_sm_no_elec_test(AutoGrid_hsg1_sm_test)"
+        if not built_maps_no_elec:
+            # Make sure you remove all the products of AutoGrid from any previous tests.
+            #rm("hsg1_sm.*map*")
+            built_maps_no_elec = run_AutoGrid( 'hsg1_sm.gpf', 'hsg1_sm.glg' )
+
 class AutoGrid_hsg1_sm_no_parameter_library_test(AutoGrid_hsg1_sm_test):
 
     def setUp(self):
         """Set up for autogrid4 tests.  Locate the autogrid binary now during setUp."""
         global built_maps_no_parameter_library
         self.autogrid = autogrid_executable
+	self.elecmaps = True # default
         if not built_maps_no_parameter_library:
             # Make sure you remove all the products of AutoGrid from any previous tests.
             #rm("hsg1_sm.*map*")
@@ -244,6 +281,7 @@ class AutoGrid_hsg1_sm_no_receptor_types_test(AutoGrid_hsg1_sm_test):
         """Set up for autogrid4 tests.  Locate the autogrid binary now during setUp."""
         global built_maps_no_receptor_types
         self.autogrid = autogrid_executable
+	self.elecmaps = True # default
         if not built_maps_no_receptor_types:
             # Make sure you remove all the products of AutoGrid from any previous tests.
             #rm("hsg1_sm.*map*")
@@ -256,6 +294,7 @@ class AutoGrid_hsg1_sm_minus_two_types_test(AutoGrid_hsg1_sm_test):
         """Set up for autogrid4 tests.  Locate the autogrid binary now during setUp."""
         global built_maps_minus_two_types
         self.autogrid = autogrid_executable
+	self.elecmaps = True # default
         if not built_maps_minus_two_types:
             # Make sure you remove all the products of AutoGrid from any previous tests.
             #rm("hsg1_sm.*map*")
@@ -268,6 +307,7 @@ class AutoGrid_ligand_types_before_receptor_test(AutoGrid_hsg1_sm_test):
         """Set up for autogrid4 tests. Locate the autogrid binary now during setUp."""
         global built_maps_ligand_types_before_receptor
         self.autogrid = autogrid_executable
+	self.elecmaps = True # default
         if not built_maps_ligand_types_before_receptor:
             # Make sure you remove all the products of AutoGrid from any previous tests.
             #rm("hsg1_sm.*map*")
@@ -308,11 +348,21 @@ class AutoGrid_missing_Amap_test(AutoGrid_simple_test):
 #------------------------------------------------------------------
 class AutoGrid_missing_elecmap_test(AutoGrid_simple_test):
     gpf_stem = 'x1hpv_CASE2'  #missing elecmap
-    expected_outcome = False
+    expected_outcome = True
 
 #------------------------------------------------------------------
 class AutoGrid_missing_dsolvmap_test(AutoGrid_simple_test):
     gpf_stem = 'x1hpv_CASE3'  #missing dsolvmap
+    expected_outcome = True
+
+#------------------------------------------------------------------
+class AutoGrid_missing_elec_dsolvmap_test(AutoGrid_simple_test):
+    gpf_stem = 'x1hpv_CASE4'  #missing elecmap and dsolvmap
+    expected_outcome = True
+
+#------------------------------------------------------------------
+class AutoGrid_excess_map_test(AutoGrid_simple_test):
+    gpf_stem = 'x1hpv_CASE5'  # excess MAP line
     expected_outcome = False
 
 #------------------------------------------------------------------
@@ -341,12 +391,15 @@ class AutoGrid_nbpcoeffs_test(AutoGrid_simple_test):
 if __name__ == '__main__':
     test_cases = [
         'AutoGrid_hsg1_sm_test',
+        'AutoGrid_hsg1_sm_no_elec_test',
         'AutoGrid_hsg1_sm_no_parameter_library_test',
         'AutoGrid_hsg1_sm_no_receptor_types_test',
         'AutoGrid_hsg1_sm_minus_two_types_test',
         'AutoGrid_missing_Amap_test',
         'AutoGrid_missing_elecmap_test',
         'AutoGrid_missing_dsolvmap_test',
+        'AutoGrid_missing_elec_dsolvmap_test',
+        'AutoGrid_excess_map_test',
         'AutoGrid_control_test',
         #'AutoGrid_ligand_types_before_receptor_test', 
         #3/18/09 not sure of status of ligand_types_before_receptor test, rh

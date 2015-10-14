@@ -17,6 +17,6 @@ map x1hpv.CL.map                     # atom-specific affinity map
 map x1hpv.F.map                      # atom-specific affinity map
 map x1hpv.S.map                      # atom-specific affinity map
 map x1hpv.BR.map                     # atom-specific affinity map
-#elecmap x1hpv.e.map                  # electrostatic potential map      #  SEGFAULT IF COMMENTED
-dsolvmap x1hpv.d.map                 # desolvation potential map         #  SEGFAULT IF COMMENTED
+#elecmap x1hpv.e.map                  # electrostatic potential map NOT REQUESTED <------
+dsolvmap x1hpv.d.map                 # desolvation potential map
 dielectric -0.1465                   # <0, AD4 distance-dep.diel;>0, constant

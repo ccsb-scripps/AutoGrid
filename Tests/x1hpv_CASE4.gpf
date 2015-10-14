@@ -6,7 +6,7 @@ ligand_types A C HD N NA OA SA CL F S BR # ligand atom types
 receptor x1hpv.pdbqt                 # macromolecule
 gridcenter -0.114 -1.692 0.058       # xyz-coordinates or auto
 smooth 0.5                           # store minimum energy w/in rad(A)
-#map x1hpv.A.map                      # atom-specific affinity map MISSING  <----------
+map x1hpv.A.map                      # atom-specific affinity map
 map x1hpv.C.map                      # atom-specific affinity map
 map x1hpv.HD.map                     # atom-specific affinity map
 map x1hpv.N.map                      # atom-specific affinity map
@@ -17,6 +17,6 @@ map x1hpv.CL.map                     # atom-specific affinity map
 map x1hpv.F.map                      # atom-specific affinity map
 map x1hpv.S.map                      # atom-specific affinity map
 map x1hpv.BR.map                     # atom-specific affinity map
-elecmap x1hpv.e.map                  # electrostatic potential map      
-dsolvmap x1hpv.d.map                 # desolvation potential map   
+#elecmap x1hpv.e.map                  # electrostatic potential map  NOT REQUESTED  <-------
+#dsolvmap x1hpv.d.map                 # desolvation potential map    NOT REQUESTED  <-------
 dielectric -0.1465                   # <0, AD4 distance-dep.diel;>0, constant
