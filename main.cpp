@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.115 2015/10/14 06:28:18 mp Exp $
+ $Id: main.cpp,v 1.116 2015/10/15 18:54:08 mp Exp $
 
  AutoGrid 
 
@@ -27,7 +27,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include <sys/param.h>
 #include <unistd.h> /* long sysconf(int name) */
 #include <sys/types.h>
-#include <ctype.h> /* tolower */
+#include <ctype.h> /* tolower,isascii,isdigit */
 #ifdef NOTNEEDED
 #ifdef _WIN32
 #include <Winsock2.h>
@@ -69,7 +69,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include "timesys.h"
 #include "timesyshms.h"
 
-// MS 2015 add bhtree to speed up calculation using spatial hashing
+// M Sanner 2015 add bhtree to speed up calculation using spatial hashing
 #include "bhtree.h"
 #undef USE_BHTREE
 
@@ -230,6 +230,7 @@ static EnergyTables et;
 static double energy_lookup[NUM_RECEPTOR_TYPES][NEINT][MAX_MAPS]; // vdW and Hb only
 
 
+/* the mapObject gridmap[] holds metadata about each map. AutoGrid does not retain the map itself */
 typedef struct mapObject {
     int    atom_type; /*corresponds to receptor numbers????*/
     int    map_index;
@@ -276,7 +277,7 @@ int receptor_atom_type_count[NUM_RECEPTOR_TYPES];
 /*array of ptrs used to parse input line*/
 char * receptor_atom_types[NUM_RECEPTOR_TYPES];
 
-// MS 2015 BHTREE
+// M Sanner 2015 BHTREE
 #ifdef USE_BHTREE
  BHtree *bht;
  BHpoint **BHat;
@@ -286,7 +287,7 @@ char * receptor_atom_types[NUM_RECEPTOR_TYPES];
 #define BH_collision_dist 2.0
 #define BH_cutoff_dist 8.0
 //#define BH_collision_dist -1.0
-// MS 2015 BHTREE END
+// M Sanner 2015 BHTREE END
 #endif
 
 /* AG_MAX_ATOMS */
@@ -314,23 +315,21 @@ int map_hydrogen, map_carbon, map_arom_carbon, map_oxygen, map_nitrogen;
 int map_nonHB_hydrogen, map_nonHB_nitrogen, map_sulphur, map_nonHB_sulphur;
 int map_chlorine, map_bromine, map_fluorine, map_iodine;
 /* XYZ */
-double cross[XYZ];
-double c[XYZ];
 double cext[XYZ];
 double cgridmax[XYZ];
 double cgridmin[XYZ];
 double cmax[XYZ];
 double cmin[XYZ];
 double csum[XYZ];
-double cmean[XYZ]={0.,0.,0.};
+double cmean[XYZ]={0.,0.,0.}; /* receptor mean atom coords */
 double center[XYZ];
-double covpos[XYZ]; /* Cartesian-coordinate of covalent affinity well. */
+double covpos[XYZ]={0.,0.,0.}; /* Cartesian-coordinate of covalent affinity well. */
 double d[XYZ];
 double dc[XYZ];
 int icoord[XYZ]; /* int icenter; */
-int ne[XYZ];
-int n1[XYZ];
 int nelements[XYZ];
+int n1[XYZ]; /* nelements[i]+1 */
+int ne[XYZ]; /* floor (nelements[i]/2) */
 
 /* MAX_CHARS */
 char AVS_fld_filename[MAX_CHARS];
@@ -374,20 +373,16 @@ double diel, invdielcal=0.;//expected never used if uninitialized
 double percentdone=0.0;
 double PI_halved;
 double q_max = -BIG,  q_min = BIG;
-double rA;
-double rB; /* double e; */
-double rcov = 0.0; /* Distance from current grid point to the covalent attachment point */
 double ri, inv_rd, rd2, r; /* re, r2, rd, */
-double r_min = BIG, inv_r, inv_rmax, racc, rdon, cos_theta, theta, tmp;
+double inv_r, inv_rmax, racc, rdon;
 double r_smooth = 0.5; //NEW ON BY DEFAULT Feb2012
-double rdot;
-double Rij, epsij;
+//MP double Rij, epsij;
 double spacing = 0.375; /* One quarter of a C-C bond length. */
 double t0, ti;
-double ln_half = 0.0;
 double covhalfwidth = 1.0;
 double covbarrier = 1000.0;
-double cA, cB, tmpconst;
+//MP double cA, cB;
+const double ln_half = log(0.5);
 
 #ifndef PACKAGE_VERSION
 static char * version_num = "4.2.2";
@@ -397,7 +392,6 @@ static char * version_num = PACKAGE_VERSION;
 
 /*are these necessary??*/
 double temp_vol, temp_solpar;
-double temp_hbond_enrg, hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
 double rmin, Hramp=0; /*Used to cover case where vina potential is used;initialized here to quiet compiler warning*/
 double factor=332.0L;  /* Used to convert between calories and SI units */
 
@@ -411,7 +405,6 @@ int elecPE = -1; /* index (num_maps value) for electrostatic map, if requested *
 int dsolvPE = -1; /* index (num_maps value) for desolvation map, if requested */
 int floating_grid = FALSE; // Untested for a long time - M Pique 2015
 int dddiel = FALSE, disorder_h = FALSE;
-int from, to;
 int fprintf_retval = 0;
 int GPF_keyword = -1;
 int indcom = 0;
@@ -419,8 +412,11 @@ int infld;
 int nbond;
 int nDone = 0;
 int problem_wrt = FALSE;
-int xA, xB;
+//MP int xA, xB;
+
+/* M Pique TODO   why are these next not in "mapObject"? */
 int hbondflag[MAX_MAPS];
+double hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
 
 int outlev = -1;
 
@@ -428,7 +424,6 @@ int outlev = -1;
 int num_grid_points_per_map = INIT_NUM_GRID_PTS;
 int indx_r, i_smooth;
 int ia, ib;
-int i1, i2, i3;
 int closestH = 0;
 
 static int num_receptor_atoms;
@@ -505,7 +500,6 @@ if (clktck == 0) {
     }
 }
 
-ln_half = (double) log(0.5);
 
 /*
  * Get the time at the start of the run...
@@ -525,7 +519,6 @@ for (int i = 0;  i < XYZ;  i++) {
         cmax[i] = -BIG;
         cmin[i] = BIG;
         csum[i] = 0.;
-        covpos[i] = 0.0;
 }
 
 PI_halved = PI/2.;
@@ -546,7 +539,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.115 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.116 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -730,17 +723,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                     atom_name[1] = atom_name[2];
                     atom_name[2] = atom_name[3];
                     atom_name[3] = '\0';
-                } else if (atom_name[0] == '0' ||
-                    atom_name[0] == '1' ||
-                    atom_name[0] == '2' ||
-                    atom_name[0] == '3' ||
-                    atom_name[0] == '4' ||
-                    atom_name[0] == '5' ||
-                    atom_name[0] == '6' ||
-                    atom_name[0] == '7' ||
-                    atom_name[0] == '8' ||
-                    atom_name[0] == '9') {
-                    if (atom_name[1] == 'H') {
+                } else if (isascii(atom_name[0])&& isdigit(atom_name[0]) &&
+                    atom_name[1] == 'H' ) {
                         /* Assume this is the 'mangled' name of a hydrogen atom,
                          * after the atom name has been changed from 'HD21' to '1HD2'
                          * for example.
@@ -763,7 +747,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                         atom_name[1] = atom_name[2];
                         atom_name[2] = atom_name[3];
                         atom_name[3] = temp_char;
-                    }
                 }
 
                 /* Tell the user what you thought this atom was... */
@@ -1003,7 +986,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         }
 
 
-        // Initialize the gridmap MapObject
+        // Initialize the gridmap MapObject: the floating grid does not have one
         for (int i=0; i<num_maps+2; i++) {
             gridmap[i].atom_type = 0; /*corresponds to receptor numbers????*/
             gridmap[i].map_index = 0;
@@ -1367,14 +1350,14 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 /******************************************************************************/
 
     case GPF_FMAP:
-	// Caution: not supported! M Pique 2015
+	// Caution: not tested! M Pique 2015
         (void) sscanf( GPF_line, "%*s %s", floating_grid_filename);
         if ( (floating_grid_fileptr = ad_fopen( floating_grid_filename, "w", logFile)) == NULL) {
             (void) sprintf( message, "can't open grid map \"%s\" for writing.\n", floating_grid_filename);
             print_error( logFile, FATAL_ERROR, message );
         }
         (void) fprintf( logFile, "\nFloating Grid file name = %s\n", floating_grid_filename);
-        ++num_maps;
+	/* do NOT increment num_maps because (for unknown reasons) this grid isn't counted - MPique */
         floating_grid = TRUE;
         break;
 
@@ -1402,8 +1385,10 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         ** for the interaction of the specified types 
         */
 
+	{  /* block for local storage allocation name space */
         Real epsij;
         Real Rij;
+        Real cA, cB;
         char param[2][LINE_LEN];
         int xA, xB, nfields;
 
@@ -1416,8 +1401,11 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         if ((Rij < RIJ_MIN) || (Rij > RIJ_MAX)) {
             (void) fprintf( logFile,
 	    "WARNING: pairwise distance, Rij, %.2f, is not a very reasonable value for the equilibrium separation of two atoms! (%.2f Angstroms <= Rij <= %.2f Angstroms)\n\n", Rij, RIJ_MIN, RIJ_MAX);        
+	}
         */
 
+        cA = Rij;
+        cB = epsij;
         if ( GPF_keyword == GPF_NBP_R_EPS ) {
            // Calculate the coefficients from Rij and epsij                      
            /* Defend against division by zero... */
@@ -1429,11 +1417,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                (void) sprintf( message, "exponents xA and xB cannot be equal.\n");
                print_error( logFile, FATAL_ERROR, message );
           } 
-        } else {
-               cA = Rij;
-               cB = epsij;
+	}
  
-        } 
         for (int i=0;i<2;i++) {
 	    /* try both orderings of "ligand,receptor" and "receptor,ligand": not error if not found  */
             int ligtype, rectype;
@@ -1448,10 +1433,10 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 gridmap[ligtype].xA[rectype] = xA;
                 gridmap[ligtype].xB[rectype] = xB;
             }
-           
         }
         pr(logFile, "\nOverriding non-bonded interaction energies for docking calculation;\n");
         break;
+	}  /* end block for local storage allocation name space */
 
 
 
@@ -1558,7 +1543,7 @@ if(elecPE>=0)
 if(dsolvPE>=0)
 (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_atom_maps + 2, gridmap[dsolvPE].map_filename);
 if (floating_grid) {
-    (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_maps, floating_grid_filename);
+    (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_maps+1, floating_grid_filename);
 }
 (void) fclose( AVS_fld_fileptr);
 
@@ -1653,6 +1638,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
 #endif
         ParameterEntry * lig_parm = apm_find(ligand_types[ia]);
         for (int i = 0;  i < receptor_types_ct;  i++) {
+	    double cA,cB,Rij,epsij; int xA,xB; /* local copy of gridmap info, for code simplicity */
             /*for each receptor_type*/
             cA = gridmap[ia].cA[i];
             cB = gridmap[ia].cB[i];
@@ -1728,8 +1714,10 @@ for (int ia=0; ia<num_atom_maps; ia++){
             else { //use regular autogrid potential
             /*for each receptor_type get its parms and fill in tables*/
             if (cA==0 && cB==0){
+		double tmpconst;
                 cA = (tmpconst = epsij / (double)(xA - xB)) * pow( Rij, (double)xA ) * (double)xB;
                 cB = tmpconst * pow( Rij, (double)xB ) * (double)xA;
+            /*printf("tmpconst = %6.4f, cA = %6.4f, cB = %6.4f\n",tmpconst, cA, cB);*/
             }
             if ( isnan( cA ) ) {
                 print_error( logFile, FATAL_ERROR, "Van der Waals coefficient cA is not a number.  AutoGrid must exit." );
@@ -1737,7 +1725,6 @@ for (int ia=0; ia<num_atom_maps; ia++){
             if ( isnan( cB ) ) {
                 print_error( logFile, FATAL_ERROR, "Van der Waals coefficient cB is not a number.  AutoGrid must exit." );
             }
-            /*printf("tmpconst = %6.4f, cA = %6.4f, cB = %6.4f\n",tmpconst, cA, cB);*/
             if ( xA == 0 ) {
                 print_error( logFile, FATAL_ERROR, "Van der Waals exponent xA is 0.  AutoGrid must exit." );
             }
@@ -1753,6 +1740,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
 
 	    // do up to non-bond cutoff distance
             for (int indx_r = 1;  indx_r < NEINT;  indx_r++) {
+		double r, rA, rB;
                 r  = angstrom(indx_r);
                 rA = pow( r, (double) xA);
                 rB = pow( r, (double) xB);
@@ -1897,14 +1885,15 @@ if (not use_vina_potential){
 /********************************************
  * Start bond vector loop
  ********************************************/
+int i1=0, i2=0, i3=0;
 for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
     disorder[ia] = FALSE;  /* initialize disorder flag. */
     warned = 'F';
     /*
      * Set scan limits looking for bonded atoms
      */
-    from = max(ia-20, 0);
-    to   = min(ia + 20, num_receptor_atoms-1);
+    int from = max(ia-20, 0);
+    int to   = min(ia + 20, num_receptor_atoms-1);
 
     /*
      * If 'ia' is a hydrogen atom, it could be a
@@ -2157,7 +2146,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 ** coords of X1 gives the point on the X1-X2 line for the
                 ** back of the vector.
                 */
-                rdot = 0.;
+                double rdot = 0.;
                 for (int i = 0;  i < XYZ;  i++) {
                     rdot += (coord[ia][i] - coord[i1][i]) * rvector2[ia][i] ;
                 }
@@ -2353,6 +2342,7 @@ if (floating_grid) {
 ctr = 0;
 iz = 0;
 for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
+    double c[XYZ];
     /*
      *  c[0:2] contains the current grid point.
      */
@@ -2364,17 +2354,18 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
         for (icoord[X] = -ne[X]; icoord[X] <= ne[X]; icoord[X]++) {
             c[X] = ((double)icoord[X]) * spacing;
+	    double r_min=BIG; /* for floating_grid only */
 
-	    /* handle covalent map(s) : */
+	    /* handle covalent map(s). Zero-out all other maps' energy */
             for (int j = 0;  j < num_maps ;  j++) {
                 if (gridmap[j].is_covalent == TRUE) {
-                    /* Calculate the distance from the current
+                    /* Calculate rcov, the distance from the current
                      * grid point, c, to the covalent attachment point, covpos */
+		    double rcov; 
                     for (int ii = 0;  ii < XYZ;  ii++) {
                         d[ii]  = covpos[ii] - c[ii];
                     }
-                    rcov = hypotenuse( d[X], d[Y], d[Z] );
-                    rcov = rcov / covhalfwidth;
+                    rcov = hypotenuse( d[X], d[Y], d[Z] ) / covhalfwidth;
                     if (rcov < APPROX_ZERO) {
                         rcov = APPROX_ZERO;
                     }
@@ -2383,19 +2374,18 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     gridmap[j].energy = 0.;
                 } /* is not covalent */
             }
-            if (floating_grid) {
-                r_min = BIG;
-            }
+
             
             /* Initialize Min Hbond variables  for each new point*/
             if (not use_vina_potential) //if vina_potential skip hbond stuff
-            for (int map_index = 0; map_index < num_atom_maps; map_index++){        
+            for (int map_index = 0; map_index < num_atom_maps; map_index++){
                 hbondmin[map_index] = 999999.;
                 hbondmax[map_index] = -999999.;
                 hbondflag[map_index] = FALSE;
-            }
+	    }
             
-// M Sanner 2015 use BHTree to find atoms very close to grid point: set all grids' energies as "HIGH"
+// M Sanner 2015 use BHTree to find atoms very close to grid point: write all atom grids' energies as "HIGH"
+//  write electrostatic and desolvation maps as 0
 // M Pique TODO - even for covalent map(s)?
 #ifdef USE_BHTREE
 	    {
@@ -2405,10 +2395,11 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 	      // check for collision with receptor atoms
 	      bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_collision_dist, closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
 	      if (bhTreeNbIndices > 0) {
-		  gridmap[map_index].energy = 99999;
 		  for (int k = 0;  k < num_maps;  k++) {
+		  gridmap[k].energy = (k==elecPE||k==dsolvPE)?0:99999;
 		    if (!problem_wrt) {
-		      fprintf_retval = fprintf(gridmap[k].map_fileptr, "99999.\n");
+		      fprintf_retval = fprintf(gridmap[k].map_fileptr, 
+			(k==elecPE||k==dsolvPE)?"0.\n":"99999.\n");
 		      if (fprintf_retval < 0) {
                         problem_wrt = TRUE;
 		      }
@@ -2459,7 +2450,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
             /*
              *  Loop 1 of 2:
-	     *  Performed only if electrostatic or desolvation maps are requested.
+	     *  Performed only if electrostatic, desolvation, or floating maps are requested.
              *  Do all Receptor (protein, DNA, etc.) atoms, regardless of distance cutoff
              */
             if(elecPE>=0 || dsolvPE>=0 || floating_grid) for (int ia = 0;  ia < num_receptor_atoms;  ia++) {
@@ -2513,6 +2504,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
             for (int ia = 0;  ia < num_receptor_atoms;  ia++) {
 #endif
 		double dnorm[XYZ]; // normalized grid-point- to - atom vector
+		double cos_theta;
                 /*
                  *  Get distance, r, from current grid point, c, to this receptor atom, coord,
                  */
@@ -2583,6 +2575,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                          *  racc = [cos(theta)]^4.0 for O-H,
                          */
                         switch( rexp[ia] ) {
+			    double tmp;
                             case 1:
                             default:
                                 racc = cos_theta;
@@ -2600,6 +2593,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                         if (ia == closestH) {
                             Hramp = 1.;
                         } else {
+			    double theta;
                             cos_theta = 0.;
                             for (int i = 0;  i < XYZ;  i++) {
                                 cos_theta += rvector[closestH][i] * rvector[ia][i];
@@ -2680,6 +2674,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     ** calculated as (grid vector CROSS lone pair plane normal)
                     ** DOT C=O vector - 90 deg
                     */
+		    double cross[XYZ];
                     cross[0] = dnorm[1] * rvector2[ia][2] - dnorm[2] * rvector2[ia][1];
                     cross[1] = dnorm[2] * rvector2[ia][0] - dnorm[0] * rvector2[ia][2];
                     cross[2] = dnorm[0] * rvector2[ia][1] - dnorm[1] * rvector2[ia][0];
@@ -2723,6 +2718,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 /* endif atom_type == oxygen, not disordered */
                 } else if ((hbond[ia] == 5) && (disorder[ia] == TRUE)) {/*A2*/
                     /* cylindrically disordered hydroxyl */
+		    double theta;
                     cos_theta = 0.;
                     for (int i = 0;  i < XYZ;  i++) {
                         cos_theta -= dnorm[i] * rvector[ia][i];
@@ -2798,6 +2794,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                                 hbondflag[map_index] = TRUE;
                             } else if ((gridmap[map_index].hbond==1||gridmap[map_index].hbond==2||gridmap[map_index].hbond==6)&& (hbond[ia]>2||hbond[ia]==6)){/*DS,D1 vs AS,A1,A2,AD N3P:modified*/
 
+				double temp_hbond_enrg;
                                 /*  PROBE is H-BOND DONOR, */
                                 if (ET)
                                 temp_hbond_enrg = energy_lookup[atom_type[ia]][indx_n][map_index] * (rdon + (1. - rdon)*rsph);
@@ -2841,6 +2838,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
             /* adjust maps of hydrogen-bonding atoms by adding largest and
              * smallest interaction of all 'pair-wise' interactions with receptor atoms
+             * M Pique TODO can this damage covalent maps?
              */
             if (not use_vina_potential) 
             for (int map_index = 0; map_index < num_atom_maps; map_index++) {
