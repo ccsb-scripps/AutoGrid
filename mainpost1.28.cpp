@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.116 2015/10/15 18:54:08 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.117 2015/10/16 03:34:09 mp Exp $
 
  AutoGrid 
 
@@ -273,6 +273,7 @@ int receptor_types_ct = 0;
 /* array of numbers of each type */
 /*NB: this is a sparse int array, some entries are 0*/
 int receptor_atom_type_count[NUM_RECEPTOR_TYPES];
+int lc; /* receptor pdbqt file line counter */
 
 /*array of ptrs used to parse input line*/
 char * receptor_atom_types[NUM_RECEPTOR_TYPES];
@@ -304,12 +305,12 @@ static double coord[AG_MAX_ATOMS][XYZ];
 static double rvector[AG_MAX_ATOMS][XYZ];
 static double rvector2[AG_MAX_ATOMS][XYZ];
 
-/*canned receptor atom type number*/
-int hydrogen, carbon, arom_carbon, oxygen, nitrogen; 
-int nonHB_hydrogen, nonHB_nitrogen, sulphur, nonHB_sulphur;
 
-// additional types for vina_potential 
-int chlorine, bromine, fluorine, iodine;
+/* ligand atom type number for autodock4 potential*/
+static int hydrogen, nonHB_hydrogen, carbon, arom_carbon,
+   oxygen, nitrogen, nonHB_nitrogen, sulphur, nonHB_sulphur,
+   bromine, chlorine, fluorine, iodine;
+
 /*canned ligand atom type number for vina_potential*/
 int map_hydrogen, map_carbon, map_arom_carbon, map_oxygen, map_nitrogen; 
 int map_nonHB_hydrogen, map_nonHB_nitrogen, map_sulphur, map_nonHB_sulphur;
@@ -353,7 +354,6 @@ int ctr;
 int iz; /* plane-counter for progress display */
 
 char atom_name[6];
-char record[LINE_LEN];
 char token[LINE_LEN];
 char warned = 'F';
 static const char xyz[] = "xyz"; // used to print headings
@@ -423,10 +423,10 @@ int outlev = -1;
 #define INIT_NUM_GRID_PTS -1
 int num_grid_points_per_map = INIT_NUM_GRID_PTS;
 int indx_r, i_smooth;
-int ia, ib;
-int closestH = 0;
+int ib;
+int closestH = -1;
 
-static int num_receptor_atoms;
+int num_receptor_atoms=0;
 static long clktck = 0;
 
 Clock      job_start;
@@ -539,7 +539,8 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
  */
 banner( version_num);
 
-(void) fprintf(logFile, "                           $Revision: 1.116 $\n");
+/* report compilation options: this is mostly a duplicate of code in setflags.cpp */
+(void) fprintf(logFile, "                           $Revision: 1.117 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -553,6 +554,19 @@ fprintf(logFile,"        e_vdW_Hb table has %8ld entries of size %ld\n",
  * Print out MAX_MAPS - maximum number of maps allowed
  */
 (void) fprintf(logFile, "Maximum number of maps that can be computed = %d (defined by MAX_MAPS in \"autocomm.h\").\n", MAX_MAPS);
+	    fprintf(logFile, "  Non-bond cutoff for internal energy calculation (NBC): %.2f\n", NBC);
+            fprintf(logFile, "  Optimize internal energy scoring (USE_8A_NBCUTOFF): ");
+#ifdef USE_8A_NBCUTOFF
+	    fprintf(logFile, " yes\n");
+#else
+	    fprintf(logFile, " no\n");
+#endif
+            fprintf(logFile, "  Faster search for nearby atoms (USE_BHTREE): ");
+#ifdef USE_BHTREE
+	    fprintf(logFile, " yes\n");
+#else
+	    fprintf(logFile, " no\n");
+#endif
 
 
 /*
@@ -600,7 +614,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_NULL:
     case GPF_COMMENT:
         (void) fprintf( logFile, "GPF> %s", GPF_line);
-        (void) fflush( logFile);
         break;
 
     default:
@@ -641,15 +654,16 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         }
 
         /* start to read in the lines of the receptor file */
-        ia = 0;
+        num_receptor_atoms = 0;
+	lc = 0; /* receptor pdbqt file line counter */
         while ( (fgets(line, length, receptor_fileptr)) != NULL ) {
-            (void) sscanf(line, "%6s", record);
-            if (equal(record, "ATOM", 4) || /* Amino Acid or DNA/RNA atoms */
-                equal(record, "HETA", 4) || /* Non-standard heteroatoms */
-                equal(record, "CHAR", 4)) { /* Partial Atomic Charge - not a PDB record */
+	    lc++;
+            if (equal(line, "ATOM  ", 6) || /* Amino Acid or DNA/RNA atoms */
+                equal(line, "HETATM", 6) || /* Non-standard heteroatoms */
+                equal(line, "CHAR", 4)) { /* Partial Atomic Charge - not a PDB record */
                 /* Check that there aren't too many atoms... */
-                if (ia >= AG_MAX_ATOMS) {
-                    (void) sprintf( message, "Too many atoms in receptor PDBQT file %s;", receptor_filename );
+                if (num_receptor_atoms >= AG_MAX_ATOMS) {
+                    (void) sprintf( message, "Too many atoms in receptor PDBQT file %s line %d;", receptor_filename, lc );
                     print_error( logFile, AG_ERROR, message );
                     (void) sprintf( message, "-- the maximum number of atoms, AG_MAX_ATOMS, allowed is %d.", AG_MAX_ATOMS );
                     print_error( logFile, AG_ERROR, message );
@@ -660,6 +674,13 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                     // FATAL_ERROR will cause AutoGrid to exit...
                     print_error( logFile, FATAL_ERROR, "Sorry, AutoGrid cannot continue.");
                 } /* endif */
+                /* Check that line is long enough */
+                if (strlen(line) < 78) {
+                    (void) sprintf( message, 
+			"ATOM/HETATM line is too short in receptor PDBQT file %s line %d;",
+			receptor_filename, lc );
+                    print_error( logFile, AG_ERROR, message );
+		}
 
                 (void) strncpy( atom_name, &line[12], 4);
                 /* atom_name is declared as an array of 6 characters,
@@ -669,26 +690,32 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 atom_name[4] = '\0';
 
                 /* Output the serial number of this atom... */
-                (void) fprintf( logFile, "Atom no. %2d, \"%s\"", ia + 1, atom_name);
-                (void) fflush( logFile);
-
+                (void) fprintf( logFile, "Atom no. %2d, \"%s\"", num_receptor_atoms + 1, atom_name);
                 /* Read in this receptor atom's coordinates,partial charges, and
                  * solvation parameters in PDBQS format... */
-		// TODO this is unsafe way to read a PDB  !  MP 2012 
+		char field[10], field1[10], field2[10], field3[10];
 
-                (void) sscanf(&line[30], "%lf", &coord[ia][X]);
-                (void) sscanf(&line[38], "%lf", &coord[ia][Y]);
-                (void) sscanf(&line[46], "%lf", &coord[ia][Z]);
+		(void) strncpy(field1, &line[30], 8); field[8] = '\0';
+		(void) strncpy(field2, &line[38], 8); field[8] = '\0';
+		(void) strncpy(field3, &line[46], 8); field[8] = '\0';
+		if ( 3 != 
+                 sscanf(field1, "%lf", &coord[num_receptor_atoms][X]) +
+                 sscanf(field2, "%lf", &coord[num_receptor_atoms][Y]) +
+                 sscanf(field3, "%lf", &coord[num_receptor_atoms][Z]) ) {
+                    (void) sprintf( message, "ATOM/HETATM line bad x,y,z in receptor PDBQT file %s line %d;", receptor_filename, lc);
+                    print_error( logFile, AG_ERROR, message );
+		}
 
                 /* Output the coordinates of this atom... */
                 (void) fprintf( logFile, " at (%.3lf, %.3lf, %.3lf), ",
-                                coord[ia][X], coord[ia][Y], coord[ia][Z]);
-                (void) fflush( logFile);
+                                coord[num_receptor_atoms][X], coord[num_receptor_atoms][Y], coord[num_receptor_atoms][Z]);
 
                 /*1:CHANGE HERE: need to set up vol and solpar*/
-                (void) sscanf(&line[70], "%lf", &charge[ia]);
+		(void) strncpy(field, &line[70], 6); field[6] = '\0';
+                (void) sscanf(field, "%lf", &charge[num_receptor_atoms]);
                 //printf("new type is: %s\n", &line[77]);
-                (void) sscanf(&line[77], "%s", thisparm.autogrid_type);
+		(void) strncpy(field, &line[77], 2); field[2] = '\0';
+                (void) sscanf(field, "%s", thisparm.autogrid_type);
                 found_parm = apm_find(thisparm.autogrid_type);
                 if ( found_parm != NULL ) {
                     //(void) fprintf ( logFile, "DEBUG: found_parm->rec_index = %d, ->xs_radius= %f", found_parm->rec_index, found_parm->xs_radius);
@@ -697,25 +724,27 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                         found_parm->rec_index = receptor_types_ct++;
                         //(void) fprintf ( logFile, "DEBUG: found_parm->rec_index => %d", found_parm->rec_index );
                     }
-                    atom_type[ia] = found_parm->rec_index;
-                    solpar[ia] = found_parm->solpar;
-                    vol[ia] = found_parm->vol;
-                    hbond[ia] = found_parm->hbond; /*NON=0, DS,D1, AS, A1, A2, AD */ /* N3P: added AD*/
+                    atom_type[num_receptor_atoms] = found_parm->rec_index;
+                    solpar[num_receptor_atoms] = found_parm->solpar;
+                    vol[num_receptor_atoms] = found_parm->vol;
+                    hbond[num_receptor_atoms] = found_parm->hbond; /*NON=0, DS,D1, AS, A1, A2, AD */ /* N3P: added AD*/
 #ifdef DEBUG
-                    printf("%d:key=%s, type=%d,solpar=%f,vol=%f\n",ia,thisparm.autogrid_type, atom_type[ia],solpar[ia],vol[ia]);
+                    printf("%d:key=%s, type=%d,solpar=%f,vol=%f\n",num_receptor_atoms,thisparm.autogrid_type, atom_type[num_receptor_atoms],solpar[num_receptor_atoms],vol[num_receptor_atoms]);
 #endif
                     ++receptor_atom_type_count[found_parm->rec_index];
                 } else {
 		    char message[1000];
-                    sprintf(message, "\n\nreceptor file contains unknown type: '%s'\nadd parameters for it to the parameter library first\n", thisparm.autogrid_type);
+                    sprintf(message, 
+		"\n\nreceptor file contains unknown type: '%s line %d'\nadd parameters for it to the parameter library first\n",
+		    thisparm.autogrid_type, lc);
                     print_error(logFile, FATAL_ERROR, message);
                 }
                     
                 /* if from pdbqs: convert cal/molA**3 to kcal/molA**3 */
-                /*solpar[ia] *= 0.001;*/
+                /*solpar[num_receptor_atoms] *= 0.001;*/
 
-                q_max = max(q_max, charge[ia]);
-                q_min = min(q_min, charge[ia]);
+                q_max = max(q_max, charge[num_receptor_atoms]);
+                q_min = min(q_min, charge[num_receptor_atoms]);
 
                 if (atom_name[0] == ' ') {
                     /* truncate the first character... */
@@ -750,23 +779,22 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 }
 
                 /* Tell the user what you thought this atom was... */
-                (void) fprintf( logFile, " was assigned atom type \"%s\" (rec_index= %d, atom_type= %d).\n", found_parm->autogrid_type, found_parm->rec_index, atom_type[ia]);
-                (void) fflush( logFile);
+                (void) fprintf( logFile, " was assigned atom type \"%s\" (rec_index= %d, atom_type= %d).\n", found_parm->autogrid_type, found_parm->rec_index, atom_type[num_receptor_atoms]);
 
                 /* Count the number of each atom type */
-                /*++receptor_atom_type_count[ atom_type[ia] ];*/
+                /*++receptor_atom_type_count[ atom_type[num_receptor_atoms] ];*/
 
                 /* Keep track of the extents of the receptor */
                 for (int i = 0;  i < XYZ;  i++) {
-                    cmax[i] = max(cmax[i], coord[ia][i]);
-                    cmin[i] = min(cmin[i], coord[ia][i]);
-                    csum[i] += coord[ia][i];
+                    cmax[i] = max(cmax[i], coord[num_receptor_atoms][i]);
+                    cmin[i] = min(cmin[i], coord[num_receptor_atoms][i]);
+                    csum[i] += coord[num_receptor_atoms][i];
                 }
                 /* Total up the partial charges as we go... */
-                q_tot += charge[ia];
+                q_tot += charge[num_receptor_atoms];
 
                 /* Increment the atom counter */
-                ia++;
+                num_receptor_atoms++;
 
             } /* endif */
         } /* endwhile */
@@ -783,7 +811,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             }
         }
         /* Update the total number of atoms in the receptor */
-        num_receptor_atoms = ia;
         (void) fprintf( logFile, "\nMaximum partial atomic charge found = %+.3lf e\n", q_max);
         (void) fprintf( logFile, "Minimum partial atomic charge found = %+.3lf e\n\n", q_min);
         (void) fflush( logFile);
@@ -801,7 +828,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         (void) fprintf( logFile, "Atom\tAtom\tNumber of this Type\n");
         (void) fprintf( logFile, "Type\t ID \t in Receptor\n");
         (void) fprintf( logFile, "____\t____\t___________________\n");
-        (void) fflush( logFile);
         /*2. CHANGE HERE: need to count number of each receptor_type*/
         for (int ia = 0;  ia < receptor_types_ct;  ia++) {
             //i = 0;
@@ -811,11 +837,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             };
         }
         (void) fprintf( logFile, "\nTotal number of atoms :\t\t%d atoms \n", num_receptor_atoms);
-        (void) fflush( logFile);
         (void) fprintf( logFile, "Total charge :\t\t\t%.2lf e\n", q_tot);
-        (void) fflush( logFile);
         (void) fprintf( logFile, "\n\nReceptor coordinates fit within the following volume:\n\n");
-        (void) fflush( logFile);
         (void) fprintf( logFile, "                   _______(%.1lf, %.1lf, %.1lf)\n", cmax[X], cmax[Y], cmax[Z]);
         (void) fprintf( logFile, "                  /|     /|\n");
         (void) fprintf( logFile, "                 / |    / |\n");
@@ -889,7 +912,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         (void) sscanf( GPF_line, "%*s %lf", &spacing);
         (void) fprintf( logFile, "Grid Spacing :\t\t\t%.3lf Angstrom\n", spacing);
         (void) fprintf( logFile, "\n");
-        (void) fflush( logFile);
         break;
 
 /******************************************************************************/
@@ -1117,7 +1139,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         map_chlorine = get_map_index("Cl");
         map_iodine = get_map_index("I");
         (void) fprintf( logFile, "\n\n");
-        (void) fflush( logFile);
         break;
 
 /******************************************************************************/
@@ -1150,7 +1171,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 (void) sprintf( message, "Unknown receptor type: \"%s\"\n -- Add parameters for it to the parameter library first!\n", receptor_atom_types[i]);
                 print_error( logFile, FATAL_ERROR, message );
             }
-        };
+        }
         // at this point set up hydrogen, carbon, oxygen and nitrogen
         hydrogen = get_rec_index("HD");
         nonHB_hydrogen = get_rec_index("H");
@@ -1168,7 +1189,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 #ifdef DEBUG
         printf("assigned receptor types:arom_carbon->%d, hydrogen->%d,nonHB_hydrogen->%d, carbon->%d, oxygen->%d, nitrogen->%d\n, nonHB_nitrogen->%d, sulphur->%d, nonHB_sulphur->%d\n",arom_carbon,hydrogen, nonHB_hydrogen, carbon,oxygen, nitrogen, nonHB_nitrogen, sulphur, nonHB_sulphur);
 #endif
-        (void) fflush( logFile);
         break;
 
 /******************************************************************************/
@@ -1189,12 +1209,10 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 /*gridmap[mapi].solpar_probe = temp_solpar * 0.001;*/
                 gridmap[mapi].solpar_probe = temp_solpar ;
                 (void) fprintf( logFile, "\nProbe %s solvation parameters: \n\n\tatomic fragmental volume: %.2f A^3\n\tatomic solvation parameter: %.4f cal/mol A^3\n\n", found_parm->autogrid_type, found_parm->vol,found_parm->solpar);
-                (void) fflush( logFile);
             }
         } else {
             (void) fprintf( logFile, "%s key not found\n", thisparm.autogrid_type);
         };
-        (void) fflush( logFile);
         break; /* end solvation parameter */
 
 /******************************************************************************/
@@ -1236,7 +1254,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             print_error( logFile, FATAL_ERROR, message );
         }
         (void) fprintf( logFile, "\nOutput Grid Map %d:   %s\n\n", (num_maps + 1), gridmap[num_maps].map_filename);
-        (void) fflush( logFile);
 	num_maps++;
 
         break;
@@ -1649,13 +1666,13 @@ for (int ia=0; ia<num_atom_maps; ia++){
             ParameterEntry * rec_parm = apm_find(receptor_types[i]);
             if (use_vina_potential){//from vina: atom_constants.h
 #ifdef DEBUG
-                printf("@@in use_vina_potential loop ia=%d, i=%d\n", ia,i);
-                fprintf(logFile, "@@in use_vina_potential loop ia=%d, i=%d\n", ia,i);
+                printf("in use_vina_potential loop ia=%d, i=%d\n", ia,i);
+                fprintf(logFile, "in use_vina_potential loop ia=%d, i=%d\n", ia,i);
 #endif
                 // get xs_radius for this probe type from parameter_library
                 Rij = lig_parm->xs_radius; //see read_parameter_library
                 map_Rij = rec_parm->xs_radius; //see read_parameter_library
-                //@@TODO@@: add SER-OG,THR-OG, TYR_OH: X(1.2) Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
+                //TODO: add SER-OG,THR-OG, TYR_OH: X(1.2) Cl_H(1.8),Br_H(2.0),I_H(2.2),Met_D(1.2)
                 /* loop over distance index, indx_r, from 0 to NEINT (scaled NBC non-bond cutoff) */ /* GPF_MAP */
 #ifdef DEBUG
                 printf("%d-%d-building  Rij=%6.3lf, map_Rij=%10.8f for %s %s\n",ia,i, Rij, map_Rij, gridmap[ia].type, ligand_types[ia]);
@@ -1667,7 +1684,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
                     //  interatom_distance - xs_radius(t1) -xs_radius(t2)    .--|........|-----.  
                     rddist =  r - (map_Rij + Rij);
                     //use rddist for computing the vina component energies
-                    //@@TODO@@: replace with functions from vina..
+                    //TODO: replace with functions from vina..
                     //attraction:
                     delta_e = wt_gauss1 * exp(-pow(((rddist)/0.5),2)) + wt_gauss2 * exp(-pow(((rddist-3.)/2.),2));
                     //at distance 'indx_r': interaction of receptor atomtype 'ia' - ligand atomtype 'i'
@@ -1693,7 +1710,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
                     }
                     // hydrophobic: check using index 'i' compared with 'carbon',
                     // carbon/aromatic_carbon       to non-hbonder
-                    //@@TODO: add support for these other hydrophobic interactions:
+                    //TODO: add support for these other hydrophobic interactions:
                     //if (((i==carbon)||(i==arom_carbon)||(i==fluorine)||(i==chlorine)||(i==bromine)||(i==iodine))
                     //&& ((ia==carbon)||(ia==arom_carbon)||(ia==fluorine)||(ia==chlorine)||(ia==bromine)||(ia==iodine))) 
                     //if (((i==carbon)||(i==arom_carbon)) && ((ia==carbon)||(ia==arom_carbon)))
@@ -1902,8 +1919,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
     /*8:CHANGE HERE: fix the atom_type vs atom_types problem in following*/
     if ((int)hbond[ia] == 2) { /*D1 hydrogen bond donor*/
 
-        for ( int ib = from; ib <= to; ib++) {       /*** ib = i_receptor_atom_b ***/
-            if (ib != ia) {
+        for ( int ib = from; ib <= to; ib++) if (ib != ia) { /* ib = i_receptor_atom_b */
                 /*
                  * =>  NH-> or OH->
                  */
@@ -1920,7 +1936,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                     /*
                      * If ia & ib are less than 1.3 A apart -- they are covalently bonded,
                      */
-                    if (rd2 < 1.90) { /*INCREASED for H-S bonds*/
+                    if (rd2 < sq(1.378)) { /*INCREASED for H-S bonds*/
                         if (rd2 < APPROX_ZERO) {
                             if (rd2 == 0.) {
                                 (void) sprintf ( message, "While calculating an H-O or H-N bond vector...\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
@@ -1955,7 +1971,6 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                         break;
                     } /* Found covalent bond. */
                 /*}  Found NH or OH in receptor. */
-            }
         } /* Finished scanning for the NH or OH in receptor. */
 
     /*
@@ -1970,8 +1985,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
          * determine number of atoms bonded to the oxygen
          */
         nbond = 0;
-        for ( ib = from; ib <= to; ib++) {
-            if ( ib == ia ) continue;
+        for ( ib = from; ib <= to; ib++) if ( ib != ia ) {
                 float rd2 = 0.;
 
                 for (int i = 0;  i < XYZ;  i++) {
@@ -1979,22 +1993,17 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                     rd2 += sq( dc[i]);
                 }
 
-                /*
-                    for (int i = 0;  i < XYZ;  i++) {
-                        rd2 += sq(coord[ia][i] - coord[ib][i]);
-                    }
-                */
-                if (((rd2 < 3.61) && ((atom_type[ib] != hydrogen)&&(atom_type[ib]!=nonHB_hydrogen))) ||
-                    ((rd2 < 1.69) && ((atom_type[ib] == hydrogen)||(atom_type[ib]==nonHB_hydrogen)))) {
+                if (((rd2 < sq(1.9)) && ((atom_type[ib] != hydrogen)&&(atom_type[ib]!=nonHB_hydrogen))) ||
+                    ((rd2 < sq(1.3)) && ((atom_type[ib] == hydrogen)||(atom_type[ib]==nonHB_hydrogen)))) {
                     if (nbond == 2) {
                         (void) sprintf( message, "Found an H-bonding atom with three bonded atoms, atom serial number %d\n", ia + 1);
                         print_error( logFile, WARNING, message );
                     }
-                    if (nbond == 1) {
+                    else if (nbond == 1) {
                         nbond = 2;
                         i2 = ib;
                     }
-                    if (nbond == 0) {
+                    else if (nbond == 0) {
                         nbond = 1;
                         i1 = ib;
                     }
@@ -2033,15 +2042,14 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
             }
 
             /* find a second atom (i2) bonded to carbonyl carbon (i1) */
-            for ( i2 = from; i2 <= to; i2++) {
-                if (( i2 != i1 ) && ( i2 != ia )) {
+            for ( i2 = from; i2 <= to; i2++) if (i2 != i1 && i2 != ia) {
                     rd2 = 0.;
                     for (int i = 0;  i < XYZ;  i++) {
                         dc[i] = coord[i1][i] - coord[i2][i]; /*NEW*/
                         rd2 += sq( dc[i]);
                     }
-                    if (((rd2 < 2.89) && (atom_type[i2] != hydrogen)) ||
-                        ((rd2 < 1.69) && (atom_type[i2] == hydrogen))) {
+                    if ( (atom_type[i2] == hydrogen && rd2 < sq(1.3)) ||
+                         (atom_type[i2] != hydrogen && rd2 < sq(1.7))) {
 
                         /* found one */
                         /* d[i] vector from carbon to second atom */
@@ -2084,7 +2092,6 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                             rvector2[ia][i] *= inv_rd;
                         }
                     }
-                }
             }/*i2-loop*/
         } /* endif nbond==1 */
 
@@ -2179,8 +2186,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 ** determine number of atoms bonded to the oxygen
 */
         nbond = 0;
-        for ( ib = from; ib <= to; ib++) {
-		if(ia==ib) continue;
+        for ( ib = from; ib <= to; ib++) if ( ib != ia) {
                 float rd2 = 0.;
 
                 for (int i = 0;  i < XYZ;  i++) {
@@ -2193,8 +2199,8 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                         rd2 += sq(coord[ia][i] - coord[ib][i]);
                     }
                 */
-                if (((rd2 < 2.89) && ((atom_type[ib] != hydrogen)&&(atom_type[ib]!=nonHB_hydrogen))) || 
-                    ((rd2 < 1.69) && ((atom_type[ib] == hydrogen)||(atom_type[ib]==nonHB_hydrogen)))) {
+                if (((rd2 < sq(1.7)) && ((atom_type[ib] != hydrogen)&&(atom_type[ib]!=nonHB_hydrogen))) || 
+                    ((rd2 < sq(1.3)) && ((atom_type[ib] == hydrogen)||(atom_type[ib]==nonHB_hydrogen)))) {
                     if (nbond == 2) {
                         nbond = 3;
                         i3 = ib;
@@ -2405,7 +2411,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 		      }
 		    }
 		  }
-		  continue;
+		  continue; // next icoord[X]
 		}
 	      else
 		{
@@ -2417,7 +2423,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 		
 	    /* NEW2: Find Closest Hbond */
             rmin=999999.;
-            closestH=0;
+            closestH= -1; // none found yet
 #ifdef USE_BHTREE
 	    /* M Pique  Note the bhtree here has an implicit cutoff, is this OK?  TODO */
             for (int ibh = 0;  ibh < bhTreeNbIndices;  ibh++) {
@@ -2446,6 +2452,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 #else
             } /* ia loop */
 #endif
+	    /* MPique error (?) if no closestH was found */
+	    if(closestH<0) print_error( logFile, FATAL_ERROR, "no closestH atom was found");
             /* END NEW2: Find Min Hbond */
 
             /*
@@ -2465,7 +2473,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 inv_r  = 1./r;
                 inv_rmax = 1./max(r, 0.5);
 
-                /* make sure both lookup indices are in the tables */
+                /* make sure lookup index is in the tables */
                 int indx_r = min(lookup(r), NDIEL-1);
 
                 if (floating_grid) {
@@ -2485,7 +2493,6 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     gridmap[elecPE].energy += charge[ia] *inv_rmax * et.r_epsilon_fn[indx_r] * AD4.coeff_estat;
                 } else {
                     /* Constant dielectric... */
-                    /*gridmap[elecPE].energy += charge[ia] * inv_r * invdielcal;*/
                     gridmap[elecPE].energy += charge[ia] * inv_rmax * invdielcal * AD4.coeff_estat;
                 }
 		}
@@ -2822,14 +2829,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
                         /* add desolvation energy  */
                         /* forcefield desolv coefficient/weight in sol_fn*/
-                        gridmap[map_index].energy += gridmap[map_index].solpar_probe * vol[ia]*et.sol_fn[indx_r] + 
-                                        (solpar[ia]+solpar_q*fabs(charge[ia]))*gridmap[map_index].vol_probe*et.sol_fn[indx_r];
+                        gridmap[map_index].energy += 
+				gridmap[map_index].solpar_probe * vol[ia]*et.sol_fn[indx_r] + 
+				(solpar[ia]+solpar_q*fabs(charge[ia]))*gridmap[map_index].vol_probe*et.sol_fn[indx_r];
                        }
-                }/* end of loop over all map_index values */
+                } /* end of loop over all num_atom_maps index values */
 
-                if ((not use_vina_potential) && dsolvPE>=0){
-                gridmap[dsolvPE].energy += solpar_q * vol[ia] * et.sol_fn[indx_r];
-                }
 #ifdef USE_BHTREE
             }/* ia loop, over all receptor atoms within distance cutoff */
 #else
