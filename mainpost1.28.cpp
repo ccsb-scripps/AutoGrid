@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.117 2015/10/16 03:34:09 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.118 2015/10/21 03:14:13 mp Exp $
 
  AutoGrid 
 
@@ -71,7 +71,6 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
 // M Sanner 2015 add bhtree to speed up calculation using spatial hashing
 #include "bhtree.h"
-#undef USE_BHTREE
 
 extern Real idct;
 
@@ -540,7 +539,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.117 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.118 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1236,7 +1235,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         /*  */
         /* The variable "num_maps" is the 0-based index of the ligand atom type
          * we are calculating a map for. 
-         * If the "types" line was CNOSH, there would be 5 ligand atom maps to calculate,
+         * If the "types" line was C N O S H, there would be 5 ligand atom maps to calculate,
          * num_maps will increment
          * each time there is a "map" keyword in the GPF has been processed.  The value of
          * num_maps should therefore go from 1 to 5 after each "map" keyword.  
@@ -1524,7 +1523,7 @@ if ( ! floating_grid ) {
 
 (void) fprintf( AVS_fld_fileptr, "# AVS field file\n#\n");
 (void) fprintf( AVS_fld_fileptr, "# AutoDock Atomic Affinity and Electrostatic Grids\n#\n");
-(void) fprintf( AVS_fld_fileptr, "# Created by %s.\n#\n", programname);
+(void) fprintf( AVS_fld_fileptr, "# Created by %s %s.\n#\n", programname, version_num);
 (void) fprintf( AVS_fld_fileptr, "#SPACING %.3f\n", (float) spacing);
 (void) fprintf( AVS_fld_fileptr, "#NELEMENTS %d %d %d\n", nelements[X], nelements[Y], nelements[Z]);
 (void) fprintf( AVS_fld_fileptr, "#CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
@@ -2359,8 +2358,10 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
         c[Y] = ((double)icoord[Y]) * spacing;
 
         for (icoord[X] = -ne[X]; icoord[X] <= ne[X]; icoord[X]++) {
+	    float fcc[XYZ]; // for USE_BHTREE
             c[X] = ((double)icoord[X]) * spacing;
 	    double r_min=BIG; /* for floating_grid only */
+	    for ( int i = 0; i< XYZ; i++) fcc[i] = c[i]; // for USE_BHTREE
 
 	    /* handle covalent map(s). Zero-out all other maps' energy */
             for (int j = 0;  j < num_maps ;  j++) {
@@ -2392,33 +2393,31 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
             
 // M Sanner 2015 use BHTree to find atoms very close to grid point: write all atom grids' energies as "HIGH"
 //  write electrostatic and desolvation maps as 0
-// M Pique TODO - even for covalent map(s)?
 #ifdef USE_BHTREE
+	// M Pique Oct 2015: I'm uncertain of this optimization right now, it causes
+	// maps made with and without "USE_BHTREE" to differ.  I'm disabling it pending more tests
 	    {
-	      float fcc[XYZ];
-	      int nb;
-	      for ( int i = 0; i< XYZ; i++) fcc[i] = c[i];
-	      // check for collision with receptor atoms
+	      // check for collision with any receptor atoms
+ 	      // if collision, modify energy, write all maps' values, skip to next grid point.
 	      bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_collision_dist, closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
-	      if (bhTreeNbIndices > 0) {
+
+	      if (FALSE /*disabled, see note*/ && bhTreeNbIndices > 0) {
 		  for (int k = 0;  k < num_maps;  k++) {
-		  gridmap[k].energy = (k==elecPE||k==dsolvPE)?0:99999;
+		    if(gridmap[k].is_covalent==FALSE)  gridmap[k].energy = 
+                      (k==elecPE||k==dsolvPE)?0:99999;
 		    if (!problem_wrt) {
 		      fprintf_retval = fprintf(gridmap[k].map_fileptr, 
-			(k==elecPE||k==dsolvPE)?"0.\n":"99999.\n");
-		      if (fprintf_retval < 0) {
-                        problem_wrt = TRUE;
-		      }
+			"%.3f\n", gridmap[k].energy);
+		      if (fprintf_retval < 0)  problem_wrt = TRUE;
 		    }
 		  }
 		  continue; // next icoord[X]
 		}
-	      else
-		{
-		  bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_cutoff_dist, closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
-		}
 	      //printf("FUGU %f %f %f %d %d %d %d\n", fcc[0], fcc[1], fcc[2], icoord[X], icoord[Y], icoord[Z], bhTreeNbIndices);
 	    }
+
+            bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_cutoff_dist, 
+		closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
 #endif
 		
 	    /* NEW2: Find Closest Hbond */
