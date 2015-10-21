@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.119 2015/10/21 03:27:45 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.120 2015/10/21 04:25:07 mp Exp $
 
  AutoGrid 
 
@@ -303,6 +303,7 @@ static int rexp[AG_MAX_ATOMS];
 static double coord[AG_MAX_ATOMS][XYZ];
 static double rvector[AG_MAX_ATOMS][XYZ];
 static double rvector2[AG_MAX_ATOMS][XYZ];
+static int hbond_12[AG_MAX_ATOMS], nhbond_12;  // indices of hbond[ia]==1 or 2; count
 
 
 /* ligand atom type number for autodock4 potential*/
@@ -508,7 +509,13 @@ job_start = times( &tms_job_start);
 /*
  * Parse the command line...
  */
-(void) setflags( argc, argv, version_num);
+(void) setflags( argc, argv, version_num,
+#ifdef USE_BHTREE
+ TRUE
+#else
+ FALSE
+#endif
+);
 
 for (int i = 0;  i < XYZ;  i++) {
    icoord[i] = 0;
@@ -539,7 +546,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.119 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.120 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -727,6 +734,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                     solpar[num_receptor_atoms] = found_parm->solpar;
                     vol[num_receptor_atoms] = found_parm->vol;
                     hbond[num_receptor_atoms] = found_parm->hbond; /*NON=0, DS,D1, AS, A1, A2, AD */ /* N3P: added AD*/
+		    // build list of "hbond" atoms to speed search M Pique Oct 2015
+		    if(hbond[num_receptor_atoms]==1 || hbond[num_receptor_atoms]==2) 
+			hbond_12[nhbond_12++] = num_receptor_atoms;
 #ifdef DEBUG
                     printf("%d:key=%s, type=%d,solpar=%f,vol=%f\n",num_receptor_atoms,thisparm.autogrid_type, atom_type[num_receptor_atoms],solpar[num_receptor_atoms],vol[num_receptor_atoms]);
 #endif
@@ -2429,44 +2439,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 	      //printf("FUGU %f %f %f %d %d %d %d\n", fcc[0], fcc[1], fcc[2], icoord[X], icoord[Y], icoord[Z], bhTreeNbIndices);
 	    }
 
-            bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_cutoff_dist, 
-		closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
 #endif
 		
-	    /* NEW2: Find Closest Hbond */
-            rmin=999999.;
-            closestH= -1; // none found yet
-#ifdef USE_BHTREE
-	    /* M Pique  Note the bhtree here has an implicit cutoff, is this OK?  TODO */
-            for (int ibh = 0;  ibh < bhTreeNbIndices;  ibh++) {
-	      int ia = closeAtomsIndices[ibh];
-
-#else
-            for (int ia = 0;  ia < num_receptor_atoms;  ia++) {
-#endif
-                // if ((hbond[ia]==1)||(hbond[ia]==2)||(hbond[ia]==6))  DS or D1 or AD // N3P: directionality for AD not required, right?
-                if ((hbond[ia]==1)||(hbond[ia]==2))  {/*DS or D1 or AD*/
-                    for (int i = 0;  i < XYZ;  i++) { 
-                        d[i]  = coord[ia][i] - c[i]; 
-                    }
-#ifdef USE_BHTREE
-		  r = closeAtomsDistances[ibh];
-#else
-                    r = hypotenuse( d[X],d[Y],d[Z] );
-#endif
-                    if (r < rmin) {
-                        rmin = r;
-                        closestH = ia; 
-                    }
-                } /* Hydrogen test */
-#ifdef USE_BHTREE
-            } /* ibh loop */
-#else
-            } /* ia loop */
-#endif
-	    /* MPique error (?) if no closestH was found */
-	    if(closestH<0) print_error( logFile, FATAL_ERROR, "no closestH atom was found");
-            /* END NEW2: Find Min Hbond */
 
             /*
              *  Loop 1 of 2:
@@ -2513,8 +2487,42 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 }
             }/* ia loop, over all receptor atoms, no distance cutoff... */
 
+	    // M Pique Oct 2015 TODO combine this loop with one above
+	    /* NEW2: Find Closest Hbond */
+            rmin=999999.;
+            closestH= -1; // none found yet
+            if(num_atom_maps>0) for (int inh = 0;  inh < nhbond_12;  inh++) {
+		int ia = hbond_12[inh];
+                // if ((hbond[ia]==1)||(hbond[ia]==2)||(hbond[ia]==6))  DS or D1 or AD // N3P: directionality for AD not required, right?
+                //if ((hbond[ia]==1)||(hbond[ia]==2))  {/*DS or D1 or AD*/
+		    bool breakout=FALSE;
+		    double d[XYZ];
+                    for (int i = 0;  i < XYZ;  i++) { 
+                        d[i]  = coord[ia][i] - c[i]; 
+			if(fabs(d[i])>rmin) {
+				breakout=TRUE;
+				break;
+			}
+                    }
+		    if(breakout) continue;
+                    r = hypotenuse( d[X],d[Y],d[Z] );
+                    if (r < rmin) {
+                        rmin = r;
+                        closestH = ia; 
+                    }
+                //} /* Hydrogen test */
+            } /* inh loop */
+
+	    /* MPique declare error if no closestH was found */
+	    if(closestH<0) print_error( logFile, FATAL_ERROR, "no closestH atom was found");
+            /* END NEW2: Find Min Hbond */
+
+	    if(num_atom_maps>0) {   // huge block only invoked if atom affinity maps requested...
 	    /* Loop 2 of 2: consider only atoms within distance cutoff */
 #ifdef USE_BHTREE
+            bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_cutoff_dist, 
+		closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
+
             for (int ibh = 0;  ibh < bhTreeNbIndices;  ibh++) {
 	      int ia = closeAtomsIndices[ibh];
 	      r = closeAtomsDistances[ibh];
@@ -2864,6 +2872,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     gridmap[map_index].energy += hbondmax[map_index];
                 }
             }
+	    } // end if num_atom_maps>0
 
             /*
              * O U T P U T . . .

@@ -1,6 +1,6 @@
 /*
 
- $Id: prototypes.h,v 1.11 2012/04/20 03:28:28 mp Exp $
+ $Id: prototypes.h,v 1.12 2015/10/21 04:25:07 mp Exp $
 
  AutoGrid 
 
@@ -30,7 +30,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
 
 void	banner( char * version_num );
-int	    setflags( int argc, char **argv, char * version_num );
+int	    setflags( int argc, char **argv, char * version_num, int use_bhtree);
 ParameterEntry * apm_find( const char key[] );
 void    apm_enter( const char key[], ParameterEntry value );
 int	    check_size( int nelements, char axischar );
