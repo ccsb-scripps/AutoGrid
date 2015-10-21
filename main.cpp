@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.118 2015/10/21 03:14:13 mp Exp $
+ $Id: main.cpp,v 1.119 2015/10/21 03:27:45 mp Exp $
 
  AutoGrid 
 
@@ -539,7 +539,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.118 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.119 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -916,6 +916,11 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 /******************************************************************************/
 
     case GPF_GRIDCENTER:
+       if ( AVS_fld_fileptr == NULL || xyz_fileptr == NULL ) {
+            print_error( logFile, FATAL_ERROR, 
+            "You need to set the \"gridfld\" file before setting the grid center\".\n" );
+        }
+
         (void) sscanf( GPF_line, "%*s %s", token);
         if (equal( token, "auto", 4)) {
             for (int i = 0;  i < XYZ;  i++) {
@@ -957,6 +962,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             (void) fprintf(xyz_fileptr, "%.3lf %.3lf\n", cgridmin[i], cgridmax[i]);
         }
         (void) fclose(xyz_fileptr);
+	xyz_fileptr = NULL;
         (void) fflush( logFile);
         break;
 
@@ -1521,6 +1527,12 @@ if ( ! floating_grid ) {
     // (void) fprintf( logFile, "\n\nNo Floating Grid was requested.\n");
 }
 
+if ( AVS_fld_fileptr == NULL ) {
+             (void) fprintf( logFile, "Missing \"gridfld\" keyword;\nAdd a \"gridfld <file.fld>\" keyword to the GPF after the \"npts\" keyword.\n");
+             (void) sprintf( message, "Missing \"gridfld\" keyword.");
+            print_error( logFile, FATAL_ERROR, message );
+	} 
+
 (void) fprintf( AVS_fld_fileptr, "# AVS field file\n#\n");
 (void) fprintf( AVS_fld_fileptr, "# AutoDock Atomic Affinity and Electrostatic Grids\n#\n");
 (void) fprintf( AVS_fld_fileptr, "# Created by %s %s.\n#\n", programname, version_num);
@@ -1562,6 +1574,7 @@ if (floating_grid) {
     (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_maps+1, floating_grid_filename);
 }
 (void) fclose( AVS_fld_fileptr);
+AVS_fld_fileptr = NULL;
 
 #ifdef BOINCCOMPOUND
  boinc_fraction_done(0.1);
