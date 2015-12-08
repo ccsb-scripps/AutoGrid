@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.120 2015/10/21 04:25:07 mp Exp $
+ $Id: main.cpp,v 1.121 2015/12/08 03:03:27 mp Exp $
 
  AutoGrid 
 
@@ -546,7 +546,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.120 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.121 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1278,6 +1278,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 	if(elecPE>=0) {
             print_error( logFile, FATAL_ERROR, "Duplicate \"elecmap\" request");
 		}
+	if(num_maps<num_atom_maps) {
+            print_error( logFile, FATAL_ERROR, "\"elecmap\" request appeared before all atom map requests had appeared.");
+		}
 	elecPE = num_maps;
         (void) sscanf( GPF_line, "%*s %s", gridmap[elecPE].map_filename);
         if ( (gridmap[elecPE].map_fileptr = ad_fopen( gridmap[elecPE].map_filename, "w", logFile)) == NULL){
@@ -1292,6 +1295,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_DSOLVMAP:
 	if(dsolvPE>=0) {
             print_error( logFile, FATAL_ERROR, "Duplicate \"dsolvmap\" request");
+		}
+	if(num_maps<num_atom_maps) {
+            print_error( logFile, FATAL_ERROR, "\"desolvmap\" request appeared before all atom map requests had appeared.");
 		}
 	dsolvPE = num_maps;
         (void) sscanf( GPF_line, "%*s %s", gridmap[dsolvPE].map_filename);
@@ -2905,7 +2911,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
     if (problem_wrt) {
         (void) sprintf( message, "Problems writing grid maps - there may not be enough disk space.\n");
-        print_error( logFile, WARNING, message );
+        print_error( logFile, FATAL_ERROR, message );
     }
     grd_end = times( &tms_grd_end);
     ++nDone;
