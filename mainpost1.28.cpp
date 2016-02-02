@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.122 2016/02/02 02:54:31 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.123 2016/02/02 03:29:56 mp Exp $
 
  AutoGrid 
 
@@ -285,7 +285,7 @@ char * receptor_atom_types[NUM_RECEPTOR_TYPES];
  float *closeAtomsDistances;
  int bhTreeNbIndices;
 #define BH_collision_dist 2.0
-#define BH_cutoff_dist 8.0
+#define BH_cutoff_dist NBC
 //#define BH_collision_dist -1.0
 // M Sanner 2015 BHTREE END
 #endif
@@ -546,7 +546,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.122 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.123 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -2460,10 +2460,10 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 
             /*
              *  Loop 1 of 2:
-	     *  Performed only if electrostatic, desolvation, or floating maps are requested.
+	     *  Performed only if electrostatic or floating maps are requested.
              *  Do all Receptor (protein, DNA, etc.) atoms, regardless of distance cutoff
              */
-            if(elecPE>=0 || dsolvPE>=0 || floating_grid) for (int ia = 0;  ia < num_receptor_atoms;  ia++) {
+            if(elecPE>=0 || floating_grid) for (int ia = 0;  ia < num_receptor_atoms;  ia++) {
                 /*
                  *  Get distance, r, from current grid point, c, to this receptor atom, coord,
                  */
@@ -2498,19 +2498,6 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     gridmap[elecPE].energy += charge[ia] * inv_rmax * invdielcal * AD4.coeff_estat;
                 }
 		}
-                if ((not use_vina_potential) && dsolvPE>=0){
-		if(r>NBC) continue;
-		if ((atom_type[ia] == hydrogen) && (disorder[ia] == TRUE)) continue;
-	        if(outlev>=LOGRUNVVV) fprintf(logFile, " r=%8.3f ", r);
-	           if(outlev>=LOGRUNVVV) fprintf(logFile, 
-			"  dsolvPE += solpar_q=%8.3f * vol[ia=%3d]=%8.3f * et.sol_fn[indx_r=%4d]=%9.4f  %9.4f += %9.4f",
-                      solpar_q, ia, vol[ia], indx_r,  et.sol_fn[indx_r],
-		      gridmap[dsolvPE].energy,
-                      solpar_q * vol[ia] * et.sol_fn[indx_r]);
-                gridmap[dsolvPE].energy += solpar_q * vol[ia] * et.sol_fn[indx_r];
-	           if(outlev>=LOGRUNVVV) fprintf(logFile, 
-			" -> %9.4f\n", gridmap[dsolvPE].energy);
-                }
             }/* ia loop, over all receptor atoms, no distance cutoff... */
 
 	    // M Pique Oct 2015 TODO combine this loop with one above
@@ -2543,7 +2530,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 	    if(closestH<0) print_error( logFile, FATAL_ERROR, "no closestH atom was found");
             /* END NEW2: Find Min Hbond */
 
-	    if(num_atom_maps>0) {   // huge block only invoked if atom affinity maps requested...
+	    if(num_atom_maps>0 || dsolvPE>=0) {   // huge block only invoked if atom affinity or desolvation maps requested...
 	    /* Loop 2 of 2: consider only atoms within distance cutoff */
 #ifdef USE_BHTREE
             bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_cutoff_dist, 
@@ -2595,7 +2582,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 indx_r = min(lookup(r), NDIEL-1);
 		int indx_n = min(lookup(r), NEINT-1);
 
-                if (not use_vina_potential){ 
+                if (not use_vina_potential){
 
                 racc = 1.;
                 rdon = 1.;
@@ -2882,6 +2869,19 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 				(solpar[ia]+solpar_q*fabs(charge[ia]))*gridmap[map_index].vol_probe*et.sol_fn[indx_r];
                        }
                 } /* end of loop over all num_atom_maps index values */
+
+	    /* compute desolvation map value */
+            if ((not use_vina_potential) && dsolvPE>=0){
+	        if(outlev>=LOGRUNVVV) fprintf(logFile, " r=%8.3f ", r);
+	           if(outlev>=LOGRUNVVV) fprintf(logFile, 
+			"  dsolvPE += solpar_q=%8.3f * vol[ia=%3d]=%8.3f * et.sol_fn[indx_r=%4d]=%9.4f  %9.4f += %9.4f",
+                      solpar_q, ia, vol[ia], indx_r,  et.sol_fn[indx_r],
+		      gridmap[dsolvPE].energy,
+                      solpar_q * vol[ia] * et.sol_fn[indx_r]);
+                gridmap[dsolvPE].energy += solpar_q * vol[ia] * et.sol_fn[indx_r];
+	           if(outlev>=LOGRUNVVV) fprintf(logFile, 
+			" -> %9.4f\n", gridmap[dsolvPE].energy);
+                }
 
 #ifdef USE_BHTREE
             }/* ia loop, over all receptor atoms within distance cutoff */
