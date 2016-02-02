@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.121 2015/12/08 03:03:27 mp Exp $
+ $Id: main.cpp,v 1.122 2016/02/02 02:54:31 mp Exp $
 
  AutoGrid 
 
@@ -418,7 +418,7 @@ int problem_wrt = FALSE;
 int hbondflag[MAX_MAPS];
 double hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
 
-int outlev = -1;
+int outlev = LOGFORADT;
 
 #define INIT_NUM_GRID_PTS -1
 int num_grid_points_per_map = INIT_NUM_GRID_PTS;
@@ -546,7 +546,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.121 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.122 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1334,6 +1334,13 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_SMOOTH:
         (void) sscanf( GPF_line, "%*s %lf", &r_smooth);
         (void) fprintf( logFile, "\nPotentials will be smoothed by: %.3lf Angstrom\n\n", r_smooth);
+        break;
+
+/******************************************************************************/
+
+    case GPF_OUTLEV:
+        (void) sscanf( GPF_line, "%*s %d", &outlev);
+        (void) fprintf( logFile, "\nOutput level: %d\n\n", outlev);
         break;
 
 /******************************************************************************/
@@ -2391,6 +2398,9 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
             c[X] = ((double)icoord[X]) * spacing;
 	    double r_min=BIG; /* for floating_grid only */
 	    for ( int i = 0; i< XYZ; i++) fcc[i] = c[i]; // for USE_BHTREE
+	    
+	    if(outlev>=LOGRUNVVV) fprintf(logFile, "grid point %3d %3d %3d xyz(%5.2f, %5.2f, %5.2f)\n",
+		icoord[X], icoord[Y], icoord[Z], c[X], c[Y], c[Z]);
 
 	    /* handle covalent map(s). Zero-out all other maps' energy */
             for (int j = 0;  j < num_maps ;  j++) {
@@ -2489,7 +2499,17 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 }
 		}
                 if ((not use_vina_potential) && dsolvPE>=0){
+		if(r>NBC) continue;
+		if ((atom_type[ia] == hydrogen) && (disorder[ia] == TRUE)) continue;
+	        if(outlev>=LOGRUNVVV) fprintf(logFile, " r=%8.3f ", r);
+	           if(outlev>=LOGRUNVVV) fprintf(logFile, 
+			"  dsolvPE += solpar_q=%8.3f * vol[ia=%3d]=%8.3f * et.sol_fn[indx_r=%4d]=%9.4f  %9.4f += %9.4f",
+                      solpar_q, ia, vol[ia], indx_r,  et.sol_fn[indx_r],
+		      gridmap[dsolvPE].energy,
+                      solpar_q * vol[ia] * et.sol_fn[indx_r]);
                 gridmap[dsolvPE].energy += solpar_q * vol[ia] * et.sol_fn[indx_r];
+	           if(outlev>=LOGRUNVVV) fprintf(logFile, 
+			" -> %9.4f\n", gridmap[dsolvPE].energy);
                 }
             }/* ia loop, over all receptor atoms, no distance cutoff... */
 
@@ -2529,6 +2549,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
             bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_cutoff_dist, 
 		closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
 
+	    if(outlev>=LOGRUNVVV) fprintf(logFile, "  bhTreeNbIndices= %3d BH_cutoff_dist= %.2f\n",
+		bhTreeNbIndices, BH_cutoff_dist);
             for (int ibh = 0;  ibh < bhTreeNbIndices;  ibh++) {
 	      int ia = closeAtomsIndices[ibh];
 	      r = closeAtomsDistances[ibh];
