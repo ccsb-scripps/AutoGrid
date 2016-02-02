@@ -1,6 +1,6 @@
 /*
 
- $Id: gpfparser.cpp,v 1.12 2013/09/16 21:09:30 mp Exp $
+ $Id: gpfparser.cpp,v 1.13 2016/02/02 02:52:18 mp Exp $
 
  AutoGrid 
 
@@ -140,6 +140,9 @@ int gpfparser( char line[LINE_LEN] )
 
     } else if (equal(c,"use_vina_potential",18)) {
         token = GPF_USE_VINA_POTENTIAL;
+
+    } else if (equal(c,"outlev",6)) {
+        token = GPF_OUTLEV;
 
     }
     return(token);
