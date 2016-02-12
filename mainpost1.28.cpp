@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.125 2016/02/12 00:27:06 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.126 2016/02/12 22:50:25 mp Exp $
 
  AutoGrid 
 
@@ -155,6 +155,18 @@ static int get_rec_index(const char key[]);
 // to support use_vina_potential
 static int get_map_index(const char key[]);
 
+#ifdef _OPENMP
+/* M Pique */
+#include <omp.h>
+ // MAXTHREADS is max number of hardware threads to use for computation.
+#define MAXTHREADS 8
+#else
+#define omp_get_thread_num() (0)
+#define omp_get_max_threads() (1)
+#define MAXTHREADS 1
+#endif
+#define NPLANES MAXTHREADS
+
 int main( int argc,  char **argv )
 
 /******************************************************************************/
@@ -227,7 +239,8 @@ char * ligand_atom_types[MAX_MAPS];
 static EnergyTables et;
 
 
-/* the mapObject gridmap[] holds metadata about each map. AutoGrid does not retain the map itself */
+/* the mapObject gridmap[] holds metadata about each map. 
+   AutoGrid map working storage is a subset of the map planes (in "energy") */
 typedef struct mapObject {
     int    atom_type; /*corresponds to receptor numbers????*/
     int    map_index;
@@ -238,7 +251,7 @@ typedef struct mapObject {
     char   type[3]; /*eg HD or OA or NA or N*/
     double energy_max;
     double energy_min;
-    double energy;
+    double *(energy[NPLANES]); // each plane is allocated n1[X]*n1[Y]*sizeof(map element [double])
     double vol_probe;
     double solpar_probe;
     /*new 6/28*/
@@ -257,6 +270,9 @@ typedef struct mapObject {
 } MapObject;
 
 MapObject *gridmap = NULL; /* was statically assigned  MapObject gridmap[MAX_MAPS]; */
+// convenience macro for indexing into energy array (single plane only for now)
+// usage:  gridmap[mapnum].energy[plane][(mapindex(ix,iy)] = value;
+#define mapindex(ix,iy) ( (ix) + ((iy)*n1[X]) )
 
 /*variables for RECEPTOR:*/
 /*each type is now at most two characters, eg 'NA\0'*/
@@ -323,9 +339,6 @@ double csum[XYZ];
 double cmean[XYZ]={0.,0.,0.}; /* receptor mean atom coords */
 double center[XYZ];
 double covpos[XYZ]={0.,0.,0.}; /* Cartesian-coordinate of covalent affinity well. */
-double d[XYZ];
-double dc[XYZ];
-int icoord[XYZ]; /* int icenter; */
 int nelements[XYZ];
 int n1[XYZ]; /* nelements[i]+1 */
 int ne[XYZ]; /* floor (nelements[i]/2) */
@@ -347,8 +360,7 @@ int length = LINE_LEN;
 /* NEINT - for vdW and Hb interactions */
 double energy_smooth[NEINT];
 
-int ctr;
-int iz; /* plane-counter for progress display */
+int iz; /* plane-counter */
 
 char atom_name[6];
 char token[LINE_LEN];
@@ -389,7 +401,7 @@ static char * version_num = PACKAGE_VERSION;
 
 /*are these necessary??*/
 double temp_vol, temp_solpar;
-double rmin, Hramp=0; /*Used to cover case where vina potential is used;initialized here to quiet compiler warning*/
+double Hramp=0; /*Used to cover case where vina potential is used;initialized here to quiet compiler warning*/
 double factor=332.0L;  /* Used to convert between calories and SI units */
 
 /*int num_rec_types = 0;*/
@@ -400,8 +412,11 @@ int num_atom_maps = 0; /* number of ligand atom types, from "ligand_types" keywo
 int num_maps = 0; /* number of "map", "elecmap", or "dsolvmap" keywords handled so far */
 int elecPE = -1; /* index (num_maps value) for electrostatic map, if requested */
 int dsolvPE = -1; /* index (num_maps value) for desolvation map, if requested */
-int floating_grid = FALSE; // Untested for a long time - M Pique 2015
-int dddiel = FALSE, disorder_h = FALSE;
+bool floating_grid = FALSE; // Untested for a long time - M Pique 2015
+bool dddiel = FALSE, disorder_h = FALSE;
+bool map_receptor_interior = FALSE; // default is to fast-skip over grid points within the receptor
+ // set the value to be reported in the atomic affinity maps for interior grid points
+#define INTERIOR_VALUE  9999.
 int fprintf_retval = 0;
 int GPF_keyword = -1;
 int indcom = 0;
@@ -411,17 +426,13 @@ int nDone = 0;
 int problem_wrt = FALSE;
 //MP int xA, xB;
 
-/* M Pique TODO   why are these next not in "mapObject"? */
-int hbondflag[MAX_MAPS];
-double hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
 
 int outlev = LOGFORADT;
 
 #define INIT_NUM_GRID_PTS -1
 int num_grid_points_per_map = INIT_NUM_GRID_PTS;
-int indx_r, i_smooth;
+int i_smooth;
 int ib;
-int closestH = -1;
 
 int num_receptor_atoms=0;
 static long clktck = 0;
@@ -431,10 +442,6 @@ Clock      job_end;
 struct tms tms_job_start;
 struct tms tms_job_end;
 
-Clock      grd_start;
-Clock      grd_end;
-struct tms tms_grd_start;
-struct tms tms_grd_end;
 
 
 for (int i=0; i<MAX_MAPS; i++) {
@@ -514,9 +521,6 @@ job_start = times( &tms_job_start);
 #endif
 );
 
-for (int i = 0;  i < XYZ;  i++) {
-   icoord[i] = 0;
-}
  /* Initialize max and min coodinate bins */
 for (int i = 0;  i < XYZ;  i++) {
         cmax[i] = -BIG;
@@ -543,7 +547,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.125 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.126 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -659,9 +663,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 	lc = 0; /* receptor pdbqt file line counter */
         while ( (fgets(line, length, receptor_fileptr)) != NULL ) {
 	    lc++;
-            if (equal(line, "ATOM  ", 6) || /* Amino Acid or DNA/RNA atoms */
-                equal(line, "HETATM", 6) || /* Non-standard heteroatoms */
-                equal(line, "CHAR", 4)) { /* Partial Atomic Charge - not a PDB record */
+            if (equal(line, "ATOM  ") || /* Amino Acid or DNA/RNA atoms */
+                equal(line, "HETATM") || /* Non-standard heteroatoms */
+                equal(line, "CHAR")) { /* Partial Atomic Charge - not a PDB record */
                 /* Check that there aren't too many atoms... */
                 if (num_receptor_atoms >= AG_MAX_ATOMS) {
                     (void) sprintf( message, "Too many atoms in receptor PDBQT file %s line %d;", receptor_filename, lc );
@@ -783,6 +787,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 }
 
                 /* Tell the user what you thought this atom was... */
+		if(outlev>LOGRUNV)
                 (void) fprintf( logFile, " was assigned atom type \"%s\" (rec_index= %d, atom_type= %d).\n", found_parm->autogrid_type, found_parm->rec_index, atom_type[num_receptor_atoms]);
 
                 /* Count the number of each atom type */
@@ -896,9 +901,17 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_NPTS:
         (void) sscanf( GPF_line, "%*s %d %d %d", &nelements[X], &nelements[Y], &nelements[Z]);
         for (int i = 0;  i < XYZ;  i++) {
-            nelements[i] = check_size(nelements[i], xyz[i]);
-            ne[i] = nelements[i] / 2;
-            n1[i] = nelements[i] + 1;
+            nelements[i] = check_size(nelements[i], xyz[i]); // will be even: 0,2,4, etc: 
+            ne[i] = nelements[i] / 2; // how many non-zero indices in each of positive and negative
+            n1[i] = nelements[i] + 1; // true size of array - odd number
+	    // example: user specifies 'npts 8'. check_size will return nelements=8.
+	    //  ne will be 4
+	    //  n1 will be 9
+	    //  the first element in the map will be -3 units below the origin.
+	    // example: user specifies 'npts 1'. check_size will return nelements=0.
+	    //  ne will be 0
+	    //  n1 will be 1
+	    //  the first element in the map will be 0 units below the origin.
         }
         (void) fprintf( logFile, "\n");
         (void) fprintf( logFile, "Number of grid points in x-direction:\t%d\n", n1[X]);
@@ -927,7 +940,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         }
 
         (void) sscanf( GPF_line, "%*s %s", token);
-        if (equal( token, "auto", 4)) {
+        if (equal( token, "auto")) {
             for (int i = 0;  i < XYZ;  i++) {
                 center[i] = cmean[i];
             }
@@ -1019,7 +1032,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
 
         // Initialize the gridmap MapObject: the floating grid does not have one
-        for (int i=0; i<num_maps+2; i++) {
+        for (int i=0; i<num_atom_maps+2; i++) {
             gridmap[i].atom_type = 0; /*corresponds to receptor numbers????*/
             gridmap[i].map_index = 0;
             gridmap[i].is_covalent = 0;
@@ -1029,7 +1042,13 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             strcpy(gridmap[i].type,""); /*eg HD or OA or NA or N*/
             gridmap[i].energy_max = 0.0L;
             gridmap[i].energy_min = 0.0L;
-            gridmap[i].energy = 0.0L;
+	    for (int p=0; p<NPLANES; p++) {
+               gridmap[i].energy[p] = (double *) malloc( n1[X]*n1[Y]*sizeof(double));
+               if(0==gridmap[i].energy[p]) {	
+		fprintf(logFile, "MALLOC_ERROR map i=%d plane p=%d *energy=%ld\n", i, p, (long)gridmap[i].energy[p]);
+		print_error(logFile, FATAL_ERROR, "unable to allocate plane energy storage");
+	        }
+	    }
             gridmap[i].vol_probe = 0.0L;
             gridmap[i].solpar_probe = 0.0L;
             gridmap[i].Rij = 0.0L;
@@ -1355,7 +1374,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             /* calculate ddd of Mehler & Solmajer */
             (void) fprintf( logFile, "\nUsing *distance-dependent* dielectric function of Mehler and Solmajer, Prot.Eng.4, 903-910.\n\n");
             et.epsilon_fn[0] = 1.0;
-            for (indx_r = 1;  indx_r < NDIEL;  indx_r++) {
+            for (int indx_r = 1;  indx_r < NDIEL;  indx_r++) {
                 et.epsilon_fn[indx_r] = calc_ddd_Mehler_Solmajer( angstrom(indx_r), APPROX_ZERO );
             }
             (void) fprintf( logFile, "  d   Dielectric\n ___  __________\n");
@@ -1379,6 +1398,12 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             invdielcal = factor / diel;
         }
         break;
+
+/******************************************************************************/
+    case GPF_MAP_RECEPTOR_INTERIOR:
+	map_receptor_interior = TRUE;
+        (void) fprintf( logFile, "Mapping receptor interior instead of reporting collision.");
+	break;
 
 /******************************************************************************/
 
@@ -1701,7 +1726,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
                 printf("%d-%d-building  Rij=%6.3lf, map_Rij=%10.8f for %s %s\n",ia,i, Rij, map_Rij, gridmap[ia].type, ligand_types[ia]);
                 (void) fprintf( logFile, "Calculating vina energies for %s-%s interactions (%d, %d).\n", gridmap[ia].type, receptor_types[i], ia, i );
 #endif
-                for (indx_r = 1;  indx_r < NEINT;  indx_r++) {
+                for (int indx_r = 1;  indx_r < NEINT;  indx_r++) {
                     r  = angstrom(indx_r);
                     // compute rddist:                                   map_Rij  rddist   Rij
                     //  interatom_distance - xs_radius(t1) -xs_radius(t2)    .--|........|-----.  
@@ -1877,14 +1902,14 @@ for (int ia=0; ia<num_atom_maps; ia++){
         /* parsing for intnbp not needed for covalent maps */
         (void) fprintf( logFile, "\nAny internal non-bonded parameters will be ignored for this map, since this is a covalent map.\n");
     } /*end of else parsing intnbp*/
-} /*end of loop over all the maps*/
+} /*end of loop over all the atom maps*/
 
 /* exponential function for receptor and ligand desolvation */
 /* note: the solvation term ranges beyond the non-bond cutoff 
  * and will not be smoothed 
  */
 double sigma = 3.6;
-for (indx_r = 1;  indx_r < NDIEL;  indx_r++) {
+for (int indx_r = 1;  indx_r < NDIEL;  indx_r++) {
      r  = angstrom(indx_r);
      et.sol_fn[indx_r] = AD4.coeff_desolv * exp(-sq(r)/(2.*sq(sigma)));
 }
@@ -1912,6 +1937,7 @@ if (not use_vina_potential){
  ********************************************/
 int i1=0, i2=0, i3=0;
 for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
+    double d[XYZ], dc[XYZ];
     disorder[ia] = FALSE;  /* initialize disorder flag. */
     warned = 'F';
     /*
@@ -2335,6 +2361,7 @@ for (int k = 0;  k < num_maps;  k++) {
     (void) fprintf( gridmap[k].map_fileptr, "SPACING %.3lf\n", spacing);
     (void) fprintf( gridmap[k].map_fileptr, "NELEMENTS %d %d %d\n", nelements[X], nelements[Y], nelements[Z]);
     (void) fprintf( gridmap[k].map_fileptr, "CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
+    fflush(gridmap[k].map_fileptr);
 }
 if (floating_grid) {
     (void) fprintf( floating_grid_fileptr, "GRID_PARAMETER_FILE %s\n", grid_param_fn );
@@ -2349,35 +2376,63 @@ if (floating_grid) {
 (void) fprintf( logFile, "XY-plane  Z-coord   Done      Remaining       Real, User, System\n");
 (void) fprintf( logFile, "            /Ang              /sec            /sec\n");
 (void) fprintf( logFile, "________  ________  ________  ______________  __________________________\n\n");
+ fflush( logFile);
 
 /*
  * Iterate over all grid points, Z( Y ( X ) ) (X is fastest)...
  */
-ctr = 0;
-iz = 0;
-for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
+for (iz=0;iz<n1[Z];iz++) {
+	Clock      grd_start;
+	Clock      grd_end;
+	struct tms tms_grd_start;
+	struct tms tms_grd_end;
+    grd_start = times( &tms_grd_start); // this is per-plane timing 
+
+    double r_min=BIG; /* for floating_grid only MP TODO NEEDS to be plane-size array */
+    int icoord[XYZ];
+    icoord[Z] = iz - ne[Z];
+
     double c[XYZ];
     /*
-     *  c[0:2] contains the current grid point.
+     *  c[0:2] contains the current grid point coordinates (angstroms)
      */
     c[Z] = ((double)icoord[Z]) * spacing;
-    grd_start = times( &tms_grd_start);
+    int plane = min(NPLANES-1, omp_get_thread_num()); // this thread's working storage
 
-    for (icoord[Y] = -ne[Y]; icoord[Y] <= ne[Y]; icoord[Y]++) {
+if(outlev>LOGRUNV)
+fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f plane=%d\n", iz,icoord[Z],c[Z],plane);fflush(logFile);
+
+    /* Zero-out non-covalent maps' energy for this plane */
+    // MP TODO not necessary?
+    for (int j = 0;  j < num_maps ;  j++) {
+                if (!gridmap[j].is_covalent) {
+			bzero(gridmap[j].energy[plane], n1[X]*n1[Y]*sizeof(double)); 
+		}
+    }
+
+if(outlev>LOGRUNVV)
+fprintf(logFile, "Zeroed plane=%d iz=%d icoord=%d z=%8.2f\n", plane,iz,icoord[Z],c[Z]);fflush(logFile);
+    for (int iy=0; iy<n1[Y]; iy++) {
+        icoord[Y] = iy - ne[Y];
         c[Y] = ((double)icoord[Y]) * spacing;
 
-        for (icoord[X] = -ne[X]; icoord[X] <= ne[X]; icoord[X]++) {
+        for (int ix=0; ix<n1[X]; ix++) {
+	    // local storage for one grid point calculation:
 	    float fcc[XYZ]; // for USE_BHTREE
+	    bool hbondflag[MAX_MAPS];
+            double hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
+	    double rminH; int closestH;
+	    double d[XYZ];
+
+            icoord[X] = ix - ne[X];
             c[X] = ((double)icoord[X]) * spacing;
-	    double r_min=BIG; /* for floating_grid only */
 	    for ( int i = 0; i< XYZ; i++) fcc[i] = c[i]; // for USE_BHTREE
 	    
 	    if(outlev>=LOGRUNVVV) fprintf(logFile, "grid point %3d %3d %3d xyz(%5.2f, %5.2f, %5.2f)\n",
 		icoord[X], icoord[Y], icoord[Z], c[X], c[Y], c[Z]);
 
-	    /* handle covalent map(s). Zero-out all other maps' energy */
-            for (int j = 0;  j < num_maps ;  j++) {
-                if (gridmap[j].is_covalent == TRUE) {
+	    /* handle covalent map(s). */
+            for (int j = 0;  j < num_maps ;  j++)  if (gridmap[j].is_covalent) {
                     /* Calculate rcov, the distance from the current
                      * grid point, c, to the covalent attachment point, covpos */
 		    double rcov; 
@@ -2388,13 +2443,10 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     if (rcov < APPROX_ZERO) {
                         rcov = APPROX_ZERO;
                     }
-                    gridmap[j].energy = covbarrier * (1. - exp(ln_half * rcov * rcov));
-                } else {
-                    gridmap[j].energy = 0.;
-                } /* is not covalent */
+                    gridmap[j].energy[plane][mapindex(icoord[X],icoord[Y])] 
+		      = covbarrier * (1. - exp(ln_half * rcov * rcov));
             }
 
-            
             /* Initialize Min Hbond variables  for each new point*/
             if (not use_vina_potential) //if vina_potential skip hbond stuff
             for (int map_index = 0; map_index < num_atom_maps; map_index++){
@@ -2406,29 +2458,23 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 // M Sanner 2015 use BHTree to find atoms very close to grid point: write all atom grids' energies as "HIGH"
 //  write electrostatic and desolvation maps as 0
 #ifdef USE_BHTREE
-	// M Pique Oct 2015: I'm uncertain of this optimization right now, it causes
-	// maps made with and without "USE_BHTREE" to differ.  I'm disabling it pending more tests
-	    {
+	    if (! map_receptor_interior) {
 	      // check for collision with any receptor atoms
  	      // if collision, modify energy, write all maps' values, skip to next grid point.
 	      bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_collision_dist, closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
 
-	      if (FALSE /*disabled, see note*/ && bhTreeNbIndices > 0) {
-		  for (int k = 0;  k < num_maps;  k++) {
-		    if(gridmap[k].is_covalent==FALSE)  gridmap[k].energy = 
-                      (k==elecPE||k==dsolvPE)?0:99999;
-		    if (!problem_wrt) {
-		      fprintf_retval = fprintf(gridmap[k].map_fileptr, 
-			"%.3f\n", gridmap[k].energy);
-		      if (fprintf_retval < 0)  problem_wrt = TRUE;
+	      if (bhTreeNbIndices > 0) {
+		  for (int j = 0;  j < num_maps;  j++) {
+		    if(!gridmap[j].is_covalent)  
+                      gridmap[j].energy[plane][mapindex(ix,iy)] =
+                      (j==elecPE||j==dsolvPE)?0:INTERIOR_VALUE;
 		    }
-		  }
 		  continue; // next icoord[X]
-		}
-	      //printf("FUGU %f %f %f %d %d %d %d\n", fcc[0], fcc[1], fcc[2], icoord[X], icoord[Y], icoord[Z], bhTreeNbIndices);
+		  }
 	    }
 
 #endif
+
 		
 
             /*
@@ -2462,17 +2508,19 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 if (dddiel) {
                     /* Distance-dependent dielectric... */
                     /*apply the estat forcefield coefficient/weight here */
-                    gridmap[elecPE].energy += charge[ia] *inv_rmax * et.r_epsilon_fn[indx_r] * AD4.coeff_estat;
+                    gridmap[elecPE].energy[plane][mapindex(ix,iy)]  
+                     += charge[ia] *inv_rmax * et.r_epsilon_fn[indx_r] * AD4.coeff_estat;
                 } else {
                     /* Constant dielectric... */
-                    gridmap[elecPE].energy += charge[ia] * inv_rmax * invdielcal * AD4.coeff_estat;
+                    gridmap[elecPE].energy[plane][mapindex(ix,iy)]  
+                     += charge[ia] * inv_rmax * invdielcal * AD4.coeff_estat;
                 }
 		}
             }/* ia loop, over all receptor atoms, no distance cutoff... */
 
 	    // M Pique Oct 2015 TODO combine this loop with one above
 	    /* NEW2: Find Closest Hbond */
-            rmin=999999.;
+            rminH=999999.;
             closestH= -1; // none found yet
             if(num_atom_maps>0) for (int inh = 0;  inh < nhbond_12;  inh++) {
 		int ia = hbond_12[inh];
@@ -2482,15 +2530,15 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 		    double d[XYZ];
                     for (int i = 0;  i < XYZ;  i++) { 
                         d[i]  = coord[ia][i] - c[i]; 
-			if(fabs(d[i])>rmin) {
+			if(fabs(d[i])>rminH) {
 				breakout=TRUE;
 				break;
 			}
                     }
 		    if(breakout) continue;
                     r = hypotenuse( d[X],d[Y],d[Z] );
-                    if (r < rmin) {
-                        rmin = r;
+                    if (r < rminH) {
+                        rminH = r;
                         closestH = ia; 
                     }
                 //} /* Hydrogen test */
@@ -2549,7 +2597,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                     dnorm[i] = d[i] * inv_r;
                 }
                 /* make sure both lookup indices are in the tables */
-                indx_r = min(lookup(r), NDIEL-1);
+                int indx_r = min(lookup(r), NDIEL-1);
 		int indx_n = min(lookup(r), NEINT-1);
 
                 if (not use_vina_potential){
@@ -2779,9 +2827,11 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                                       &&(hbond[ia]==1||hbond[ia]==2||hbond[ia]==6)){/*DS or D1 or AD N3P:modified*/
                                   /* PROBE can be an H-BOND ACCEPTOR, */
                                 if (disorder[ia] == FALSE ) {
-                                    gridmap[map_index].energy += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * Hramp * (racc + (1. - racc)*rsph);
+				    gridmap[map_index].energy[plane][mapindex(ix,iy)] 
+                                     += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * Hramp * (racc + (1. - racc)*rsph);
                                 } else {
-                                    gridmap[map_index].energy += et.e_vdW_Hb[max(0, indx_n - 110)][hydrogen][map_index] * Hramp * (racc + (1. - racc)*rsph);
+				    gridmap[map_index].energy[plane][mapindex(ix,iy)] 
+                                     += et.e_vdW_Hb[max(0, indx_n - 110)][hydrogen][map_index] * Hramp * (racc + (1. - racc)*rsph);
 
                                 }
                             } else if ((gridmap[map_index].hbond==4 || gridmap[map_index].hbond==6 ) /*A1, AD: N3P: modified*/
@@ -2799,19 +2849,21 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                                 hbondflag[map_index] = TRUE;
                             } else {
                                 /*  hbonder PROBE-ia cannot form a H-bond..., */
-                                gridmap[map_index].energy += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index];
+			        gridmap[map_index].energy[plane][mapindex(ix,iy)] 
+                                 += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index];
                             }
                         } else { /*end of is_hbonder*/
                             /*  PROBE does not form H-bonds..., */
-                            gridmap[map_index].energy += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index];
+			    gridmap[map_index].energy[plane][mapindex(ix,iy)] 
+                             += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index];
                         }/* end hbonder tests */
 
                         if (not use_vina_potential){
 
                         /* add desolvation energy  */
                         /* forcefield desolv coefficient/weight in sol_fn*/
-                        gridmap[map_index].energy += 
-				gridmap[map_index].solpar_probe * vol[ia]*et.sol_fn[indx_r] + 
+			gridmap[map_index].energy[plane][mapindex(ix,iy)] 
+				+= gridmap[map_index].solpar_probe * vol[ia]*et.sol_fn[indx_r] + 
 				(solpar[ia]+solpar_q*fabs(charge[ia]))*gridmap[map_index].vol_probe*et.sol_fn[indx_r];
                        }
                 } /* end of loop over all num_atom_maps index values */
@@ -2822,11 +2874,12 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 	           if(outlev>=LOGRUNVVV) fprintf(logFile, 
 			"  dsolvPE += solpar_q=%8.3f * vol[ia=%3d]=%8.3f * et.sol_fn[indx_r=%4d]=%9.4f  %9.4f += %9.4f",
                       solpar_q, ia, vol[ia], indx_r,  et.sol_fn[indx_r],
-		      gridmap[dsolvPE].energy,
+                      gridmap[dsolvPE].energy[plane][mapindex(ix,iy)],
                       solpar_q * vol[ia] * et.sol_fn[indx_r]);
-                gridmap[dsolvPE].energy += solpar_q * vol[ia] * et.sol_fn[indx_r];
-	           if(outlev>=LOGRUNVVV) fprintf(logFile, 
-			" -> %9.4f\n", gridmap[dsolvPE].energy);
+                gridmap[dsolvPE].energy[plane][mapindex(ix,iy)]
+                 += solpar_q * vol[ia] * et.sol_fn[indx_r];
+	        if(outlev>=LOGRUNVVV) fprintf(logFile, 
+			" -> %9.4f\n", gridmap[dsolvPE].energy[plane][mapindex(ix,iy)]);
                 }
 
 #ifdef USE_BHTREE
@@ -2842,40 +2895,44 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
             if (not use_vina_potential) 
             for (int map_index = 0; map_index < num_atom_maps; map_index++) {
                 if (hbondflag[map_index]) {
-                    gridmap[map_index].energy += hbondmin[map_index]; 
-                    gridmap[map_index].energy += hbondmax[map_index];
+                    gridmap[map_index].energy[plane][mapindex(ix,iy)] 
+                     += ( hbondmin[map_index] + hbondmax[map_index] );
                 }
             }
-	    } // end if num_atom_maps>0
+	    } // end if num_atom_maps>0 or dsolvPE>=0
+        } /* ix/icoord[X] loop */
+    } /* iy/icoord[Y] loop */
+if(outlev>LOGRUNV)
+fprintf(logFile, "Writing iz=%d icoord=%d z=%8.2f plane=%d\n", iz,icoord[Z],c[Z],plane);fflush(logFile);
 
             /*
              * O U T P U T . . .
              *
-             * Now output this grid point's energies to the maps:
+             * Now output one plane's grid point energies to the map files:
              *
              */
-            for (int k = 0;  k < num_maps;  k++) {
+            for (int j = 0;  j < num_maps;  j++) {
+		for( int iy=0; iy<n1[Y]; iy++) for(int ix=0;ix<n1[X];ix++) {
+		double e = gridmap[j].energy[plane][mapindex(ix,iy)] ;
                 if (!problem_wrt) {
-                    if (fabs(gridmap[k].energy) < PRECISION) {
-                        fprintf_retval = fprintf(gridmap[k].map_fileptr, "0.\n");
+                    if (0&&fabs(e) < PRECISION) {
+                        fprintf_retval = fprintf(gridmap[j].map_fileptr, "0\n");
                     } else {
-                        fprintf_retval = fprintf(gridmap[k].map_fileptr, "%.3f\n", (float)round3dp(gridmap[k].energy));
+                        fprintf_retval = fprintf(gridmap[j].map_fileptr, "%.3f\n", (float)round3dp(e));
                     }
                     if (fprintf_retval < 0) {
                         problem_wrt = TRUE;
                     }
                 }
-                gridmap[k].energy_max = max(gridmap[k].energy_max, gridmap[k].energy);
-                gridmap[k].energy_min = min(gridmap[k].energy_min, gridmap[k].energy);
+                gridmap[j].energy_max = max(gridmap[j].energy_max, e);
+                gridmap[j].energy_min = min(gridmap[j].energy_min, e);
+	        }
             }
             if (floating_grid) {
                 if ((!problem_wrt)&&(fprintf(floating_grid_fileptr, "%.3f\n", (float)round3dp(r_min)) < 0)) {
                     problem_wrt = TRUE;
                 }
             }
-        ctr++;
-        } /* icoord[X] loop */
-    } /* icoord[Y] loop */
 
     if (problem_wrt) {
         (void) sprintf( message, "Problems writing grid maps - there may not be enough disk space.\n");
@@ -2884,7 +2941,7 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
     grd_end = times( &tms_grd_end);
     ++nDone;
     timeRemaining = (float)(grd_end - grd_start) * idct * (float)(n1[Z] - nDone);
-    (void) fprintf( logFile, " %6d   %8.3lf   %5.1lf%%   ", icoord[Z], cgridmin[Z] + c[Z], percentdone*(double)++iz);
+    (void) fprintf( logFile, " %6d   %8.3lf   %5.1lf%%   ", icoord[Z], cgridmin[Z] + c[Z], percentdone*(double)(iz+1));
     prHMSfixed( timeRemaining);
     (void) fprintf( logFile, "  ");
     timesys( grd_end - grd_start, &tms_grd_start, &tms_grd_end, logFile);
