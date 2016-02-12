@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.127 2016/02/12 22:52:30 mp Exp $
+ $Id: main.cpp,v 1.128 2016/02/12 23:15:09 mp Exp $
 
  AutoGrid 
 
@@ -296,9 +296,6 @@ char * receptor_atom_types[NUM_RECEPTOR_TYPES];
 #ifdef USE_BHTREE
  BHtree *bht;
  BHpoint **BHat;
- int *closeAtomsIndices;
- float *closeAtomsDistances;
- int bhTreeNbIndices;
 #define BH_collision_dist 2.0
 #define BH_cutoff_dist NBC
 //#define BH_collision_dist -1.0
@@ -388,7 +385,6 @@ double inv_r, inv_rmax, racc, rdon;
 double r_smooth = 0.5; //NEW ON BY DEFAULT Feb2012
 //MP double Rij, epsij;
 double spacing = 0.375; /* One quarter of a C-C bond length. */
-double t0, ti;
 double covhalfwidth = 1.0;
 double covbarrier = 1000.0;
 //MP double cA, cB;
@@ -548,7 +544,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.127 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.128 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1524,8 +1520,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
    BHat[ia]->at=ia;
  }
  bht = generateBHtree(BHat, num_receptor_atoms, 10);
- closeAtomsIndices = (int *)malloc(num_receptor_atoms*sizeof(int));
- closeAtomsDistances = (float *)malloc(num_receptor_atoms*sizeof(float));
 // M Sanner 2015 BHTREE END
 	
 #endif
@@ -2382,12 +2376,19 @@ if (floating_grid) {
 /*
  * Iterate over all grid points, Z( Y ( X ) ) (X is fastest)...
  */
+#pragma omp parallel for ordered
 for (iz=0;iz<n1[Z];iz++) {
 	Clock      grd_start;
 	Clock      grd_end;
 	struct tms tms_grd_start;
 	struct tms tms_grd_end;
     grd_start = times( &tms_grd_start); // this is per-plane timing 
+#ifdef USE_BHTREE
+ int *closeAtomsIndices;
+ float *closeAtomsDistances;
+ closeAtomsIndices = (int *)malloc(num_receptor_atoms*sizeof(int));
+ closeAtomsDistances = (float *)malloc(num_receptor_atoms*sizeof(float));
+#endif
 
     double r_min=BIG; /* for floating_grid only MP TODO NEEDS to be plane-size array */
     int icoord[XYZ];
@@ -2424,6 +2425,9 @@ fprintf(logFile, "Zeroed plane=%d iz=%d icoord=%d z=%8.2f\n", plane,iz,icoord[Z]
             double hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
 	    double rminH; int closestH;
 	    double d[XYZ];
+double inv_rd, rd2, r; /* re, r2, rd, */
+double racc, rdon;
+double t0, ti;
 
             icoord[X] = ix - ne[X];
             c[X] = ((double)icoord[X]) * spacing;
@@ -2462,7 +2466,7 @@ fprintf(logFile, "Zeroed plane=%d iz=%d icoord=%d z=%8.2f\n", plane,iz,icoord[Z]
 	    if (! map_receptor_interior) {
 	      // check for collision with any receptor atoms
  	      // if collision, modify energy, write all maps' values, skip to next grid point.
-	      bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_collision_dist, closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
+	      int bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_collision_dist, closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
 
 	      if (bhTreeNbIndices > 0) {
 		  for (int j = 0;  j < num_maps;  j++) {
@@ -2552,7 +2556,7 @@ fprintf(logFile, "Zeroed plane=%d iz=%d icoord=%d z=%8.2f\n", plane,iz,icoord[Z]
 	    if(num_atom_maps>0 || dsolvPE>=0) {   // huge block only invoked if atom affinity or desolvation maps requested...
 	    /* Loop 2 of 2: consider only atoms within distance cutoff */
 #ifdef USE_BHTREE
-            bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_cutoff_dist, 
+            int bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_cutoff_dist, 
 		closeAtomsIndices, closeAtomsDistances, num_receptor_atoms);
 
 	    if(outlev>=LOGRUNVVV) fprintf(logFile, "  bhTreeNbIndices= %3d BH_cutoff_dist= %.2f\n",
@@ -2903,6 +2907,9 @@ fprintf(logFile, "Zeroed plane=%d iz=%d icoord=%d z=%8.2f\n", plane,iz,icoord[Z]
 	    } // end if num_atom_maps>0 or dsolvPE>=0
         } /* ix/icoord[X] loop */
     } /* iy/icoord[Y] loop */
+
+#pragma omp ordered
+
 if(outlev>LOGRUNV)
 fprintf(logFile, "Writing iz=%d icoord=%d z=%8.2f plane=%d\n", iz,icoord[Z],c[Z],plane);fflush(logFile);
 
