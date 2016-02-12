@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.124 2016/02/12 00:20:32 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.125 2016/02/12 00:27:06 mp Exp $
 
  AutoGrid 
 
@@ -155,7 +155,6 @@ static int get_rec_index(const char key[]);
 // to support use_vina_potential
 static int get_map_index(const char key[]);
 
-#define ET 1 //useful switch mp+rh   1 for "energy_table",  0 for "et"
 int main( int argc,  char **argv )
 
 /******************************************************************************/
@@ -226,7 +225,6 @@ char * ligand_atom_types[MAX_MAPS];
 
 /*malloc this after the number of receptor types is parsed*/
 static EnergyTables et;
-static double energy_lookup[NUM_RECEPTOR_TYPES][NEINT][MAX_MAPS]; // vdW and Hb only
 
 
 /* the mapObject gridmap[] holds metadata about each map. AutoGrid does not retain the map itself */
@@ -346,7 +344,6 @@ char GPF_line[LINE_LEN];
 int length = LINE_LEN;
 
 /* NDIEL (old name MAX_DIST) for dielectric and desolvation interactions  */
-double epsilon[NDIEL];
 /* NEINT - for vdW and Hb interactions */
 double energy_smooth[NEINT];
 
@@ -546,14 +543,12 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.124 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.125 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
     AG_MAX_ATOMS, MAX_MAPS, NDIEL, MAX_ATOM_TYPES);
 
-fprintf(logFile, " energy_lookup table has %8ld entries of size %ld\n", 
-  (long)(sizeof energy_lookup/sizeof ***energy_lookup), (long)(sizeof ***energy_lookup));
 fprintf(logFile,"        e_vdW_Hb table has %8ld entries of size %ld\n",
   (long)(sizeof et.e_vdW_Hb/sizeof ***et.e_vdW_Hb), (long)(sizeof ***et.e_vdW_Hb));
 /*
@@ -1359,13 +1354,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             dddiel = TRUE;
             /* calculate ddd of Mehler & Solmajer */
             (void) fprintf( logFile, "\nUsing *distance-dependent* dielectric function of Mehler and Solmajer, Prot.Eng.4, 903-910.\n\n");
-	    if(ET)
-	    epsilon[0] = 1.0;
-	    else
             et.epsilon_fn[0] = 1.0;
             for (indx_r = 1;  indx_r < NDIEL;  indx_r++) {
                 et.epsilon_fn[indx_r] = calc_ddd_Mehler_Solmajer( angstrom(indx_r), APPROX_ZERO );
-		if(ET)epsilon[indx_r] = et.epsilon_fn[indx_r];
             }
             (void) fprintf( logFile, "  d   Dielectric\n ___  __________\n");
             for (int i = 0;  i <= min(500,NDIEL);  i += 10) {
@@ -1375,9 +1366,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             (void) fprintf( logFile, "\n");
             /* convert epsilon to factor / epsilon */
             for (int i = 0;  i < NDIEL;  i++) {
-		if(ET)
-                epsilon[i] = factor / epsilon[i];
-		else
                 et.r_epsilon_fn[i] = factor/et.epsilon_fn[i];
             }
 
@@ -1642,7 +1630,7 @@ if (use_vina_potential) {
     //vina distance from current gridpt to atom ia:        xs_rad1  rddist   xs_rad2
     //0. process receptor to setup type[ia], coords[ia], xs_rad[ia]
     //1. setup map types
-    //2. setup the energy_lookup tables
+    //2. setup the energy_lookup tables (NOTE: replaced by the "et" structure)
     //3. loop over all the maps 
     //4.     loop over all pts in current map_ia
     //5.        loop over all the receptor atoms adding to this pt
@@ -1800,12 +1788,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
 		if(i>=NUM_RECEPTOR_TYPES) printf("i>=%d %d\n", NUM_RECEPTOR_TYPES,i);
 		if(ia>=MAX_MAPS) printf("ia>=%d %d\n", MAX_MAPS, ia);
                 et.e_vdW_Hb[indx_r][i][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
-		energy_lookup[i][indx_r][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
-		//if ( fabs(energy_lookup[i][indx_r][ia]-et.e_vdW_Hb[indx_r][i][ia])>0.01) 
-                 //  printf("i=%d indx_r=%d ia = %d %lf != %lf\n",i, indx_r, ia, energy_lookup[i][indx_r][ia], et.e_vdW_Hb[indx_r][i][ia]);
             } /*for each distance*/ 
-            energy_lookup[i][0][ia]    = EINTCLAMP;
-            energy_lookup[i][NEINT-1][ia] = 0.;
             et.e_vdW_Hb[0][i][ia] = EINTCLAMP;
             et.e_vdW_Hb[NEINT-1][i][ia] = 0.;
 
@@ -1823,9 +1806,6 @@ for (int ia=0; ia<num_atom_maps; ia++){
 	    for (int j = 0;  j <= min(500,NEINT);  j += 10) {
                 (void) fprintf( logFile, "%4.1lf", angstrom(j));
                 for (int iat = 0;  iat < receptor_types_ct;  iat++) {
-		    if(ET)
-                    (void) fprintf( logFile, (energy_lookup[iat][j][ia]<100000.)?"%9.2lf":"%9.2lg", energy_lookup[iat][j][ia]);
-		    else
                     (void) fprintf( logFile, (et.e_vdW_Hb[j][iat][ia]<100000.)?"%9.2lf":"%9.2lg", et.e_vdW_Hb[j][iat][ia]);
 				} 
                 (void) fprintf( logFile, "\n");
@@ -1843,14 +1823,10 @@ for (int ia=0; ia<num_atom_maps; ia++){
                 for (int indx_r = 0;  indx_r < NEINT;  indx_r++) {
                     energy_smooth[indx_r] = 100000.;
                     for (int j = max(0, indx_r - i_smooth);  j < min(NEINT, indx_r + i_smooth + 1);  j++) {
-                      if (ET)
-                      energy_smooth[indx_r] = min(energy_smooth[indx_r], energy_lookup[i][j][ia]);
-                      else
                       energy_smooth[indx_r] = min(energy_smooth[indx_r], et.e_vdW_Hb[j][i][ia]);
                     }
                 }
                 for (int indx_r = 0;  indx_r < NEINT;  indx_r++) {
-                    energy_lookup[i][indx_r][ia] = energy_smooth[indx_r];
                     et.e_vdW_Hb[indx_r][i][ia] = energy_smooth[indx_r];
                 }
             } /* endif smoothing */
@@ -1873,9 +1849,6 @@ for (int ia=0; ia<num_atom_maps; ia++){
         for (int j = 0;  j <= min(500,NEINT);  j += 10) {
             (void) fprintf( logFile, "%4.1lf", angstrom(j));
             for (int iat = 0;  iat < receptor_types_ct;  iat++) {
-		if(ET)
-                (void) fprintf( logFile, (energy_lookup[iat][j][ia]<100000.)?"%9.2lf":"%9.2lg", energy_lookup[iat][j][ia]);
-		else
                 (void) fprintf( logFile, (et.e_vdW_Hb[j][iat][ia]<100000.)?"%9.2lf":"%9.2lg", et.e_vdW_Hb[j][iat][ia]);
 		} /* iat */
             (void) fprintf( logFile, "\n");
@@ -2489,9 +2462,6 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                 if (dddiel) {
                     /* Distance-dependent dielectric... */
                     /*apply the estat forcefield coefficient/weight here */
-		    if(ET)
-                    gridmap[elecPE].energy += charge[ia] * inv_rmax * epsilon[indx_r] * AD4.coeff_estat;
-		    else
                     gridmap[elecPE].energy += charge[ia] *inv_rmax * et.r_epsilon_fn[indx_r] * AD4.coeff_estat;
                 } else {
                     /* Constant dielectric... */
@@ -2802,9 +2772,6 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                             /*  current map_index PROBE forms H-bonds... */
 			    double rsph;
                             /* rsph ramps in angular dependence for distances with negative energy */
-                            if(ET)
-                            rsph = energy_lookup[atom_type[ia]][indx_n][map_index]/100.;
-                            else
                             rsph = et.e_vdW_Hb[indx_n][atom_type[ia]][map_index]/100.;
                             rsph = max(rsph, 0.);
                             rsph = min(rsph, 1.);
@@ -2812,51 +2779,30 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
                                       &&(hbond[ia]==1||hbond[ia]==2||hbond[ia]==6)){/*DS or D1 or AD N3P:modified*/
                                   /* PROBE can be an H-BOND ACCEPTOR, */
                                 if (disorder[ia] == FALSE ) {
-                                    if (ET)
-                                    gridmap[map_index].energy += energy_lookup[atom_type[ia]][indx_n][map_index] * Hramp * (racc + (1. - racc)*rsph);
-                                    else
                                     gridmap[map_index].energy += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * Hramp * (racc + (1. - racc)*rsph);
                                 } else {
-                                    if (ET)
-                                    gridmap[map_index].energy += energy_lookup[hydrogen][max(0, indx_n - 110)][map_index] * Hramp * (racc + (1. - racc)*rsph);
-                                    else
                                     gridmap[map_index].energy += et.e_vdW_Hb[max(0, indx_n - 110)][hydrogen][map_index] * Hramp * (racc + (1. - racc)*rsph);
 
                                 }
                             } else if ((gridmap[map_index].hbond==4 || gridmap[map_index].hbond==6 ) /*A1, AD: N3P: modified*/
                                              &&(hbond[ia]==1||hbond[ia]==2||hbond[ia]==6)) { /*DS,D1, AD: N3P: modified*/
-                                if (ET)
-                                hbondmin[map_index] = min( hbondmin[map_index],energy_lookup[atom_type[ia]][indx_n][map_index] * (racc+(1.-racc)*rsph));
-                                else
                                 hbondmin[map_index] = min( hbondmin[map_index],et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (racc+(1.-racc)*rsph));
-                                if (ET)
-                                hbondmax[map_index] = max( hbondmax[map_index],energy_lookup[atom_type[ia]][indx_n][map_index] * (racc+(1.-racc)*rsph));
-                                else
                                 hbondmax[map_index] = max( hbondmax[map_index],et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (racc+(1.-racc)*rsph));
                                 hbondflag[map_index] = TRUE;
                             } else if ((gridmap[map_index].hbond==1||gridmap[map_index].hbond==2||gridmap[map_index].hbond==6)&& (hbond[ia]>2||hbond[ia]==6)){/*DS,D1 vs AS,A1,A2,AD N3P:modified*/
 
 				double temp_hbond_enrg;
                                 /*  PROBE is H-BOND DONOR, */
-                                if (ET)
-                                temp_hbond_enrg = energy_lookup[atom_type[ia]][indx_n][map_index] * (rdon + (1. - rdon)*rsph);
-                                else
                                 temp_hbond_enrg = et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (rdon + (1. - rdon)*rsph);
                                 hbondmin[map_index] = min( hbondmin[map_index], temp_hbond_enrg);
                                 hbondmax[map_index] = max( hbondmax[map_index], temp_hbond_enrg);
                                 hbondflag[map_index] = TRUE;
                             } else {
                                 /*  hbonder PROBE-ia cannot form a H-bond..., */
-                                if (ET)
-                                gridmap[map_index].energy += energy_lookup[atom_type[ia]][indx_n][map_index];
-                                else
                                 gridmap[map_index].energy += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index];
                             }
                         } else { /*end of is_hbonder*/
                             /*  PROBE does not form H-bonds..., */
-                            if (ET)
-                            gridmap[map_index].energy += energy_lookup[atom_type[ia]][indx_n][map_index];
-                            else
                             gridmap[map_index].energy += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index];
                         }/* end hbonder tests */
 
