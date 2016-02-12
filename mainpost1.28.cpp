@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.126 2016/02/12 22:50:25 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.127 2016/02/12 22:52:30 mp Exp $
 
  AutoGrid 
 
@@ -40,6 +40,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include <stdio.h>
 #include <search.h>
 #include <string.h>
+#include <strings.h>  // for bzero() on Solaris
 #include <time.h>
 #include <stdlib.h>
 #ifndef HAVE_SYSCONF
@@ -547,7 +548,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.126 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.127 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
