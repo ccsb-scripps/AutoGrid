@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.123 2016/02/02 03:29:56 mp Exp $
+ $Id: main.cpp,v 1.124 2016/02/12 00:20:32 mp Exp $
 
  AutoGrid 
 
@@ -155,7 +155,7 @@ static int get_rec_index(const char key[]);
 // to support use_vina_potential
 static int get_map_index(const char key[]);
 
-#define ET 0 //useful switch mp+rh   1 for "energy_table",  0 for "et"
+#define ET 1 //useful switch mp+rh   1 for "energy_table",  0 for "et"
 int main( int argc,  char **argv )
 
 /******************************************************************************/
@@ -546,7 +546,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.123 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.124 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1800,7 +1800,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
 		if(i>=NUM_RECEPTOR_TYPES) printf("i>=%d %d\n", NUM_RECEPTOR_TYPES,i);
 		if(ia>=MAX_MAPS) printf("ia>=%d %d\n", MAX_MAPS, ia);
                 et.e_vdW_Hb[indx_r][i][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
-		//energy_lookup[i][indx_r][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
+		energy_lookup[i][indx_r][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
 		//if ( fabs(energy_lookup[i][indx_r][ia]-et.e_vdW_Hb[indx_r][i][ia])>0.01) 
                  //  printf("i=%d indx_r=%d ia = %d %lf != %lf\n",i, indx_r, ia, energy_lookup[i][indx_r][ia], et.e_vdW_Hb[indx_r][i][ia]);
             } /*for each distance*/ 
@@ -2950,8 +2950,8 @@ for (icoord[Z] = -ne[Z]; icoord[Z] <= ne[Z]; icoord[Z]++) {
 #endif
 
 /*____________________________________________________________________________
- * Print a summary of extrema-values from the atomic-affinity and
- * electrostatics grid-maps,
+ * Print a summary of extrema-values from the atomic-affinity,
+ * electrostatics, and desolvation grid-maps.
  *____________________________________________________________________________*/
 
 (void) fprintf(logFile, "\nGrid\tAtom\tMinimum   \tMaximum\n");
@@ -2965,10 +2965,10 @@ for (int i = 0;  i < num_atom_maps;  i++) {
 
 if (not use_vina_potential){
 if(elecPE>=0)
-(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%9.2le\tElectrostatic Potential\n", num_atom_maps + 1, 'e', gridmap[elecPE].energy_min, gridmap[num_atom_maps+0].energy_max);
+(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%9.2le\tElectrostatic Potential\n", elecPE, 'e', gridmap[elecPE].energy_min, gridmap[elecPE].energy_max);
 
 if(dsolvPE>=0)
-(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%9.2le\tDesolvation Potential\n", num_atom_maps + 2, 'd', gridmap[dsolvPE].energy_min, gridmap[num_atom_maps+1].energy_max);
+(void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%9.2le\tDesolvation Potential\n", dsolvPE, 'd', gridmap[dsolvPE].energy_min, gridmap[dsolvPE].energy_max);
 (void) fprintf( logFile, "\n\n * Note:  Every pairwise-atomic interaction was clamped at %.2f\n\n", EINTCLAMP);
 }
 /*
