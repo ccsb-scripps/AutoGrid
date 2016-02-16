@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.22 2015/10/21 04:25:07 mp Exp $
+ $Id: setflags.cpp,v 1.23 2016/02/16 04:56:06 mp Exp $
 
  AutoGrid 
 
@@ -41,7 +41,7 @@ extern int  debug;
 
 /*----------------------------------------------------------------------------*/
 
-int setflags( int argc, char **argv, char *version, int use_bhtree)
+int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp)
 
 /*----------------------------------------------------------------------------*/
 
@@ -151,6 +151,8 @@ int setflags( int argc, char **argv, char *version, int use_bhtree)
 #endif
             fprintf(stdout, "  Faster search for nearby atoms (USE_BHTREE): ");
 	    fprintf(stdout, use_bhtree?" yes\n":" no\n");
+            fprintf(logFile, "  Run calculations in parallel if possible (_OPENMP): ");
+	    fprintf(stdout, use_omp?" yes\n":" no\n");
 
 	    fprintf(stdout, "  Maximum number of receptor atoms (AG_MAX_ATOMS): %d\n", AG_MAX_ATOMS);
 	    fprintf(stdout, "  Maximum number of receptor atom types (NUM_RECEPTOR_TYPES): %d\n", NUM_RECEPTOR_TYPES);
