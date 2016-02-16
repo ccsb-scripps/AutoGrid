@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.129 2016/02/16 04:56:06 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.130 2016/02/16 23:50:09 mp Exp $
 
  AutoGrid 
 
@@ -552,7 +552,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.129 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.130 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -2401,8 +2401,12 @@ if (floating_grid) {
 
 /*
  * Iterate over all grid points, Z( Y ( X ) ) (X is fastest)...
+ * M Pique - 2016-02 I'm not sure whether the parallelization is better
+ * done (as now) over the planes, to allow for overlapped I/O, or 
+ * done by pre-allocating a full X-Y-Z grid set and doing all the I/O
+ * at the end of the calculations.
  */
-#pragma omp parallel for ordered schedule(dynamic)
+#pragma omp parallel for ordered schedule(static,1)
 for (iz=0;iz<n1[Z];iz++) {
 	Clock      grd_start;
 	Clock      grd_end;
