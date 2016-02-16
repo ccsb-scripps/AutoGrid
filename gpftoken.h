@@ -1,6 +1,6 @@
 /*
 
- $Id: gpftoken.h,v 1.8 2016/02/02 02:52:18 mp Exp $
+ $Id: gpftoken.h,v 1.9 2016/02/16 23:49:27 mp Exp $
 
  AutoGrid 
 
@@ -49,3 +49,4 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #define GPF_QASP	23
 #define GPF_USE_VINA_POTENTIAL	24
 #define GPF_OUTLEV	25
+#define GPF_MAP_RECEPTOR_INTERIOR 26

@@ -1,6 +1,6 @@
 /*
 
- $Id: gpfparser.cpp,v 1.13 2016/02/02 02:52:18 mp Exp $
+ $Id: gpfparser.cpp,v 1.14 2016/02/16 23:49:27 mp Exp $
 
  AutoGrid 
 
@@ -71,78 +71,81 @@ int gpfparser( char line[LINE_LEN] )
     } else if (c[0]=='#') {
         token = GPF_COMMENT;
 
-    } else if (equal(c,"receptor_types",14)) {
+    } else if (equal(c,"receptor_types")) {
         token = GPF_RECEPTOR_TYPES;
 
-    } else if (equal(c,"receptor",8)) {
+    } else if (equal(c,"receptor")) {
         token = GPF_RECEPTOR;
 
-    } else if (equal(c,"gridfld",7)) {
+    } else if (equal(c,"gridfld")) {
         token = GPF_GRIDFLD;
 
-    } else if (equal(c,"npts",4)) {
+    } else if (equal(c,"npts")) {
         token = GPF_NPTS;
 
-    } else if (equal(c,"spacing",7)) {
+    } else if (equal(c,"spacing")) {
         token = GPF_SPACING;
 
-    } else if (equal(c,"gridcenter",10)) {
+    } else if (equal(c,"gridcenter")) {
         token = GPF_GRIDCENTER;
 
-    } else if (equal(c,"types",5)) {
+    } else if (equal(c,"types")) {
         token = GPF_LIGAND_TYPES;
 
-    } else if (equal(c,"ligand_types",12)) {
+    } else if (equal(c,"ligand_types")) {
         token = GPF_LIGAND_TYPES;
 
 
-    } else if (equal(c,"map",3)) {
+    } else if (equal(c,"map")) {
         token = GPF_MAP;
 
-    } else if (equal(c,"elecmap",7)) {
+    } else if (equal(c,"elecmap")) {
         token = GPF_ELECMAP;
 
-    } else if (equal(c,"dsolvmap",8) || equal(c,"desolvmap",9)) {
+    } else if (equal(c,"dsolvmap") || equal(c,"desolvmap")) {
         token = GPF_DSOLVMAP;
 
-    } else if (equal(c,"covalentmap",11)) {
+    } else if (equal(c,"covalentmap")) {
         token = GPF_COVALENTMAP;
 
-    } else if (equal(c,"nbp_coeffs",10)) {
+    } else if (equal(c,"nbp_coeffs")) {
         token = GPF_NBP_COEFFS;
 
-    } else if (equal(c,"nbp_r_eps",9)) {
+    } else if (equal(c,"nbp_r_eps")) {
         token = GPF_NBP_R_EPS;
 
-    } else if (equal(c,"dielectric",10)) {
+    } else if (equal(c,"dielectric")) {
         token = GPF_DIEL;
 
-    } else if (equal(c,"qasp",4)) {
+    } else if (equal(c,"qasp")) {
         token = GPF_QASP;
 
-    } else if (equal(c,"fmap",4)) {
+    } else if (equal(c,"fmap")) {
         token = GPF_FMAP;
 
-    } else if (equal(c,"disorder_h",10)) {
+    } else if (equal(c,"disorder_h")) {
         token = GPF_DISORDER;
 
-    } else if (equal(c,"smooth",6)) {
+    } else if (equal(c,"smooth")) {
         token = GPF_SMOOTH;
 
-    } else if (equal(c,"sol_par",7)) {
+    } else if (equal(c,"sol_par")) {
         token = GPF_SOL_PAR;
 
-    } else if (equal(c,"constant",8)) {
+    } else if (equal(c,"constant")) {
         token = GPF_CONSTANT;
 
-    } else if (equal(c,"parameter_file",14)) {
+    } else if (equal(c,"parameter_file")) {
         token = GPF_PARAM_FILE;
 
-    } else if (equal(c,"use_vina_potential",18)) {
+    } else if (equal(c,"use_vina_potential")) {
         token = GPF_USE_VINA_POTENTIAL;
 
-    } else if (equal(c,"outlev",6)) {
+    } else if (equal(c,"outlev")) {
         token = GPF_OUTLEV;
+
+    } else if (equal(c,"map_receptor_interior")) {
+        token = GPF_MAP_RECEPTOR_INTERIOR;
 
     }
     return(token);
