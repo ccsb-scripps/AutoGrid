@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.132 2016/02/17 21:00:52 mp Exp $
+ $Id: main.cpp,v 1.133 2016/02/17 21:30:31 mp Exp $
 
  AutoGrid 
 
@@ -170,7 +170,7 @@ static int get_map_index(const char key[]);
 int main( int argc,  char **argv )
 
 /******************************************************************************/
-/*      Name: main (executable's name is "autogrid").                         */
+/*      Name: main (executable's name is "autogrid4").                        */
 /*  Function: Calculation of interaction energy grids for Autodock.           */
 /*            Directional H_bonds from Goodford:                              */
 /*            Distance dependent dielectric after Mehler and Solmajer.        */
@@ -553,7 +553,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.132 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.133 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -707,6 +707,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 atom_name[4] = '\0';
 
                 /* Output the serial number of this atom... */
+		if(outlev>=LOGRECREAD)
                 (void) fprintf( logFile, "Atom no. %2d, \"%s\"", num_receptor_atoms + 1, atom_name);
                 /* Read in this receptor atom's coordinates,partial charges, and
                  * solvation parameters in PDBQS format... */
@@ -724,6 +725,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 		}
 
                 /* Output the coordinates of this atom... */
+		if(outlev>=LOGRECREAD)
                 (void) fprintf( logFile, " at (%.3lf, %.3lf, %.3lf), ",
                                 coord[num_receptor_atoms][X], coord[num_receptor_atoms][Y], coord[num_receptor_atoms][Z]);
 
@@ -799,7 +801,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                 }
 
                 /* Tell the user what you thought this atom was... */
-		if(outlev>LOGRUNV)
+		if(outlev>=LOGRECREAD)
                 (void) fprintf( logFile, " was assigned atom type \"%s\" (rec_index= %d, atom_type= %d).\n", found_parm->autogrid_type, found_parm->rec_index, atom_type[num_receptor_atoms]);
 
                 /* Count the number of each atom type */
@@ -1397,12 +1399,14 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             for (int indx_r = 1;  indx_r < NDIEL;  indx_r++) {
                 et.epsilon_fn[indx_r] = calc_ddd_Mehler_Solmajer( angstrom(indx_r), APPROX_ZERO );
             }
+	    if(outlev>=LOGETABLES)
             (void) fprintf( logFile, "  d   Dielectric\n ___  __________\n");
             for (int i = 0;  i <= min(500,NDIEL);  i += 10) {
                 ri = angstrom(i);
+	        if(outlev>=LOGETABLES)
                 (void) fprintf( logFile, "%4.1lf%9.2lf\n", ri, et.epsilon_fn[i]);
             }
-            (void) fprintf( logFile, "\n");
+	    if(outlev>=LOGETABLES) (void) fprintf( logFile, "\n");
             /* convert epsilon to factor / epsilon */
             for (int i = 0;  i < NDIEL;  i++) {
                 et.r_epsilon_fn[i] = factor/et.epsilon_fn[i];
@@ -1646,6 +1650,7 @@ AVS_fld_fileptr = NULL;
 #endif
 
 (void) fprintf( logFile, "\n\nCalculating Pairwise Interaction Energies\n");
+if(outlev>=LOGETABLES)
 (void) fprintf( logFile,   "=========================================\n\n");
 
 /**************************************************
@@ -1825,12 +1830,14 @@ for (int ia=0; ia<num_atom_maps; ia++){
             if ( xB == 0 ) {
                 print_error( logFile, FATAL_ERROR, "Van der Waals exponent xB is 0.  AutoGrid must exit." );
             }
+	    if(outlev>=LOGETABLES) {
             (void) fprintf( logFile, "\n             %9.1lf       %9.1lf \n", cA, cB);
             (void) fprintf( logFile, "    E    =  -----------  -  -----------\n");
             (void) fprintf( logFile, "     %s, %s         %2d              %2d\n", gridmap[ia].type, receptor_types[i], xA, xB);
             (void) fprintf( logFile, "                r               r \n\n");
-            /* loop over distance index, indx_r, from 0 to max(NEINT,NDIEL) */ /* GPF_MAP */
             (void) fprintf( logFile, "Calculating energies for %s-%s interactions.\n", gridmap[ia].type, receptor_types[i] );
+	    }
+            /* loop over distance index, indx_r, from 0 to max(NEINT,NDIEL) */ /* GPF_MAP */
 
 	    // do up to non-bond cutoff distance
             for (int indx_r = 1;  indx_r < NEINT;  indx_r++) {
@@ -1848,6 +1855,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
 
 #ifdef PRINT_BEFORE_SMOOTHING
             /*PRINT OUT INITIAL VALUES before smoothing here */
+	    if(outlev>=LOGETABLES) {
             (void) fprintf( logFile, "before smoothing\n  r ");
             for (int iat = 0;  iat < receptor_types_ct;  iat++) {
                 (void) fprintf( logFile, "    %s    ", receptor_types[iat]);
@@ -1857,6 +1865,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
                 (void) fprintf( logFile, " ________");
             }
             (void) fprintf( logFile, "\n");
+
 	    for (int j = 0;  j <= min(500,NEINT);  j += 10) {
                 (void) fprintf( logFile, "%4.1lf", angstrom(j));
                 for (int iat = 0;  iat < receptor_types_ct;  iat++) {
@@ -1865,6 +1874,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
                 (void) fprintf( logFile, "\n");
             } 
             (void) fprintf( logFile, "\n");
+	    } // if outlev
 #endif
 
             /* smooth with min function */ /* GPF_MAP */
@@ -1890,6 +1900,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
        /*
         * Print out a table, of distance versus energy...
         */ /* GPF_MAP */
+	if(outlev>=LOGETABLES) {
         (void) fprintf( logFile, "\n\nFinding the lowest pairwise interaction energy within %.1f Angstrom (\"smoothing\").\n\n  r ", r_smooth);
         for (int iat = 0;  iat < receptor_types_ct;  iat++) {
             (void) fprintf( logFile, "    %s    ", receptor_types[iat]);
@@ -1927,6 +1938,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
             (void) fprintf( logFile, "\n");
         } /* j */
         (void) fprintf( logFile, "\n");
+	} // if outlev
     } else {
         /* parsing for intnbp not needed for covalent maps */
         (void) fprintf( logFile, "\nAny internal non-bonded parameters will be ignored for this map, since this is a covalent map.\n");
@@ -2415,7 +2427,7 @@ if(outlev>LOGRUNV) {
  * We assume adjacent blocks of 4 will take about the same time to compute.
  * You might try "schedule(dynamic,4)" too. MPique Feb 2016
  */
-#pragma omp parallel for schedule(dynamic,4)
+#pragma omp parallel for schedule(static,4)
 for (iz=0;iz<n1[Z];iz++) {
 	Clock      grd_start;
 	Clock      grd_end;
