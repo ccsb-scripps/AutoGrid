@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.133 2016/02/17 21:30:31 mp Exp $
+ $Id: main.cpp,v 1.134 2016/03/14 22:58:18 sanner Exp $
 
  AutoGrid 
 
@@ -553,7 +553,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.133 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.134 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -2506,25 +2506,25 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
 // M Sanner 2015 use BHTree to find atoms very close to grid point: write all atom grids' energies as "HIGH"
 //  write electrostatic and desolvation maps as 0
 #ifdef USE_BHTREE
-	    if (! map_receptor_interior) {
-	      // check for collision with any receptor atoms
- 	      // if collision, modify energy, write all maps' values, skip to next grid point.
-	      int bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, 
-		BH_collision_dist, 
-		closeAtomsIndices[thread], closeAtomsDistances[thread],
-		num_receptor_atoms);
+	    // MS Commneted out this section as it lead to wrong maps as reported by Peirrick
+	    //
+	    // if (! map_receptor_interior) {
+	    //   // check for collision with any receptor atoms
+ 	    //   // if collision, modify energy, write all maps' values, skip to next grid point.
+	    //   int bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, 
+	    // 	BH_collision_dist, 
+	    // 	closeAtomsIndices[thread], closeAtomsDistances[thread],
+	    // 	num_receptor_atoms);
 
-	      if (bhTreeNbIndices > 0) {
-		  for (int j = 0;  j < num_maps;  j++) {
-		    if(!gridmap[j].is_covalent)  
-                      gridmap[j].energy[mapi] =
-                      (j==elecPE||j==dsolvPE)?0:INTERIOR_VALUE;
-		    }
-		  if(floating_grid) r_min[mapi] = 0;
-		  continue; // next icoord[X]
-		  }
-	    }
-
+	    //   if (bhTreeNbIndices > 5) {
+	    // 	  for (int j = 0;  j < num_maps;  j++) {
+	    // 	    if(!gridmap[j].is_covalent)  
+            //           gridmap[j].energy[mapi] = (j==elecPE||j==dsolvPE)?0:INTERIOR_VALUE;
+	    // 	  }
+	    // 	  if(floating_grid) r_min[mapi] = 0;
+	    // 	  continue; // next icoord[X]
+	    //   }
+	    // }
 #endif
 
 		
