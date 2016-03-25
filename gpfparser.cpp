@@ -1,6 +1,6 @@
 /*
 
- $Id: gpfparser.cpp,v 1.14 2016/02/16 23:49:27 mp Exp $
+ $Id: gpfparser.cpp,v 1.15 2016/03/25 18:03:29 mp Exp $
 
  AutoGrid 
 
@@ -51,19 +51,26 @@ int gpfparser( char line[LINE_LEN] )
 /******************************************************************************/
 
 {
-    int l, i, token = -1 ;	       /* return -1 if nothing is recognized. */
-    char c[LINE_LEN];
+#define streq(a,b) (0==strcasecmp(a,b)) // case-independent string match
+    int token = -1 ;	       /* return -1 if nothing is recognized. */
+    char c[LINE_LEN];  // keyword token (first white-space-terminated string)
+    int tokenlen;
+    char * tptr = &line[0]; // start of keyword token in "line"
 
-    l = (int)strindex(line, " ");
-    if (l == -1) {
-        l = (int)strindex(line, "\t");
-        if (l == -1) {
-            l = (int)strlen(line);
+    /* skip any leading whitespace */
+    while( isascii(*tptr) && isspace(*tptr) ) tptr++;
+
+    tokenlen = (int)strindex(tptr, " ");
+    if (tokenlen == -1) {
+        tokenlen = (int)strindex(tptr, "\t");
+        if (tokenlen == -1) {
+            tokenlen = (int)strlen(tptr);
 	}
     }
-    for(i=0; i<l; i++) {
-        c[i] = (char)tolower( (int)line[i] );
+    for(int i=0; i<tokenlen; i++) {
+        c[i] = tptr[i];
     }
+    c[tokenlen] = '\0'; // NULL-terminate c
 
     if ((c[0]=='\n')||(c[0]=='\0')) {
         token = GPF_NULL;
@@ -71,80 +78,80 @@ int gpfparser( char line[LINE_LEN] )
     } else if (c[0]=='#') {
         token = GPF_COMMENT;
 
-    } else if (equal(c,"receptor_types")) {
+    } else if (streq(c,"receptor_types")) {
         token = GPF_RECEPTOR_TYPES;
 
-    } else if (equal(c,"receptor")) {
+    } else if (streq(c,"receptor")) {
         token = GPF_RECEPTOR;
 
-    } else if (equal(c,"gridfld")) {
+    } else if (streq(c,"gridfld")) {
         token = GPF_GRIDFLD;
 
-    } else if (equal(c,"npts")) {
+    } else if (streq(c,"npts")) {
         token = GPF_NPTS;
 
-    } else if (equal(c,"spacing")) {
+    } else if (streq(c,"spacing")) {
         token = GPF_SPACING;
 
-    } else if (equal(c,"gridcenter")) {
+    } else if (streq(c,"gridcenter")) {
         token = GPF_GRIDCENTER;
 
-    } else if (equal(c,"types")) {
+    } else if (streq(c,"types")) {
         token = GPF_LIGAND_TYPES;
 
-    } else if (equal(c,"ligand_types")) {
+    } else if (streq(c,"ligand_types")) {
         token = GPF_LIGAND_TYPES;
 
 
-    } else if (equal(c,"map")) {
+    } else if (streq(c,"map")) {
         token = GPF_MAP;
 
-    } else if (equal(c,"elecmap")) {
+    } else if (streq(c,"elecmap")) {
         token = GPF_ELECMAP;
 
-    } else if (equal(c,"dsolvmap") || equal(c,"desolvmap")) {
+    } else if (streq(c,"dsolvmap") || streq(c,"desolvmap")) {
         token = GPF_DSOLVMAP;
 
-    } else if (equal(c,"covalentmap")) {
+    } else if (streq(c,"covalentmap")) {
         token = GPF_COVALENTMAP;
 
-    } else if (equal(c,"nbp_coeffs")) {
+    } else if (streq(c,"nbp_coeffs")) {
         token = GPF_NBP_COEFFS;
 
-    } else if (equal(c,"nbp_r_eps")) {
+    } else if (streq(c,"nbp_r_eps")) {
         token = GPF_NBP_R_EPS;
 
-    } else if (equal(c,"dielectric")) {
+    } else if (streq(c,"dielectric")) {
         token = GPF_DIEL;
 
-    } else if (equal(c,"qasp")) {
+    } else if (streq(c,"qasp")) {
         token = GPF_QASP;
 
-    } else if (equal(c,"fmap")) {
+    } else if (streq(c,"fmap")) {
         token = GPF_FMAP;
 
-    } else if (equal(c,"disorder_h")) {
+    } else if (streq(c,"disorder_h")) {
         token = GPF_DISORDER;
 
-    } else if (equal(c,"smooth")) {
+    } else if (streq(c,"smooth")) {
         token = GPF_SMOOTH;
 
-    } else if (equal(c,"sol_par")) {
+    } else if (streq(c,"sol_par")) {
         token = GPF_SOL_PAR;
 
-    } else if (equal(c,"constant")) {
+    } else if (streq(c,"constant")) {
         token = GPF_CONSTANT;
 
-    } else if (equal(c,"parameter_file")) {
+    } else if (streq(c,"parameter_file")) {
         token = GPF_PARAM_FILE;
 
-    } else if (equal(c,"use_vina_potential")) {
+    } else if (streq(c,"use_vina_potential")) {
         token = GPF_USE_VINA_POTENTIAL;
 
-    } else if (equal(c,"outlev")) {
+    } else if (streq(c,"outlev")) {
         token = GPF_OUTLEV;
 
-    } else if (equal(c,"map_receptor_interior")) {
+    } else if (streq(c,"map_receptor_interior")) {
         token = GPF_MAP_RECEPTOR_INTERIOR;
 
     }
