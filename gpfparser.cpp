@@ -1,6 +1,6 @@
 /*
 
- $Id: gpfparser.cpp,v 1.15 2016/03/25 18:03:29 mp Exp $
+ $Id: gpfparser.cpp,v 1.16 2016/03/25 18:42:04 mp Exp $
 
  AutoGrid 
 
@@ -54,23 +54,16 @@ int gpfparser( char line[LINE_LEN] )
 #define streq(a,b) (0==strcasecmp(a,b)) // case-independent string match
     int token = -1 ;	       /* return -1 if nothing is recognized. */
     char c[LINE_LEN];  // keyword token (first white-space-terminated string)
-    int tokenlen;
     char * tptr = &line[0]; // start of keyword token in "line"
 
     /* skip any leading whitespace */
     while( isascii(*tptr) && isspace(*tptr) ) tptr++;
 
-    tokenlen = (int)strindex(tptr, " ");
-    if (tokenlen == -1) {
-        tokenlen = (int)strindex(tptr, "\t");
-        if (tokenlen == -1) {
-            tokenlen = (int)strlen(tptr);
-	}
-    }
-    for(int i=0; i<tokenlen; i++) {
-        c[i] = tptr[i];
-    }
-    c[tokenlen] = '\0'; // NULL-terminate c
+    /* copy non-whitespace chars from "line" to "c" */
+    int i=0;
+    for ( i=0; isascii(tptr[i]) && !isspace(tptr[i]); i++ ) c[i] = tptr[i];
+
+    c[i] = '\0'; // NULL-terminate c
 
     if ((c[0]=='\n')||(c[0]=='\0')) {
         token = GPF_NULL;
