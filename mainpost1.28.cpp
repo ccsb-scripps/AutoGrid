@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.135 2016/03/31 20:13:34 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.136 2016/03/31 22:32:58 mp Exp $
 
  AutoGrid 
 
@@ -83,6 +83,8 @@ extern Real idct;
 #define round3dp(x) (( floor((x)*1000.0 + 0.5)) / 1000.0)
 #endif
 
+// convenience macro for plural counts in log files:
+#define plural(i) ( (i)==1?"":"s" )
 
 // print_error() is used with error_level where
 // error_level is defined in autogrid.h
@@ -115,6 +117,7 @@ void print_error( FILE *fileptr, int error_level, char *message)
 
     // Records all messages in the logFile.
     (void) fprintf( logFile, "%s\n", output_message);
+    fflush(logFile);
 
     // Only send errors, fatal errors and warnings to standard error, stderr.
     switch ( error_level ) {
@@ -349,12 +352,12 @@ int nelements[XYZ];
 static int n1[XYZ]; /* nelements[i]+1: static to detect 'not set yet' */
 int ne[XYZ]; /* floor (nelements[i]/2) */
 
-/* MAX_CHARS */
-char AVS_fld_filename[MAX_CHARS];
-char floating_grid_filename[MAX_CHARS];
-char host_name[MAX_CHARS];
-char receptor_filename[MAX_CHARS];
-char xyz_filename[MAX_CHARS];
+/* MAX_CHARS: made static so will have strlen == 0 if not set */
+static char AVS_fld_filename[MAX_CHARS];
+static char floating_grid_filename[MAX_CHARS];
+static char host_name[MAX_CHARS];
+static char receptor_filename[MAX_CHARS];
+static char xyz_filename[MAX_CHARS];
 
 /* LINE_LEN */
 char message[LINE_LEN];
@@ -435,7 +438,6 @@ int outlev = LOGFORADT;
 
 #define INIT_NUM_GRID_PTS -1
 int num_grid_points_per_map = INIT_NUM_GRID_PTS;
-//MP@@ int i_smooth;
 int ib;
 
 int num_receptor_atoms=0;
@@ -515,7 +517,7 @@ if (clktck == 0) {
 job_start = times( &tms_job_start);
 
 /*
- * Parse the command line...
+ * Parse the command line and report compilation option values...
  */
 (void) setflags( argc, argv, version_num,
 #ifdef USE_BHTREE
@@ -555,7 +557,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.135 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.136 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -664,6 +666,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         /* read in the receptor filename */
 
         (void) sscanf( GPF_line, "%*s %s", receptor_filename);
+	if ( 0==strlen(receptor_filename)) {
+            print_error( logFile, FATAL_ERROR, "No name specified for receptor filename");
+	}
         (void) fprintf( logFile, "\nReceptor Input File :\t%s\n\nReceptor Atom Type Assignments:\n\n", receptor_filename);
 
         /* try to open receptor file */
@@ -887,6 +892,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
     case GPF_GRIDFLD:
         (void) sscanf( GPF_line, "%*s %s", AVS_fld_filename);
+	if ( 0==strlen(AVS_fld_filename)) {
+            print_error( logFile, FATAL_ERROR, "No name specified for AVS_fld_filename");
+	}
         infld = strindex( AVS_fld_filename, ".fld");
         if (infld == -1) {
             print_error( logFile, FATAL_ERROR, "Grid data file needs the extension \".fld\" for AVS input\n\n" );
@@ -1016,6 +1024,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             (void) fprintf(logFile, "%d %s ->%s\n",i, ligand_atom_types[i], ligand_types[i]);
 #endif
         }
+	// MPique note: the rest of this block should be moved to
+	// after the whole GPF is read; this would remove the need for this
+	// keyword to be present if there are no ligand atom maps requested
         for (int i=0; i<num_atom_maps; i++){
             found_parm = apm_find(ligand_types[i]);
             if (found_parm != NULL) {
@@ -1049,12 +1060,15 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             (void) sprintf( message, "Too many ligand atom types; there is not enough memory to create these maps.  Try using fewer atom types than %d.\n", num_atom_maps);
             print_error( logFile, FATAL_ERROR, message);
         }
+	else fprintf(logFile, "Allocated space for %d gridmap objects\n",
+  	 num_atom_maps+3);
 
 
 	nthreads = min(MAXTHREADS, min(n1[Z], omp_get_max_threads()));
-	fprintf(logFile, "%d CPU thread(s) will be used for calculation\n", nthreads);
+	fprintf(logFile, "%d CPU thread will be used for calculation\n", 
+	 nthreads, plural(nthreads));
 
-        // Initialize the gridmap MapObject: the floating grid does not have one
+        // Initialize the gridmap MapObject: the floating grid does not need one
 	//  but the electrostatic, desolvation, and (if any) covalent map(s) do.
 	// (The "energy" is working storage for each map - an XYZ box)
         for (int i=0; i<num_atom_maps+2; i++) {
@@ -1065,8 +1079,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             gridmap[i].map_fileptr = (FILE *)NULL;
             strcpy(gridmap[i].map_filename, "");
             strcpy(gridmap[i].type,""); /*eg HD or OA or NA or N*/
-            gridmap[i].energy_max = 0.0L;
-            gridmap[i].energy_min = 0.0L;
+            gridmap[i].energy_max = -BIG;
+            gridmap[i].energy_min = BIG;
             gridmap[i].energy = (double *) calloc( n1[X]*n1[Y]*n1[Z], sizeof(double));
             if(NULL==gridmap[i].energy) {	
 		fprintf(logFile, "MALLOC_ERROR map i=%d *energy=%ld\n", i, (long)gridmap[i].energy);
@@ -1170,7 +1184,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 #endif
             } /*initialize energy parms for each possible receptor type*/
         } /*for each map*/
-        (void) fprintf( logFile, "\nAtom type names for ligand atom types 1-%d used for ligand-atom affinity grid maps:\n\n", num_atom_maps);
+	if(num_atom_maps>0)
+	(void) fprintf( logFile, "\nAtom type names for ligand atom types 1-%d used for ligand-atom affinity grid maps:\n\n", num_atom_maps);
         for (int i = 0;  i < num_atom_maps;  i++) {
             (void) fprintf( logFile, "\t\t\tAtom type number %d corresponds to atom type name \"%s\".\n", gridmap[i].map_index, gridmap[i].type);
             if (gridmap[i].is_covalent == TRUE) {
@@ -1302,6 +1317,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         }
         /* Read in the filename for this grid map */ /* GPF_MAP */
         (void) sscanf( GPF_line, "%*s %s", gridmap[num_maps].map_filename);
+	if ( 0==strlen(gridmap[num_maps].map_filename)) {
+            print_error( logFile, FATAL_ERROR, "No name specified for map file");
+	}
         if ( (gridmap[num_maps].map_fileptr = ad_fopen( gridmap[num_maps].map_filename, "w", logFile)) == NULL ) {
             (void) sprintf( message, "Cannot open grid map \"%s\" for writing.", gridmap[num_maps].map_filename);
             print_error( logFile, FATAL_ERROR, message );
@@ -1321,8 +1339,11 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 		}
 	elecPE = num_maps;
         (void) sscanf( GPF_line, "%*s %s", gridmap[elecPE].map_filename);
+	if ( 0==strlen(gridmap[elecPE].map_filename)) {
+            print_error( logFile, FATAL_ERROR, "No name specified for electrostatic map");
+	}
         if ( (gridmap[elecPE].map_fileptr = ad_fopen( gridmap[elecPE].map_filename, "w", logFile)) == NULL){
-            (void) sprintf( message, "can't open grid map \"%s\" for writing.\n", gridmap[elecPE].map_filename);
+            (void) sprintf( message, "can't open file \"%s\" for writing electrostatic map.\n", gridmap[elecPE].map_filename);
             print_error( logFile, FATAL_ERROR, message );
         }
         (void) fprintf( logFile, "\nOutput Electrostatic Potential Energy Grid Map: %s\n\n", gridmap[elecPE].map_filename);
@@ -1339,8 +1360,11 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 		}
 	dsolvPE = num_maps;
         (void) sscanf( GPF_line, "%*s %s", gridmap[dsolvPE].map_filename);
+	if ( 0==strlen(gridmap[dsolvPE].map_filename)) {
+            print_error( logFile, FATAL_ERROR, "No name specified for desolvation map");
+	}
         if ( (gridmap[dsolvPE].map_fileptr = ad_fopen( gridmap[dsolvPE].map_filename, "w", logFile)) == NULL){
-            (void) sprintf( message, "can't open grid map \"%s\" for writing.\n", gridmap[dsolvPE].map_filename);
+            (void) sprintf( message, "can't open file \"%s\" for writing desolvation map.\n", gridmap[dsolvPE].map_filename);
             print_error( logFile, FATAL_ERROR, message );
         }
         (void) fprintf( logFile, "\nOutput Desolvation Free Energy Grid Map: %s\n\n", gridmap[dsolvPE].map_filename);
@@ -1444,10 +1468,12 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 /******************************************************************************/
 
     case GPF_FMAP:
-	// Caution: not tested! M Pique 2015
         (void) sscanf( GPF_line, "%*s %s", floating_grid_filename);
+	if ( 0==strlen(floating_grid_filename)) {
+            print_error( logFile, FATAL_ERROR, "No name specified for desolvation map");
+	}
         if ( (floating_grid_fileptr = ad_fopen( floating_grid_filename, "w", logFile)) == NULL) {
-            (void) sprintf( message, "can't open grid map \"%s\" for writing.\n", floating_grid_filename);
+            (void) sprintf( message, "can't open file \"%s\" for writing floating map.\n", floating_grid_filename);
             print_error( logFile, FATAL_ERROR, message );
         }
         (void) fprintf( logFile, "\nFloating Grid file name = %s\n", floating_grid_filename);
@@ -1461,6 +1487,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         /* open and read the AD4 parameters .dat file */
 
         parameter_library_found = sscanf( GPF_line, "%*s %s ", FN_parameter_library);
+	if ( 0==strlen(FN_parameter_library)) {
+            print_error( logFile, FATAL_ERROR, "No name specified for FN_parameter_library");
+	}
 
         read_parameter_library(logFile, outlev, FN_parameter_library, &AD4);
 
@@ -1561,6 +1590,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
  bht = generateBHtree(BHat, num_receptor_atoms, 10);
 // M Sanner 2015 BHTREE END
 	
+// allocate per-thread storage for the BH Tree queries
 for(int p=0;p<nthreads;p++) {
   closeAtomsIndices[p] = (int *)malloc(num_receptor_atoms*sizeof(int));
   closeAtomsDistances[p] = (float *)malloc(num_receptor_atoms*sizeof(float));
@@ -1570,24 +1600,22 @@ for(int p=0;p<nthreads;p++) {
 /* Map files checkpoint  (number of maps, desolv and elec maps )    SF  */
 
 /* Number of maps defined for atom types*/
-//DEBUG fprintf(stderr,"\n  num_atom_maps %d,  num_maps-2 %d\n", num_atom_maps, num_maps-2);fflush(stderr);
+//DEBUG fprintf(logFile,"\n  num_atom_maps %d,  num_maps-2 %d\n", num_atom_maps, num_maps-2);fflush(logFile);
 if ( num_atom_maps  > (num_maps - (elecPE>=0?1:0) - (dsolvPE>=0?1:0)) ) {   
              (void) fprintf( logFile, "Too few \"map\" keywords ;  the \"ligand_types\" command declares %d atom types.\nAdd a \"map\" keyword from the GPF.\n", num_atom_maps );
              (void) sprintf( message, "Too few \"map\" keywords found for the number of ligand atom types.\n" );
             print_error( logFile, FATAL_ERROR, message );
 	} 
 
-/* Electrostatic map (optional, but warn if not requested) */
+/* Electrostatic map (optional) */
 if (( not use_vina_potential) && (elecPE<0 || (strlen( gridmap[elecPE].map_filename ) == 0 ))) {  
              (void) fprintf( logFile, "The electrostatic map file is not defined in the GPF.\n" );
-             (void) sprintf( message, "No electrostatic map file requested.\n" );
-            print_error( logFile, WARNING, message );
+             (void) fprintf( logFile, "No electrostatic map file requested.\n" );
 	}
-/* Desolvation map (optional, but warn if not requested) */
+/* Desolvation map (optional) */
 if (( not use_vina_potential) && (dsolvPE<0 || (strlen( gridmap[dsolvPE].map_filename ) == 0 ))) {  
              (void) fprintf( logFile, "The desolvation map file is not defined in the GPF.\n" );
-             (void) sprintf( message, "No desolvation map file requested.\n" );
-            print_error( logFile, WARNING, message );
+             (void) fprintf( logFile, "No desolvation map file requested.\n" );
 	}
 
 /* End of map files checkpoint SF */
@@ -2392,13 +2420,11 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
  ********************************************/
 } /* not use_vina_potential*/
 
-for (int k = 0;  k < num_atom_maps + 1;  k++) {
-    gridmap[k].energy_max = (double)-BIG;
-    gridmap[k].energy_min = (double)BIG;
-}
-
 (void) fprintf( logFile, "Beginning grid calculations.\n");
-(void) fprintf( logFile, "\nCalculating %d grids over %d elements, around %d receptor atoms.\n\n", num_maps, num_grid_points_per_map, num_receptor_atoms);
+(void) fprintf( logFile, "\nCalculating %d grid%s over %d element%s, around %d receptor atom%s.\n\n",
+num_maps+floating_grid?1:0, plural(num_maps+floating_grid?1:0),
+num_grid_points_per_map, plural(num_grid_points_per_map),
+num_receptor_atoms, plural(num_receptor_atoms));
 (void) fflush( logFile);
 
 /*____________________________________________________________________________
@@ -2534,7 +2560,9 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
 	       if (bhTreeNbIndices > 0) {
 		  is_collision = TRUE;
 		  if(outlev>=LOGRUNVV)
-		  fprintf(logFile, "\n MAP_INT xyz= %7.3f %7.3f %7.3f  %2d atom(s) within %5.3f Ang\n", fcc[X], fcc[Y], fcc[Z], bhTreeNbIndices, BH_collision_dist);
+		  fprintf(logFile, "\n MAP_INT xyz= %7.3f %7.3f %7.3f  %2d atom%s within %5.3f Ang\n",
+		fcc[X], fcc[Y], fcc[Z],
+		bhTreeNbIndices, plural(bhTreeNbIndices), BH_collision_dist);
 		  if(outlev>=LOGRUNVVV) for (int i=0;i<bhTreeNbIndices;i++) {
 		     fprintf(logFile, "  atom i= %3d d= %5.3f Ang\n", closeAtomsIndices[thread][i], closeAtomsDistances[thread][i]);
 		  }
@@ -2618,7 +2646,7 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
             } /* inh loop */
 
 	    /* MPique declare error if no closestH was found */
-	    if(closestH<0) print_error( logFile, FATAL_ERROR, "no closestH atom was found");
+	    if(num_atom_maps>0&&closestH<0) print_error( logFile, FATAL_ERROR, "no closestH atom was found");
             /* END NEW2: Find Min Hbond */
 
 	    if(num_atom_maps>0 || dsolvPE>=0) {   // huge block only invoked if atom affinity or desolvation maps requested...
@@ -3052,6 +3080,7 @@ if(elecPE>=0)
 
 if(dsolvPE>=0)
 (void) fprintf( logFile, " %d\t %c\t  %6.2lf\t%9.2le\tDesolvation Potential\n", dsolvPE+1, 'd', gridmap[dsolvPE].energy_min, gridmap[dsolvPE].energy_max);
+
 (void) fprintf( logFile, "\n\n * Note:  Every pairwise-atomic interaction was clamped at %.2f\n\n", EINTCLAMP);
 }
 /*
