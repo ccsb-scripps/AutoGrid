@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.134 2016/03/14 22:58:18 sanner Exp $
+ $Id: mainpost1.28.cpp,v 1.135 2016/03/31 20:13:34 mp Exp $
 
  AutoGrid 
 
@@ -300,9 +300,11 @@ char * receptor_atom_types[NUM_RECEPTOR_TYPES];
 #ifdef USE_BHTREE
  BHtree *bht;
  BHpoint **BHat;
-#define BH_collision_dist 2.0
+// too big I think - MP #define BH_collision_dist 2.0
+#define BH_collision_dist 1.5
+// MP TODO next is strictly for debug
+//#define BH_collision_dist 3.0
 #define BH_cutoff_dist NBC
-//#define BH_collision_dist -1.0
  int *closeAtomsIndices[MAXTHREADS];
  float *closeAtomsDistances[MAXTHREADS];
 // M Sanner 2015 BHTREE END
@@ -553,7 +555,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.134 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.135 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1425,8 +1427,18 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
 /******************************************************************************/
     case GPF_MAP_RECEPTOR_INTERIOR:
-	map_receptor_interior = TRUE;
-        (void) fprintf( logFile, "Mapping receptor interior instead of reporting collision.");
+	strcpy(token,"true"); // default if missing
+        (void) sscanf( GPF_line, "%*s %s", token);
+        if (0==strcasecmp(token, "true") || 0==strcasecmp(token, "on")) {
+	   map_receptor_interior = TRUE;
+           (void) fprintf( logFile, 
+             "Mapping receptor interior instead of reporting collision if nearer than %.2f to any atom.", BH_collision_dist);
+	}
+	else {
+	   map_receptor_interior = FALSE;
+           (void) fprintf( logFile, 
+             "Reporting collision if nearer than %.2f to any atom.", BH_collision_dist);
+	}
 	break;
 
 /******************************************************************************/
@@ -1615,7 +1627,7 @@ if ( AVS_fld_fileptr == NULL ) {
 (void) fprintf( AVS_fld_fileptr, "dim2=%d\t\t\t# number of y-elements\n", n1[Y]);
 (void) fprintf( AVS_fld_fileptr, "dim3=%d\t\t\t# number of z-elements\n", n1[Z]);
 (void) fprintf( AVS_fld_fileptr, "nspace=3\t\t# number of physical coordinates per point\n");
-(void) fprintf( AVS_fld_fileptr, "veclen=%d\t\t# number of affinity values at each point\n", num_maps);
+(void) fprintf( AVS_fld_fileptr, "veclen=%d\t\t# number of affinity values at each point\n", num_maps+floating_grid?1:0);
 (void) fprintf( AVS_fld_fileptr, "data=float\t\t# data type (byte, integer, float, double)\n");
 (void) fprintf( AVS_fld_fileptr, "field=uniform\t\t# field type (uniform, rectilinear, irregular)\n");
 for (int i = 0;  i < XYZ;  i++) {
@@ -2503,28 +2515,33 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
                 hbondflag[map_index] = FALSE;
 	    }
             
-// M Sanner 2015 use BHTree to find atoms very close to grid point: write all atom grids' energies as "HIGH"
-//  write electrostatic and desolvation maps as 0
+// M Sanner 2015 use BHTree to find atoms very close to grid point: 
+//  write electrostatic map as 0
+//  write floating grid map as collision distance
+	    bool is_collision = FALSE;
 #ifdef USE_BHTREE
-	    // MS Commneted out this section as it lead to wrong maps as reported by Peirrick
-	    //
-	    // if (! map_receptor_interior) {
-	    //   // check for collision with any receptor atoms
- 	    //   // if collision, modify energy, write all maps' values, skip to next grid point.
-	    //   int bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, 
-	    // 	BH_collision_dist, 
-	    // 	closeAtomsIndices[thread], closeAtomsDistances[thread],
-	    // 	num_receptor_atoms);
+	    
+         
+	     if ((! map_receptor_interior) && (elecPE>=0 || floating_grid)) {
+	       // check for collision with any receptor atoms
+ 	       // if collision, do not compute electrostatics or
+	       //  floating grid values (as these are costly)
+	       int bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, 
+	     	BH_collision_dist, 
+	     	closeAtomsIndices[thread], closeAtomsDistances[thread],
+	     	num_receptor_atoms);
 
-	    //   if (bhTreeNbIndices > 5) {
-	    // 	  for (int j = 0;  j < num_maps;  j++) {
-	    // 	    if(!gridmap[j].is_covalent)  
-            //           gridmap[j].energy[mapi] = (j==elecPE||j==dsolvPE)?0:INTERIOR_VALUE;
-	    // 	  }
-	    // 	  if(floating_grid) r_min[mapi] = 0;
-	    // 	  continue; // next icoord[X]
-	    //   }
-	    // }
+	       if (bhTreeNbIndices > 0) {
+		  is_collision = TRUE;
+		  if(outlev>=LOGRUNVV)
+		  fprintf(logFile, "\n MAP_INT xyz= %7.3f %7.3f %7.3f  %2d atom(s) within %5.3f Ang\n", fcc[X], fcc[Y], fcc[Z], bhTreeNbIndices, BH_collision_dist);
+		  if(outlev>=LOGRUNVVV) for (int i=0;i<bhTreeNbIndices;i++) {
+		     fprintf(logFile, "  atom i= %3d d= %5.3f Ang\n", closeAtomsIndices[thread][i], closeAtomsDistances[thread][i]);
+		  }
+		  if(elecPE>=0) gridmap[elecPE].energy[mapi] = 0;
+	     	  if(floating_grid) r_min[mapi] = BH_collision_dist;
+	       }
+	     }
 #endif
 
 		
@@ -2532,9 +2549,10 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
             /*
              *  Loop 1 of 2:
 	     *  Performed only if electrostatic or floating maps are requested.
-             *  Do all Receptor (protein, DNA, etc.) atoms, regardless of distance cutoff
+	     *  and the grid point is not in collision with any receptor atom.
+             *  Do all Receptor atoms, regardless of distance cutoff
              */
-            if(elecPE>=0 || floating_grid) {
+            if( (!is_collision) && (elecPE>=0 || floating_grid)) {
 
 	      double e =  0; /* local accumumlator for this grid point */
 	      for (int ia = 0;  ia < num_receptor_atoms;  ia++) {
