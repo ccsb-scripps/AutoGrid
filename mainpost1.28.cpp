@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.137 2016/04/07 01:28:39 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.138 2016/04/07 20:28:08 mp Exp $
 
  AutoGrid 
 
@@ -407,10 +407,7 @@ static char * version_num = "4.2.2";
 static char * version_num = PACKAGE_VERSION;
 #endif
 
-/*are these necessary??*/
-double temp_vol, temp_solpar;
-double Hramp=0; /*Used to cover case where vina potential is used;initialized here to quiet compiler warning*/
-double factor=332.0L;  /* Used to convert between calories and SI units */
+const double factor=332.0L;  /* Used to convert between calories and SI units */
 
 /*int num_rec_types = 0;*/
 
@@ -557,7 +554,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.137 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.138 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1265,6 +1262,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         /*
         ** Read volume and solvation parameter for probe:
         */
+        double temp_vol, temp_solpar;
         (void) sscanf( GPF_line, "%*s %s %lf %lf", thisparm.autogrid_type, &temp_vol, &temp_solpar );
         found_parm = apm_find(thisparm.autogrid_type);
         if (found_parm != NULL) {
@@ -2496,7 +2494,9 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
 	    float fcc[XYZ]; // for USE_BHTREE
 	    bool hbondflag[MAX_MAPS];
             double hbondmin[MAX_MAPS], hbondmax[MAX_MAPS];
-	    double rminH; int closestH;
+	    double Hramp;
+	    double rminH;
+	    int closestH;
 	    double d[XYZ];
 	    double r, inv_r, inv_rmax;
 	    double inv_rd, rd2; /* re, r2, rd, */
