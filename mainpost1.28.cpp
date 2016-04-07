@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.136 2016/03/31 22:32:58 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.137 2016/04/07 01:28:39 mp Exp $
 
  AutoGrid 
 
@@ -557,7 +557,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.136 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.137 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1065,7 +1065,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
 
 	nthreads = min(MAXTHREADS, min(n1[Z], omp_get_max_threads()));
-	fprintf(logFile, "%d CPU thread will be used for calculation\n", 
+	fprintf(logFile, "%d CPU thread%s will be used for calculation\n", 
 	 nthreads, plural(nthreads));
 
         // Initialize the gridmap MapObject: the floating grid does not need one
