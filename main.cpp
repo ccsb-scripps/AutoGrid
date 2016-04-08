@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.138 2016/04/07 20:28:08 mp Exp $
+ $Id: main.cpp,v 1.139 2016/04/08 22:14:39 mp Exp $
 
  AutoGrid 
 
@@ -554,7 +554,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.138 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.139 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1653,7 +1653,7 @@ if ( AVS_fld_fileptr == NULL ) {
 (void) fprintf( AVS_fld_fileptr, "dim2=%d\t\t\t# number of y-elements\n", n1[Y]);
 (void) fprintf( AVS_fld_fileptr, "dim3=%d\t\t\t# number of z-elements\n", n1[Z]);
 (void) fprintf( AVS_fld_fileptr, "nspace=3\t\t# number of physical coordinates per point\n");
-(void) fprintf( AVS_fld_fileptr, "veclen=%d\t\t# number of affinity values at each point\n", num_maps+floating_grid?1:0);
+(void) fprintf( AVS_fld_fileptr, "veclen=%d\t\t# number of affinity values at each point\n", num_maps+(floating_grid?1:0));
 (void) fprintf( AVS_fld_fileptr, "data=float\t\t# data type (byte, integer, float, double)\n");
 (void) fprintf( AVS_fld_fileptr, "field=uniform\t\t# field type (uniform, rectilinear, irregular)\n");
 for (int i = 0;  i < XYZ;  i++) {
@@ -2420,7 +2420,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 
 (void) fprintf( logFile, "Beginning grid calculations.\n");
 (void) fprintf( logFile, "\nCalculating %d grid%s over %d element%s, around %d receptor atom%s.\n\n",
-num_maps+floating_grid?1:0, plural(num_maps+floating_grid?1:0),
+num_maps+(floating_grid?1:0), plural(num_maps+(floating_grid?1:0)),
 num_grid_points_per_map, plural(num_grid_points_per_map),
 num_receptor_atoms, plural(num_receptor_atoms));
 (void) fflush( logFile);
