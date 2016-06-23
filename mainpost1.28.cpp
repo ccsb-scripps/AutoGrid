@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.139 2016/04/08 22:14:39 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.140 2016/06/23 23:16:33 mp Exp $
 
  AutoGrid 
 
@@ -67,6 +67,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include "constants.h"
 #include "distdepdiel.h"
 #include "read_parameter_library.h"
+#include "threadlog.h"
 #include "timesys.h"
 #include "timesyshms.h"
 
@@ -554,7 +555,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.139 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.140 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -2456,6 +2457,7 @@ if(outlev>LOGRUNV) {
 (void) fprintf( logFile, "________  ________  ________  ______________  __________________________\n\n");
 }
  fflush( logFile);
+ threadLogAlloc(n1[Z]); /* allocate space for per-plane log files */
 
 /*
  * Iterate over all grid points, Z( Y ( X ) ) (X is fastest)...
@@ -2469,6 +2471,7 @@ for (iz=0;iz<n1[Z];iz++) {
 	Clock      grd_end;
 	struct tms tms_grd_start;
 	struct tms tms_grd_end;
+	FILE *tlogFile=NULL; // per-plane log file
     grd_start = times( &tms_grd_start); // this is per-plane timing 
 
     int icoord[XYZ];
@@ -2479,10 +2482,15 @@ for (iz=0;iz<n1[Z];iz++) {
      *  c[0:2] contains the current grid point coordinates (angstroms)
      */
     c[Z] = ((double)icoord[Z]) * spacing;
-    int thread = omp_get_thread_num(); // this thread's working BHTREE storage
+    int thread = omp_get_thread_num(); // this thread's working BHTREE storage and
+    if(nthreads>1) tlogFile = threadLogOpen(iz);
+    else tlogFile=logFile;
+    if(tlogFile==NULL) print_error( logFile, FATAL_ERROR, 
+      "failed to create thread log file");
+
 
 if(outlev>LOGRUNV)
-fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord[Z],c[Z],thread);fflush(logFile);
+fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord[Z],c[Z],thread);fflush(tlogFile);
 
 
     for (int iy=0; iy<n1[Y]; iy++) {
@@ -2506,6 +2514,7 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
 #ifdef DEBUG
 	    if(mapi<0||mapi>= n1[X]*n1[Y]*n1[Z]) {
 		fprintf(logFile,"bug check mapi out of range %d 0..%d\n",mapi,n1[X]*n1[Y]*n1[Z]);
+		if(nthreads>1) threadLogFreeAll();
 	        print_error( logFile, FATAL_ERROR, "mapi out of range");
 	    }
 #endif
@@ -2514,7 +2523,7 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
             c[X] = ((double)icoord[X]) * spacing;
 	    for ( int i = 0; i< XYZ; i++) fcc[i] = c[i]; // for USE_BHTREE
 	    
-	    if(outlev>=LOGRUNVVV) fprintf(logFile, "grid point %3d %3d %3d xyz(%5.2f, %5.2f, %5.2f)\n",
+	    if(outlev>=LOGRUNVVV) fprintf(tlogFile, "grid point %3d %3d %3d xyz(%5.2f, %5.2f, %5.2f)\n",
 		icoord[X], icoord[Y], icoord[Z], c[X], c[Y], c[Z]);
 
 	    /* handle covalent map(s). */
@@ -2560,11 +2569,11 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
 	       if (bhTreeNbIndices > 0) {
 		  is_collision = TRUE;
 		  if(outlev>=LOGRUNVV)
-		  fprintf(logFile, "\n MAP_INT xyz= %7.3f %7.3f %7.3f  %2d atom%s within %5.3f Ang\n",
+		  fprintf(tlogFile, "\n MAP_INT xyz= %7.3f %7.3f %7.3f  %2d atom%s within %5.3f Ang\n",
 		fcc[X], fcc[Y], fcc[Z],
 		bhTreeNbIndices, plural(bhTreeNbIndices), BH_collision_dist);
 		  if(outlev>=LOGRUNVVV) for (int i=0;i<bhTreeNbIndices;i++) {
-		     fprintf(logFile, "  atom i= %3d d= %5.3f Ang\n", closeAtomsIndices[thread][i], closeAtomsDistances[thread][i]);
+		     fprintf(tlogFile, "  atom i= %3d d= %5.3f Ang\n", closeAtomsIndices[thread][i], closeAtomsDistances[thread][i]);
 		  }
 		  if(elecPE>=0) gridmap[elecPE].energy[mapi] = 0;
 	     	  if(floating_grid) r_min[mapi] = BH_collision_dist;
@@ -2646,7 +2655,10 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
             } /* inh loop */
 
 	    /* MPique declare error if no closestH was found */
-	    if(num_atom_maps>0&&closestH<0) print_error( logFile, FATAL_ERROR, "no closestH atom was found");
+	    if(num_atom_maps>0&&closestH<0) {
+		if(nthreads>1) threadLogFreeAll();
+		print_error( logFile, FATAL_ERROR, "no closestH atom was found");
+	    }
             /* END NEW2: Find Min Hbond */
 
 	    if(num_atom_maps>0 || dsolvPE>=0) {   // huge block only invoked if atom affinity or desolvation maps requested...
@@ -2655,7 +2667,7 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
             int bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, BH_cutoff_dist, 
 		closeAtomsIndices[thread], closeAtomsDistances[thread], num_receptor_atoms);
 
-	    if(outlev>=LOGRUNVVV) fprintf(logFile, "  bhTreeNbIndices= %3d BH_cutoff_dist= %.2f\n",
+	    if(outlev>=LOGRUNVVV) fprintf(tlogFile, "  bhTreeNbIndices= %3d BH_cutoff_dist= %.2f\n",
 		bhTreeNbIndices, BH_cutoff_dist);
             for (int ibh = 0;  ibh < bhTreeNbIndices;  ibh++) {
 	      int ia = closeAtomsIndices[thread][ibh];
@@ -2822,11 +2834,11 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
                     if (t0 > 1.) {
                         t0 = 1.;
                         /*(void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", t0);
-                        print_error( logFile, WARNING, message );Feb2012*/ 
+                        print_error( tlogFile, WARNING, message );Feb2012*/ 
                     } else if (t0 < -1.) {
                         t0 = -1.;
                         /*(void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", t0);
-                        print_error( logFile, WARNING, message );Feb2012*/
+                        print_error( tlogFile, WARNING, message );Feb2012*/
                     }
                     t0 = PI_halved - acos(t0);
                     /*
@@ -2843,7 +2855,7 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
                     if (rd2 < APPROX_ZERO) {
                         if ((rd2 == 0.) && (warned == 'F')) {
                             (void) sprintf ( message, "At receptor H-bond acceptor, oxygen:\nAttempt to divide by zero was just prevented.\n\n" );
-                            print_error( logFile, WARNING, message );
+                            print_error( tlogFile, WARNING, message );
                             warned = 'T';
                         }
                         rd2 = APPROX_ZERO;
@@ -2860,11 +2872,11 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
                         if (ti > 1.) {
                             ti = 1.;
                             /*(void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", ti);
-                            print_error( logFile, WARNING, message );Feb2012*/
+                            print_error( tlogFile, WARNING, message );Feb2012*/
                         } else if (ti < -1.) {
                             ti = -1.;
                             /*(void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", ti);
-                            print_error( logFile, WARNING, message );Feb2012*/
+                            print_error( tlogFile, WARNING, message );Feb2012*/
                         }
                         ti = acos(ti) - PI_halved;
                         if (ti < 0.) {
@@ -2887,11 +2899,11 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
                     if (cos_theta > 1.) {
                         cos_theta = 1.;
                         /*(void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value greater than 1.\n", cos_theta);
-                        print_error( logFile, WARNING, message );Feb2012*/
+                        print_error( tlogFile, WARNING, message );Feb2012*/
                     } else if (cos_theta < -1.) {
                         cos_theta = -1.;
                         /*(void) sprintf( message, "I just prevented an attempt to take the arccosine of %f, a value less than -1.\n", cos_theta);
-                        print_error( logFile, WARNING, message );Feb2012*/
+                        print_error( tlogFile, WARNING, message );Feb2012*/
                     }
                     theta = acos(cos_theta);
                     racc = 0.;
@@ -2972,15 +2984,15 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
 
 	    /* compute desolvation map value */
             if ((not use_vina_potential) && dsolvPE>=0){
-	        if(outlev>=LOGRUNVVV) fprintf(logFile, " r=%8.3f ", r);
-	           if(outlev>=LOGRUNVVV) fprintf(logFile, 
+	        if(outlev>=LOGRUNVVV) fprintf(tlogFile, " r=%8.3f ", r);
+	           if(outlev>=LOGRUNVVV) fprintf(tlogFile, 
 			"  dsolvPE += solpar_q=%8.3f * vol[ia=%3d]=%8.3f * et.sol_fn[indx_r=%4d]=%9.4f  %9.4f += %9.4f",
                       solpar_q, ia, vol[ia], indx_r,  et.sol_fn[indx_r],
                       gridmap[dsolvPE].energy[mapi],
                       solpar_q * vol[ia] * et.sol_fn[indx_r]);
                 gridmap[dsolvPE].energy[mapi]
                  += solpar_q * vol[ia] * et.sol_fn[indx_r];
-	        if(outlev>=LOGRUNVVV) fprintf(logFile, 
+	        if(outlev>=LOGRUNVVV) fprintf(tlogFile, 
 			" -> %9.4f\n", gridmap[dsolvPE].energy[mapi]);
                 }
 
@@ -3009,16 +3021,26 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
     ++nDone;
     timeRemaining = (float)(grd_end - grd_start) * idct * (float)(n1[Z] - nDone);
     if(outlev>=LOGRUNV) {
-       (void) fprintf( logFile, " %6d   %8.3lf   %5.1lf%%   ", icoord[Z], cgridmin[Z] + c[Z], percentdone*(double)(iz+1));
+       (void) fprintf( tlogFile, " %6d   %8.3lf   %5.1lf%%   ", icoord[Z], cgridmin[Z] + c[Z], percentdone*(double)(iz+1));
        prHMSfixed( timeRemaining);
-       (void) fprintf( logFile, "  ");
-       timesys( grd_end - grd_start, &tms_grd_start, &tms_grd_end, logFile);
+       (void) fprintf( tlogFile, "  ");
+       timesys( grd_end - grd_start, &tms_grd_start, &tms_grd_end, tlogFile);
        if(outlev>LOGRUNV)
-       fprintf(logFile, "Finished iz=%d icoord=%d z=%8.2f thread=%d\n",
-          iz,icoord[Z],c[Z],thread);fflush(logFile);
-       (void) fflush( logFile);
+       fprintf(tlogFile, "Finished iz=%d icoord=%d z=%8.2f thread=%d\n",
+          iz,icoord[Z],c[Z],thread);fflush(tlogFile);
+       (void) fflush( tlogFile);
     }
+    if(nthreads>1) threadLogClose(iz);
 } /* icoord[Z] loop */
+
+	/* write log files */
+    if(nthreads>1) {
+	for(int j=0;j<n1[Z];j++) {
+		threadLogConcat(logFile, j);
+		threadLogFree(j);
+	}
+    }
+
 
             /*
              * O U T P U T . . .
@@ -3028,6 +3050,7 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
              */
 #pragma omp parallel for schedule(static)
             for (int j = 0;  j < num_maps;  j++) {
+	    /* note: no non-fatal logFile output allowed here */
 		for( int a=0; a<n1[X]*n1[Y]*n1[Z]; a++) {
 		  double e = gridmap[j].energy[a] ;
                   if (!problem_wrt) {
@@ -3042,6 +3065,7 @@ fprintf(logFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoord
                   gridmap[j].energy_min = min(gridmap[j].energy_min, e);
                 }
               }
+
          if (floating_grid) {
 		for( int a=0; a<n1[X]*n1[Y]*n1[Z]; a++) {
                     if ((!problem_wrt)&&(fprintf(floating_grid_fileptr, "%.3f\n",

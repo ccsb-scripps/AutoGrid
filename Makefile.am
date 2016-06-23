@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.32 2015/08/15 00:54:13 sanner Exp $
+# $Id: Makefile.am,v 1.33 2016/06/23 23:16:33 mp Exp $
 # 
 # AutoGrid 
 # 
@@ -55,6 +55,7 @@ autogrid4_SOURCES = main.cpp \
        distdepdiel.cpp \
        mingw_getrusage.cpp \
        calc_vina_potential.cpp \
+       threadlog.cpp \
        stop.cpp \
             atom_parameter_manager.h \
             autoglobal.h \
@@ -83,6 +84,7 @@ autogrid4_SOURCES = main.cpp \
             typedefs.h \
             util.h \
             calc_vina_potential.h \
+	    threadlog.h \
             gridmap.h \
             version.h 
 
@@ -110,12 +112,27 @@ AM_CPPFLAGS += -DUSE_BHTREE
 
 # autogrid4_CXXFLAGS = -Wall -O3 -ftree-vectorize # All warnings, Agressive optimization, GCC vectorization in Mac OS X
 
-autogrid4_CPPFLAGS=$(AM_CPPFLAGS)
+if WANT_OMP  
+# M Pique - I'm not sure which of these are really necessary
+# could this be replaced by :  AC_SUBST(AM_CXXFLAGS,"$OPENMP_CXXFLAGS")
+autogrid4_CFLAGS = $(AM_CFLAGS)  -fopenmp  $(OPENMP_CXXFLAGS)
+autogrid4_CPPFLAGS = $(AM_CPPFLAGS)  $(OPENMP_CXXFLAGS)
+autogrid4_LDFLAGS = $(AM_LDFLAGS) -fopenmp  $(OPENMP_CXXFLAGS)
+
+autogrid4_CXXFLAGS = $(AM_CXXFLAGS)  -fopenmp  $(OPENMP_CXXFLAGS)
+#autogrid4_LDADD = $(autogrid4_LDADD)
+else
+autogrid4_CFLAGS = $(AM_CFLAGS)  
+autogrid4_CPPFLAGS = $(AM_CPPFLAGS)  
+autogrid4_LDFLAGS = $(AM_LDFLAGS) 
+
+autogrid4_CXXFLAGS = $(AM_CXXFLAGS)
+endif
 
 # LINKOPT = $(CSTD) $(OPT) -Wl,--stack=0x2000000 # Cygwin, 32MB stacksize
 
 if WANT_BIGSTACK
-    autogrid4_LDFLAGS = -Wl,--stack,8388608 # Cygwin, 32MB stacksize
+    autogrid4_LDFLAGS += -Wl,--stack,8388608 # Cygwin, 32MB stacksize
 endif
 
 

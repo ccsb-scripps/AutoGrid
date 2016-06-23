@@ -7,7 +7,7 @@
 # 
 # option -r   : removes these files, does not copy 
 #
-# $Id: copyfilesfromAD,v 1.4 2013/02/26 23:58:01 mp Exp $
+# $Id: copyfilesfromAD,v 1.5 2016/06/23 23:16:33 mp Exp $
 #
 # M Pique
 
@@ -43,6 +43,7 @@ for c in  \
 	printdate \
 	read_parameter_library \
 	stop \
+	threadlog \
 	timesys \
 	timesyshms \
   ; do
