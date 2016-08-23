@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.140 2016/06/23 23:16:33 mp Exp $
+ $Id: main.cpp,v 1.141 2016/08/23 20:53:11 mp Exp $
 
  AutoGrid 
 
@@ -98,10 +98,10 @@ void print_error( FILE *fileptr, int error_level, char *message)
     char *tag;
 
     switch ( error_level ) {
-        case AG_ERROR:
         case FATAL_ERROR:
             tag =  "ERROR";
             break;
+        case AG_ERROR:
         case WARNING:
             tag =  "WARNING";
             break;
@@ -120,11 +120,10 @@ void print_error( FILE *fileptr, int error_level, char *message)
     (void) fprintf( logFile, "%s\n", output_message);
     fflush(logFile);
 
-    // Only send errors, fatal errors and warnings to standard error, stderr.
+    // send only errors and fatal errors to stderr, not warnings
     switch ( error_level ) {
         case AG_ERROR:
         case FATAL_ERROR:
-        case WARNING:
             (void) fprintf( stderr, "%s\n", output_message);
             break;
     }
@@ -555,7 +554,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.140 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.141 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -701,7 +700,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                     (void) sprintf( message, 
 			"ATOM/HETATM line is too short in receptor PDBQT file %s line %d;",
 			receptor_filename, lc );
-                    print_error( logFile, AG_ERROR, message );
+                    print_error( logFile, FATAL_ERROR, message );
 		}
 
                 (void) strncpy( atom_name, &line[12], 4);
@@ -726,7 +725,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                  sscanf(field2, "%lf", &coord[num_receptor_atoms][Y]) +
                  sscanf(field3, "%lf", &coord[num_receptor_atoms][Z]) ) {
                     (void) sprintf( message, "ATOM/HETATM line bad x,y,z in receptor PDBQT file %s line %d;", receptor_filename, lc);
-                    print_error( logFile, AG_ERROR, message );
+                    print_error( logFile, FATAL_ERROR, message );
 		}
 
                 /* Output the coordinates of this atom... */
@@ -1608,13 +1607,13 @@ if ( num_atom_maps  > (num_maps - (elecPE>=0?1:0) - (dsolvPE>=0?1:0)) ) {
 
 /* Electrostatic map (optional) */
 if (( not use_vina_potential) && (elecPE<0 || (strlen( gridmap[elecPE].map_filename ) == 0 ))) {  
-             (void) fprintf( logFile, "The electrostatic map file is not defined in the GPF.\n" );
-             (void) fprintf( logFile, "No electrostatic map file requested.\n" );
+             (void) print_error( logFile, INFORMATION, "The electrostatic map file is not defined in the GPF.\n" );
+             (void) print_error( logFile, INFORMATION, "No electrostatic map file requested.\n" );
 	}
 /* Desolvation map (optional) */
 if (( not use_vina_potential) && (dsolvPE<0 || (strlen( gridmap[dsolvPE].map_filename ) == 0 ))) {  
-             (void) fprintf( logFile, "The desolvation map file is not defined in the GPF.\n" );
-             (void) fprintf( logFile, "No desolvation map file requested.\n" );
+             (void) print_error( logFile, INFORMATION, "The desolvation map file is not defined in the GPF.\n" );
+             (void) print_error( logFile, INFORMATION, "No desolvation map file requested.\n" );
 	}
 
 /* End of map files checkpoint SF */
