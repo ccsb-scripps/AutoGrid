@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.141 2016/08/23 20:53:11 mp Exp $
+ $Id: main.cpp,v 1.142 2017/03/24 19:54:47 mp Exp $
 
  AutoGrid 
 
@@ -226,7 +226,7 @@ const int use_vina_potential = FALSE;
 static ParameterEntry thisparm;
 ParameterEntry * found_parm;
 char FN_parameter_library[MAX_CHARS];  // the AD4 parameters .dat file name
-int parameter_library_found = 0;
+bool parameter_library_found = FALSE;
 
 
 
@@ -260,10 +260,10 @@ typedef struct mapObject {
     double solpar_probe;
     /*new 6/28*/
     double Rij;
-    double epsij;
+    double epsij; /* already weighted by coeff_vdW */
     hbond_type hbond; /*hbonding character: */
     double Rij_hb;
-    double epsij_hb;
+    double epsij_hb; /* already weighted by coeff_hbond */
     /*per receptor type parameters, ordered as in receptor_types*/
     double cA[NUM_RECEPTOR_TYPES], cB[NUM_RECEPTOR_TYPES];/*coefficients if specified in gpf*/
     double nbp_r[NUM_RECEPTOR_TYPES]; /*radius of energy-well minimum*/
@@ -321,7 +321,7 @@ static double solpar[AG_MAX_ATOMS];
 /*integers are simpler!*/
 static int atom_type[AG_MAX_ATOMS];
 static hbond_type hbond[AG_MAX_ATOMS];
-static int disorder[AG_MAX_ATOMS];
+static bool disorder[AG_MAX_ATOMS];
 static int rexp[AG_MAX_ATOMS];
 static double coord[AG_MAX_ATOMS][XYZ];
 static double rvector[AG_MAX_ATOMS][XYZ];
@@ -554,7 +554,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.141 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.142 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1121,10 +1121,10 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             gridmap[i].solpar_probe = found_parm->solpar;
             gridmap[i].vol_probe = found_parm->vol;
             gridmap[i].Rij = found_parm->Rij;
-            gridmap[i].epsij = found_parm->epsij;
+            gridmap[i].epsij = found_parm->epsij; // already weighted by coeff_vdW, see read_parameter_library.cc
             gridmap[i].hbond = found_parm->hbond;
             gridmap[i].Rij_hb = found_parm->Rij_hb;
-            gridmap[i].epsij_hb = found_parm->epsij_hb;
+            gridmap[i].epsij_hb = found_parm->epsij_hb; // already weighted by coeff_hbond, see read_parameter_library.cc
             if (gridmap[i].hbond>0){       //enum: NON,DS,D1,AS,A1,A2,AD /* N3P added AD type*/
                 gridmap[i].is_hbonder=TRUE;}
 
@@ -1134,10 +1134,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 #endif
             for (int j=0; j<receptor_types_ct; j++){
                 found_parm = apm_find(receptor_types[j]);
-                gridmap[i].nbp_r[j] = (gridmap[i].Rij + found_parm->Rij)/2.;
-                gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij * found_parm->epsij);
-                /*apply the vdW forcefield parameter/weight here */
-                // This was removed because "setup_p_l" does this for us... gridmap[i].nbp_eps[j] *= FE_coeff_vdW;
+                gridmap[i].nbp_r[j] = (gridmap[i].Rij + found_parm->Rij)/2.;  // arithmetic mean
+		gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij * found_parm->epsij); // geometric mean
                 gridmap[i].xA[j] = 12;
                 /*setup hbond dependent stuff*/
                 gridmap[i].xB[j] = 6;
@@ -1153,8 +1151,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                     gridmap[i].nbp_r[j] = gridmap[i].Rij_hb;
                     gridmap[i].nbp_eps[j] = gridmap[i].epsij_hb;
 
-                    /*apply the hbond forcefield parameter/weight here */
-                    // This was removed because "setup_p_l" does this for us... gridmap[i].nbp_eps[j] *= FE_coeff_hbond;
 #ifdef DEBUG
                     (void) fprintf(logFile, "set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
 #endif
@@ -1169,8 +1165,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                     gridmap[i].nbp_r[j] = found_parm->Rij_hb;
                     gridmap[i].nbp_eps[j] = found_parm->epsij_hb;
 
-                    /*apply the hbond forcefield parameter/weight here */
-                    // This was removed because "setup_p_l" does this for us... gridmap[i].nbp_eps[j] *= FE_coeff_hbond;
 #ifdef DEBUG
                     (void) fprintf(logFile, "2: set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
 #endif
@@ -1484,7 +1478,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_PARAM_FILE:
         /* open and read the AD4 parameters .dat file */
 
-        parameter_library_found = sscanf( GPF_line, "%*s %s ", FN_parameter_library);
+        parameter_library_found = (1==sscanf( GPF_line, "%*s %s ", FN_parameter_library));
 	if ( 0==strlen(FN_parameter_library)) {
             print_error( logFile, FATAL_ERROR, "No name specified for FN_parameter_library");
 	}
@@ -1501,9 +1495,10 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         /* 
         ** nbp_r_eps
         ** override energy parameters:
-        ** Lennard-Jones and Hydrogen Bond Potentials,
+        ** Lennard-Jones Potentials,
         ** GPF_NBP_REQM_EPS: Using epsilon and r-equilibrium values...
         ** for the interaction of the specified types 
+        ** GPF_NBP_COEFFS: use as cA, cB
         */
 
 	{  /* block for local storage allocation name space */
@@ -1525,10 +1520,9 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 	}
         */
 
-        cA = Rij;
-        cB = epsij;
         if ( GPF_keyword == GPF_NBP_R_EPS ) {
-           // Calculate the coefficients from Rij and epsij                      
+           // Apply coeff_vdW weight to epsij, calculate the coefficients from Rij and epsij                      
+	   epsij *= AD4.coeff_vdW;
            /* Defend against division by zero... */
            if (xA != xB) { 
     	       double tmpconst = epsij / (Real)(xA - xB);
@@ -1538,6 +1532,10 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                (void) sprintf( message, "exponents xA and xB cannot be equal.\n");
                print_error( logFile, FATAL_ERROR, message );
           } 
+	}
+	else {
+		cA = Rij;
+		cB = epsij;
 	}
  
         for (int i=0;i<2;i++) {
@@ -2070,7 +2068,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                          */
                         if ((atom_type[ib] == oxygen)||(atom_type[ib] == sulphur)) {
                             rexp[ia] = 4;
-                            if (disorder_h == TRUE) disorder[ia] = TRUE;
+                            if (disorder_h) disorder[ia] = TRUE;
                         }
                         /*
                          * Normalize the vector from ib to ia, N->H or O->H...
@@ -2213,8 +2211,8 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 
             /* disordered hydroxyl */
 
-            if ( ((atom_type[i1] == hydrogen) || (atom_type[i2] == hydrogen))
-                && (atom_type[i1] != atom_type[i2]) && (disorder_h == TRUE) )  {
+            if ( disorder_h && ((atom_type[i1] == hydrogen) || (atom_type[i2] == hydrogen))
+                && (atom_type[i1] != atom_type[i2]) )  {
 
                 if ((atom_type[i1] == carbon)||(atom_type[i1] == arom_carbon)) ib = i1;
                 if ((atom_type[i2] == carbon)||(atom_type[i1] == arom_carbon)) ib = i2;
@@ -2695,7 +2693,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                 if ( r > NBC) {
                     continue; /* onto the next atom... */
                 }
-                if ((atom_type[ia] == hydrogen) && disorder[ia] ) { /* N3P: add check for AD here too?*/
+                if ( disorder[ia] && atom_type[ia] == hydrogen ) { /* N3P: add check for AD here too?*/
                     continue; /* on to the next atom... */
                 }
 
@@ -2808,7 +2806,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                     }
                     /* endif (atom_type[ia] == nitrogen) */
                     /* end NEW Directional N acceptor */
-                } else if ((hbond[ia] == 5) && (disorder[ia] == FALSE)) {/*A2*/
+                } else if ((hbond[ia] == 5) && !disorder[ia] ) {/*A2*/
                     /*
                     **  ia-th receptor atom = Oxygen
                     **  => receptor H-bond acceptor, oxygen.
@@ -2888,7 +2886,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                         rdon = 562.25*pow(0.116978 - sq(cos_theta), 3.)*cos(t0);
                     }
                 /* endif atom_type == oxygen, not disordered */
-                } else if ((hbond[ia] == 5) && (disorder[ia] == TRUE)) {/*A2*/
+                } else if ( disorder[ia] && hbond[ia] == 5 ) {/*A2*/
                     /* cylindrically disordered hydroxyl */
 		    double theta;
                     cos_theta = 0.;
@@ -2939,12 +2937,12 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                             if ((gridmap[map_index].hbond==3||gridmap[map_index].hbond==5||gridmap[map_index].hbond==6) /*AS or A2 or AD N3P:modified*/ 
                                       &&(hbond[ia]==1||hbond[ia]==2||hbond[ia]==6)){/*DS or D1 or AD N3P:modified*/
                                   /* PROBE can be an H-BOND ACCEPTOR, */
-                                if (disorder[ia] == FALSE ) {
+                                if ( !disorder[ia] ) {
 				    gridmap[map_index].energy[mapi]
                                       += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * Hramp * (racc + (1. - racc)*rsph);
                                 } else {
 				    gridmap[map_index].energy[mapi]
-                                      += et.e_vdW_Hb[max(0, indx_n - 110)][hydrogen][map_index] * Hramp * (racc + (1. - racc)*rsph);
+                                      += et.e_vdW_Hb[max(0, indx_n - lookup(1.10))][hydrogen][map_index] * Hramp * (racc + (1. - racc)*rsph);
 
                                 }
                             } else if ((gridmap[map_index].hbond==4 || gridmap[map_index].hbond==6 ) /*A1, AD: N3P: modified*/
@@ -3003,13 +3001,17 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 
             /* adjust maps of hydrogen-bonding atoms by adding largest and
              * smallest interaction of all 'pair-wise' interactions with receptor atoms
+	     *
+	     * David Goodsell note and fix 2017-03-22: the max(0,..) handles the case
+	     * when there is only one acceptor atom in the receptor - then both the min and max
+	     * have the same energy and it was incorrectly being added twice.
              * M Pique TODO can this damage covalent maps? (prob not as they are not hbondflag)
              */
             if (not use_vina_potential) 
             for (int map_index = 0; map_index < num_atom_maps; map_index++) {
                 if (hbondflag[map_index]) {
                     gridmap[map_index].energy[mapi] 
-                     += ( hbondmin[map_index] + hbondmax[map_index] );
+                     += ( hbondmin[map_index] + max(hbondmax[map_index],0) );
                 }
             }
 	    } // end if num_atom_maps>0 or dsolvPE>=0
