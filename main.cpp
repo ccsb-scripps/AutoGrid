@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.143 2017/05/18 20:21:27 mp Exp $
+ $Id: main.cpp,v 1.144 2017/05/18 21:19:34 mp Exp $
 
  AutoGrid 
 
@@ -90,7 +90,7 @@ extern Real idct;
 // print_error() is used with error_level where
 // error_level is defined in autogrid.h
 
-void print_error( FILE *fileptr, int error_level, char *message) 
+void print_error( FILE *logFile, int error_level, char *message) 
     // print an error or informational message to a file-pointer or
     // standard error
 {
@@ -114,7 +114,8 @@ void print_error( FILE *fileptr, int error_level, char *message)
             break;
     }
 
-    (void) sprintf( output_message, "\n%s: %s:  %s\n", programname, tag, message);
+    (void) snprintf( output_message, sizeof output_message, 
+	"\n%s: %s:  %s\n", programname, tag, message);
 
     // Records all messages in the logFile.
     (void) fprintf( logFile, "%s\n", output_message);
@@ -380,6 +381,7 @@ static const char xyz[] = "xyz"; // used to print headings
 static FILE *receptor_fileptr,
      *AVS_fld_fileptr,
      *xyz_fileptr,
+     *logFile,
      *floating_grid_fileptr;
 
 /*for NEW3 desolvation terms*/
@@ -494,18 +496,6 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 
 #endif
 
-/*
- * Fetch clock ticks per second.
- */
-if (clktck == 0) {
-    if ( (clktck = sysconf(_SC_CLK_TCK)) < 0) {
-        (void) fprintf( stderr, "\"sysconf(_SC_CLK_TCK)\" command failed in \"main.c\"\n");
-        (void) fprintf( logFile, "\"sysconf(_SC_CLK_TCK)\" command failed in \"main.c\"\n");
-        exit(EXIT_FAILURE);
-    } else {
-        idct = 1. / (float)clktck;
-    }
-}
 
 
 /*
@@ -514,7 +504,8 @@ if (clktck == 0) {
 job_start = times( &tms_job_start);
 
 /*
- * Parse the command line and report compilation option values...
+ * Parse the command line, open logFile and GPF file,
+ #  report compilation option values...
  */
 (void) setflags( argc, argv, version_num,
 #ifdef USE_BHTREE
@@ -528,7 +519,21 @@ job_start = times( &tms_job_start);
 #else
  FALSE
 #endif
-);
+,
+&logFile /* opened and set by setflags*/ );
+
+/*
+ * Fetch clock ticks per second.
+ */
+if (clktck == 0) {
+    if ( (clktck = sysconf(_SC_CLK_TCK)) < 0) {
+        (void) fprintf( stderr, "\"sysconf(_SC_CLK_TCK)\" command failed in \"main.c\"\n");
+        (void) fprintf( logFile, "\"sysconf(_SC_CLK_TCK)\" command failed in \"main.c\"\n");
+        exit(EXIT_FAILURE);
+    } else {
+        idct = 1. / (float)clktck;
+    }
+}
 
  /* Initialize max and min coodinate bins */
 for (int i = 0;  i < XYZ;  i++) {
@@ -551,10 +556,10 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
  * 
  * Output the "AutoGrid" banner...
  */
-banner( version_num);
+banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.143 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.144 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -670,7 +675,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
         /* try to open receptor file */
         if ( (receptor_fileptr = ad_fopen(receptor_filename, "r", logFile)) == NULL ) {
-            (void) sprintf( message, "can't find or open receptor PDBQT file \"%s\".\n", receptor_filename);
+            (void) snprintf( message, sizeof message, "can't find or open receptor PDBQT file \"%s\".\n", receptor_filename);
             print_error( logFile, FATAL_ERROR, message );
         }
 
@@ -922,7 +927,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
     case GPF_NPTS:
         (void) sscanf( GPF_line, "%*s %d %d %d", &nelements[X], &nelements[Y], &nelements[Z]);
         for (int i = 0;  i < XYZ;  i++) {
-            nelements[i] = check_size(nelements[i], xyz[i]); // will be even: 0,2,4, etc: 
+            nelements[i] = check_size(nelements[i], xyz[i], logFile); // will be even: 0,2,4, etc: 
             ne[i] = nelements[i] / 2; // how many non-zero indices in each of positive and negative
             n1[i] = nelements[i] + 1; // true size of array - odd number
 	    // example: user specifies 'npts 8'. check_size will return nelements=8.

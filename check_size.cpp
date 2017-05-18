@@ -1,6 +1,6 @@
 /*
 
- $Id: check_size.cpp,v 1.13 2012/04/24 23:33:30 mp Exp $
+ $Id: check_size.cpp,v 1.14 2017/05/18 21:19:34 mp Exp $
 
  AutoGrid 
 
@@ -31,11 +31,10 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
 
 extern char *programname;
-extern FILE *logFile;
 
 /*----------------------------------------------------------------------------*/
 int check_size(int nelements, 
-	       char axischar)
+	       char axischar, FILE *logFile)
 
 /*----------------------------------------------------------------------------*/
 

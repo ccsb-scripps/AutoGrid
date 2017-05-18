@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.23 2016/02/16 04:56:06 mp Exp $
+ $Id: setflags.cpp,v 1.24 2017/05/18 21:19:34 mp Exp $
 
  AutoGrid 
 
@@ -33,7 +33,6 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include <stdlib.h> // POSIX definitions of EXIT_SUCCESS and EXIT_FAILURE
 
 extern FILE *GPF;
-extern FILE *logFile;
 extern char *programname;
 static char    AutoGridHelp[] = "\t-p parameter_filename\n\t\t\t-l log_filename\n\t\t\t-d (increment debug level)\n\t\t\t-h (display this message)\n\t\t\t--version (print version information, copyright, and license)\n";
 extern char grid_param_fn[];
@@ -41,7 +40,7 @@ extern int  debug;
 
 /*----------------------------------------------------------------------------*/
 
-int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp)
+int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp, FILE **logFile /* may be modified here */ )
 
 /*----------------------------------------------------------------------------*/
 
@@ -57,7 +56,6 @@ int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp)
 /*    Inputs: argc,argv,version                                               */
 /*   Returns: argindex                                                        */
 /*   Globals: *GPF;                                                           */
-/*            *logFile;                                                       */
 /*            *programname;                                                   */
 /*            grid_param_fn[];                                                */
 /*----------------------------------------------------------------------------*/
@@ -78,7 +76,7 @@ int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp)
     argindex = 1;
     programname = argv[0];
     GPF = stdin;
-    logFile = stderr;
+    *logFile = stderr;
 /*----------------------------------------------------------------------------*/
 /* Loop over arguments                                                        */
 /*----------------------------------------------------------------------------*/
@@ -107,7 +105,7 @@ int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp)
                 fprintf(stderr, "\n%s: Sorry, -l requires a filename.\n\t%s\n", programname, AutoGridHelp);
                 exit(EXIT_FAILURE);
             }
-            if ( (logFile = ad_fopen(argv[2], "w", logFile)) == NULL ) {
+            if ( (*logFile = ad_fopen(argv[2], "w", *logFile)) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't create the log file \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
                 exit(EXIT_FAILURE);
@@ -124,7 +122,7 @@ int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp)
             strncpy(grid_param_fn, argv[2], PATH_MAX);
             grid_param_fn[PATH_MAX-1] = '\0';
 
-            if ( (GPF = ad_fopen(argv[2], "r", logFile)) == NULL ) {
+            if ( (GPF = ad_fopen(argv[2], "r", *logFile)) == NULL ) {
                 fprintf(stderr, "\n%s: Sorry, I can't find or open Grid Parameter File \"%s\"\n", programname, argv[2]);
                 fprintf(stderr, "\n%s: Unsuccessful Completion.\n\n", programname);
                 exit(EXIT_FAILURE);
@@ -151,7 +149,7 @@ int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp)
 #endif
             fprintf(stdout, "  Faster search for nearby atoms (USE_BHTREE): ");
 	    fprintf(stdout, use_bhtree?" yes\n":" no\n");
-            fprintf(logFile, "  Run calculations in parallel if possible (_OPENMP): ");
+            fprintf(stdout, "  Run calculations in parallel if possible (_OPENMP): ");
 	    fprintf(stdout, use_omp?" yes\n":" no\n");
 
 	    fprintf(stdout, "  Maximum number of receptor atoms (AG_MAX_ATOMS): %d\n", AG_MAX_ATOMS);

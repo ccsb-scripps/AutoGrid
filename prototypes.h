@@ -1,6 +1,6 @@
 /*
 
- $Id: prototypes.h,v 1.14 2017/05/18 20:21:27 mp Exp $
+ $Id: prototypes.h,v 1.15 2017/05/18 21:19:34 mp Exp $
 
  AutoGrid 
 
@@ -29,12 +29,12 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include "parameters.h"
 
 
-void	banner( char * version_num );
+void	banner( char * version_num, FILE *fp );
 int	    setflags( int argc, char **argv, char * version_num, 
-  int use_bhtree, int use_omp);
+  int use_bhtree, int use_omp, FILE **fp /* set */);
 ParameterEntry * apm_find( const char key[] );
 void    apm_enter( const char key[], ParameterEntry value );
-int	    check_size( int nelements, char axischar );
+int	    check_size( int nelements, char axischar, FILE *fp );
 int	    gpfparser( char line[LINE_LEN] );
 int	    main( int argc, char **argv );
 int	    parsetypes(char * line, char *words[], int maxwords);

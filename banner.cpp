@@ -1,6 +1,6 @@
 /*
 
- $Id: banner.cpp,v 1.17 2015/03/31 00:20:56 forli Exp $
+ $Id: banner.cpp,v 1.18 2017/05/18 21:19:34 mp Exp $
 
  AutoGrid 
 
@@ -28,9 +28,7 @@
 #include <stdio.h>
 #include "autogrid.h"
 
-extern FILE *logFile;
-
-void banner( char * version_num )
+void banner( char * version_num, FILE *logFile)
 
 {
 
