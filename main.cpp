@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.142 2017/03/24 19:54:47 mp Exp $
+ $Id: main.cpp,v 1.143 2017/05/18 20:21:27 mp Exp $
 
  AutoGrid 
 
@@ -554,7 +554,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.142 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.143 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -3023,7 +3023,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
     timeRemaining = (float)(grd_end - grd_start) * idct * (float)(n1[Z] - nDone);
     if(outlev>=LOGRUNV) {
        (void) fprintf( tlogFile, " %6d   %8.3lf   %5.1lf%%   ", icoord[Z], cgridmin[Z] + c[Z], percentdone*(double)(iz+1));
-       prHMSfixed( timeRemaining);
+       prHMSfixed( timeRemaining, tlogFile);
        (void) fprintf( tlogFile, "  ");
        timesys( grd_end - grd_start, &tms_grd_start, &tms_grd_end, tlogFile);
        if(outlev>LOGRUNV)

@@ -2,9 +2,7 @@
 #include "autogrid.h"
 
 
-extern FILE *logFile;
-
-void prHMSfixed( float t )
+void prHMSfixed( float t, FILE *logFile)
 {
     int   h, m;
     float T, s;

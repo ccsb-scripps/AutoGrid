@@ -1,6 +1,6 @@
 /*
 
- $Id: prototypes.h,v 1.13 2016/02/16 04:58:16 mp Exp $
+ $Id: prototypes.h,v 1.14 2017/05/18 20:21:27 mp Exp $
 
  AutoGrid 
 
@@ -38,7 +38,7 @@ int	    check_size( int nelements, char axischar );
 int	    gpfparser( char line[LINE_LEN] );
 int	    main( int argc, char **argv );
 int	    parsetypes(char * line, char *words[], int maxwords);
-void	prHMSfixed( float t );
+void	prHMSfixed( float t, FILE *fp );
 void	printdate( FILE *fp, int flag );
 void	printhms( float t );
 int	    strindex( char s[], char t[] );
