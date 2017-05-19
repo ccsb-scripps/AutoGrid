@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.144 2017/05/18 21:19:34 mp Exp $
+ $Id: main.cpp,v 1.145 2017/05/19 00:44:53 mp Exp $
 
  AutoGrid 
 
@@ -391,7 +391,6 @@ double solpar_q = .01097;  /*unweighted value restored 3:9:05 */
 Linear_FE_Model AD4; // set in setup_parameter_library and read_parameter_library
 double q_tot = 0.0;
 double diel, invdielcal=0.;//expected never used if uninitialized
-double percentdone=0.0;
 double PI_halved;
 double q_max = -BIG,  q_min = BIG;
 double ri, inv_rd, rd2, r;
@@ -559,7 +558,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.144 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.145 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -945,7 +944,6 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         (void) fprintf( logFile, "Number of grid points in z-direction:\t%d\n", n1[Z]);
         (void) fprintf( logFile, "\n");
         num_grid_points_per_map = n1[X] * n1[Y] * n1[Z];
-        percentdone = 100. / (double) n1[Z];
         (void) fflush( logFile);
         break;
 
@@ -2452,7 +2450,7 @@ if (floating_grid) {
     (void) fprintf( floating_grid_fileptr, "CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
 }
 
-if(outlev>LOGRUNV) {
+if(outlev>=LOGFORADT) {
 (void) fprintf( logFile, "                    Percent   Estimated Time  Time/this plane\n");
 (void) fprintf( logFile, "XY-plane  Z-coord   Done      Remaining       Real, User, System\n");
 (void) fprintf( logFile, "            /Ang              /sec            /sec\n");
@@ -2467,7 +2465,7 @@ if(outlev>LOGRUNV) {
  * We assume adjacent blocks of 4 will take about the same time to compute.
  * You might try "schedule(dynamic,4)" too. MPique Feb 2016
  */
-#pragma omp parallel for schedule(static,4)
+#pragma omp parallel for schedule(static,4) shared(nDone)
 for (iz=0;iz<n1[Z];iz++) {
 	Clock      grd_start;
 	Clock      grd_end;
@@ -3024,17 +3022,31 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
     } /* iy/icoord[Y] loop */
 
     grd_end = times( &tms_grd_end);
-    ++nDone;
-    timeRemaining = (float)(grd_end - grd_start) * idct * (float)(n1[Z] - nDone);
-    if(outlev>=LOGRUNV) {
-       (void) fprintf( tlogFile, " %6d   %8.3lf   %5.1lf%%   ", icoord[Z], cgridmin[Z] + c[Z], percentdone*(double)(iz+1));
-       prHMSfixed( timeRemaining, tlogFile);
-       (void) fprintf( tlogFile, "  ");
-       timesys( grd_end - grd_start, &tms_grd_start, &tms_grd_end, tlogFile);
-       if(outlev>LOGRUNV)
-       fprintf(tlogFile, "Finished iz=%d icoord=%d z=%8.2f thread=%d\n",
-          iz,icoord[Z],c[Z],thread);fflush(tlogFile);
-       (void) fflush( tlogFile);
+    if(outlev>=LOGFORADT) {
+#pragma omp critical
+	{
+	// Note: this line is used by Michel Sanner to create progress bar.
+	// Even if running in parallel, it goes to the original logFile
+	// Note the plane number reported is sequential, and has no necessary
+	//  relation to the iz value, because the planes are done
+	//  asynchronously  MP
+	++nDone;
+	timeRemaining = (float)(grd_end - grd_start) * idct * (float)(n1[Z] - nDone);
+        float percentdone = 100. * nDone / (double) n1[Z];
+
+	(void) fprintf( logFile, " %6d   %8.3lf   %5.1lf%%   ", 
+		nDone-ne[Z]-1,
+		cgridmin[Z] + (double) (nDone-1) * spacing,
+		percentdone);
+       prHMSfixed( timeRemaining, logFile);
+       (void) fprintf( logFile, "  ");
+       timesys( grd_end - grd_start, &tms_grd_start, &tms_grd_end, logFile);
+       if(outlev>LOGRUNV && nthreads>1) {
+		fprintf(tlogFile, "Finished plane iz=%d icoord=%d z=%8.2f thread=%d\n",
+          iz,icoord[Z],c[Z],thread);
+	}
+       (void) fflush( logFile);
+	}
     }
     if(nthreads>1) threadLogClose(iz);
 } /* icoord[Z] loop */
