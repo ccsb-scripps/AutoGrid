@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.145 2017/05/19 00:44:53 mp Exp $
+ $Id: main.cpp,v 1.146 2018/07/31 23:30:11 mp Exp $
 
  AutoGrid 
 
@@ -558,7 +558,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.145 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.146 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1870,7 +1870,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
                 print_error( logFile, FATAL_ERROR, "Van der Waals exponent xB is 0.  AutoGrid must exit." );
             }
 	    if(outlev>=LOGETABLES) {
-            (void) fprintf( logFile, "\n             %9.1lf       %9.1lf \n", cA, cB);
+            (void) fprintf( logFile, "\n             %12.5lg       %12.5lg \n", cA, cB);
             (void) fprintf( logFile, "    E    =  -----------  -  -----------\n");
             (void) fprintf( logFile, "     %s, %s         %2d              %2d\n", gridmap[ia].type, receptor_types[i], xA, xB);
             (void) fprintf( logFile, "                r               r \n\n");
@@ -1879,6 +1879,8 @@ for (int ia=0; ia<num_atom_maps; ia++){
             /* loop over distance index, indx_r, from 0 to max(NEINT,NDIEL) */ /* GPF_MAP */
 
 	    // do up to non-bond cutoff distance
+	    // note the zero-th entry is set to EINTCLAMP
+	    // note the last entry is set to zero.
             for (int indx_r = 1;  indx_r < NEINT;  indx_r++) {
 		double r, rA, rB;
                 r  = angstrom(indx_r);
@@ -1951,9 +1953,9 @@ for (int ia=0; ia<num_atom_maps; ia++){
         } /* iat */
         (void) fprintf( logFile, "\n");
         for (int j = 0;  j <= min(500,NEINT);  j += 10) {
-            (void) fprintf( logFile, "%4.1lf", angstrom(j));
+            (void) fprintf( logFile, "%4.2lf", angstrom(j));
             for (int iat = 0;  iat < receptor_types_ct;  iat++) {
-                (void) fprintf( logFile, (et.e_vdW_Hb[j][iat][ia]<100000.)?"%9.2lf":"%9.2lg", et.e_vdW_Hb[j][iat][ia]);
+                (void) fprintf( logFile, (et.e_vdW_Hb[j][iat][ia]<100000.)?"%9.5lf":"%9.5lg", et.e_vdW_Hb[j][iat][ia]);
 		} /* iat */
             (void) fprintf( logFile, "\n");
         } /* j */
@@ -1970,9 +1972,9 @@ for (int ia=0; ia<num_atom_maps; ia++){
         } /* iat */
         (void) fprintf( logFile, "\n");
         for (int j = 0;  j <= min(500,NEINT);  j += 10) {
-            (void) fprintf( logFile, "%4.1lf", angstrom(j));
+            (void) fprintf( logFile, "%4.2lf", angstrom(j));
             for (int iat = 0;  iat < receptor_types_ct;  iat++) {
-                (void) fprintf( logFile, (et.e_vdW_Hb[j][iat][ia]<100000.)?"%9.2lf":"%9.2lg", et.e_vdW_Hb[j][iat][ia]);
+                (void) fprintf( logFile, (et.e_vdW_Hb[j][iat][ia]<100000.)?"%9.5lf":"%9.5lg", et.e_vdW_Hb[j][iat][ia]);
 		} /* iat */
             (void) fprintf( logFile, "\n");
         } /* j */
