@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.24 2017/05/18 21:19:34 mp Exp $
+ $Id: setflags.cpp,v 1.25 2018/10/30 22:39:56 mp Exp $
 
  AutoGrid 
 
@@ -140,7 +140,7 @@ int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp,
 #else
 	    fprintf(stdout, " no\n");
 #endif
-	    fprintf(stdout, "  Non-bond cutoff for internal energy calculation (NBC): %.2f\n", NBC);
+	    fprintf(stdout, "  Non-bond cutoff for internal energy calculation (SOFTNBC): %.2f\n", SOFTNBC);
             fprintf(stdout, "  Optimize internal energy scoring (USE_8A_NBCUTOFF): ");
 #ifdef USE_8A_NBCUTOFF
 	    fprintf(stdout, " yes\n");

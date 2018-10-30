@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.146 2018/07/31 23:30:11 mp Exp $
+ $Id: main.cpp,v 1.147 2018/10/30 22:39:57 mp Exp $
 
  AutoGrid 
 
@@ -558,7 +558,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.146 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.147 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -2695,7 +2695,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                  *   add nothing to the grid-point's non-bond energy;
                  *   just continue to next atom...
                  */
-                if ( r > NBC) {
+                if ( r > SOFTNBC) {
                     continue; /* onto the next atom... */
                 }
                 if ( disorder[ia] && atom_type[ia] == hydrogen ) { /* N3P: add check for AD here too?*/
