@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.25 2018/10/30 22:39:56 mp Exp $
+ $Id: setflags.cpp,v 1.26 2018/11/12 20:05:37 mp Exp $
 
  AutoGrid 
 
@@ -154,6 +154,7 @@ int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp,
 
 	    fprintf(stdout, "  Maximum number of receptor atoms (AG_MAX_ATOMS): %d\n", AG_MAX_ATOMS);
 	    fprintf(stdout, "  Maximum number of receptor atom types (NUM_RECEPTOR_TYPES): %d\n", NUM_RECEPTOR_TYPES);
+	    fprintf(stdout, "  Maximum number of bonds per receptor atom (AG_MAX_NBONDS): %d\n", AG_MAX_NBONDS);
 	    fprintf(stdout, "  Maximum number of atom types (MAX_ATOM_TYPES): %d\n", MAX_ATOM_TYPES);
 	    fprintf(stdout, "  Maximum number of maps (MAX_MAPS): %d\n", MAX_MAPS);
 	    fprintf(stdout, "  Maximum dimension of map x, y, or z (MAX_GRID_PTS): %d\n", MAX_GRID_PTS);

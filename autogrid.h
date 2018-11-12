@@ -1,6 +1,6 @@
 /*
 
- $Id: autogrid.h,v 1.24 2015/10/02 19:56:40 mp Exp $
+ $Id: autogrid.h,v 1.25 2018/11/12 20:05:38 mp Exp $
 
  AutoGrid 
 
@@ -56,6 +56,10 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 //#define MAX_DIST     16384   /* Maximum distance in 100ths of an Angstrom.    */
                              /*  = 163.84 Angstroms                           */
 #define AG_MAX_ATOMS    100000   /* Maximum number of atoms in macromolecule. */
+#define AG_MAX_NBONDS   4   /* Maximum number of bonds per atom. 16 in AutoDock  */
+			/* AutoGrid needs fewer because (currently 2018-11) this
+			* is used to count only HD hydrogens bonded to heavy atoms 
+			*/
 
 #define ORDERED 	0
 #define CYLINDRICAL 	1
