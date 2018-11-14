@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.148 2018/11/12 20:06:54 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.149 2018/11/14 00:30:19 mp Exp $
 
  AutoGrid 
 
@@ -326,6 +326,7 @@ static double solpar[AG_MAX_ATOMS];
 static int atom_type[AG_MAX_ATOMS];
 static hbond_type hbond[AG_MAX_ATOMS];
 static bool disorder[AG_MAX_ATOMS]; 
+static char * hbtname[] = { "D0", "DS", "D1", "AS", "A1", "A2", "AD", "??" }; /* for table printouts only */
 
 // two arrays added 2018-11 for tracking h-bond donor/acceptor neighborhoods
 // TODO MP make these dynamic and allocated only if disorder_h flag is true
@@ -334,8 +335,96 @@ static int bonded[AG_MAX_ATOMS][AG_MAX_NBONDS];
 
 static int rexp[AG_MAX_ATOMS];
 static double coord[AG_MAX_ATOMS][XYZ];
+
+// two arrays that hold a 3-D vector for each atom (often empty):
 static double rvector[AG_MAX_ATOMS][XYZ];
 static double rvector2[AG_MAX_ATOMS][XYZ];
+ /* 
+ (Comments by M Pique 2018-11-13 based on reading the existing code;
+  these document my reading of the code before some reorganization
+  to improve the disorder_h function):
+
+ Setting of rvector and rvector2 (both are initally empty - all zeros; 
+ results are always attempted to be normalized):
+    if an atom (ib) is near an atom (ia) of class: (4 cases)
+        1. hbond[ia] == 2 ; D1 hydrogen bond donor (ia)
+              rvector[ia]  is set to vector hydrogen donor TO other atom (ib) [i.e. ib-ia]
+        2. hbond[ia] == 5 ; A2 oxygen (ia)
+	      if the oxygen has zero bonds, a warning will be issued.
+		   rvector[ia] and rvector2[ia] will remain empty.
+	      if the oxygen has one bond it is assumed to be a carbon (atom i1)
+		thus the O (ia) is a Carbonyl Oxygen O=C-X 
+                   rvector[ia]  is set to vector C to O [i.e., i1-ia]
+	           and a third atom X (i2), bonded to the carbon is found.
+		   rvector2[ia] is set to the cross product i2-i1 and O=C rvector
+		   (C=O cross C-X gives the lone pair plane normal).
+		   if a third atom is not found, rvector2 will be empty.
+	      if the oxygen has two bonds (i1, i2) it is Hydroxyl or Ether Oxygen X1-O-X2 
+		   The 'disorder_h' global boolean option controls the behavior.
+		   if disorder_h and exactly one of (i1, i2) is hydrogen, atom (ib) is
+		     set to the one that is carbon or arom_carbon (if it is).
+		     rvector[ia] is set to the vector (ib) to O [ia-ib];
+		     rvector2[ia] will be empty.
+                   else [i.e., if 'not disorder_h', or neither of (i1, i2) is hydrogen, 
+                   or i1 and i2 are the same type],
+	             rvector2[ia] is set to the vector (i1)=(i2), the lone pair plane
+		     rvector[ia] is set to vector from the oxygen to between the lone pairs
+	      if the oxygen has three or more bonds, only the first two are considered
+	             and a warning will be issued.
+        3. hbond[ia] == 4 ; A1 directional nitrogen acceptor (ia)
+	      if the nitrogen has zero bonds, a warning will be issued.
+		   rvector[ia] and rvector2[ia] will remain empty.
+	      if the nitrogen has one bond it is assumed to be a carbon (atom i1)
+	           thus the N is an Azide Nitrogen :N=C-X 
+                   rvector[ia]  is set to vector N to (i1).
+		   rvector2[ia] will be empty.
+	      if the nitrogen has two bonds (i1, i2) it is treated as X1-N=X2 
+		   rvector[ia]  is set to vector midpoint [mean] between (i1),(i2) to N
+	           rvector2[ia] will be empty.
+	      if the nitrogen has three bonds 
+		   rvector[ia]  is set to vector between mean((i1),(i2),(i3)) to N
+	           rvector2[ia] will be empty.
+	      if the nitrogen has four or more bonds, only the first three are considered
+	             but no warning will be issued.
+              Summary: rvector[ia] := vector to N from vectorsum(i1,i2,i3)/nbonds
+   Otherwise rvector[ia] remains empty.
+
+ Use of rvector, rvector2: for each grid point ,  for each atom ia
+       if disorder_h && disorder[ia] && atom_type[ia] == hydrogen  - ignore (ia) completly
+        
+	For other atoms, set 'rdon','racc', 'Hramp'  (for gridpoint) based on atom (ia) class:
+
+        1. hbond[ia] == 2 ; D1 hydrogen bond donor (ia)  
+	   ia-th receptor atom = Hydrogen => receptor H-bond donor, OH or NH.
+	    Uses dot product of rvector[ia] and rvector[closest hydrogen to grid point]. 
+	    Does not use any rvector2
+	2.  hbond[ia] == 4; A1, Directional N acceptor (ia)
+	    Uses dot product of rvector[ia] and grid point
+	    Does not use any rvector2
+        3. hbond[ia] == 5 ; A2, receptor H-bond acceptor, oxygen.
+	    if not disorder[ia] uses dot product of rvector[ia] and rvector2[ia]
+            if disorder[ia] "cylindrically disordered hydroxyl",
+	       Uses dot product of rvector[ia] and grid point
+	       Does not use any rvector2
+        After this point, rvector and rvector2 are unused.
+              
+
+        at this grid point, for each map_index type 
+	  if gridmap[map_index].is_hbonder
+              if gridmap[map_index].hbond=={3,5,6}  [AS or A2 or AD] 
+	      && hbond[ia]=={1,2,6} [DS or D1 or AD]
+                "PROBE can be an H-BOND ACCEPTOR"
+		if  disorder[ia]  
+		    gridmap.energy +=  ...[ hydrogen][map_index] * Hramp * (racc + (1. - racc)*rsph)
+	        else gridmap.energy +=  ...[atom_type[ia]][map_index] * Hramp * (racc + (1. - racc)*rsph)
+	     elseif gridmap[map_index].hbond=={4,6}  [A1 or AD]
+	     && hbond[ia]=={1,2,6}  [DS or D1 or AD]
+		sets gridmap{min,max,flag} not depending on disorder, does not set gridmap.energy
+	     else sets gridmap.energy not depending on disorder.
+	   else sets gridmap.energy not depending on disorder.
+
+  */ 
+
 static int hbond_12[AG_MAX_ATOMS], nhbond_12;  // indices of hbond[ia]==1 or 2; count
 
 
@@ -566,7 +655,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.148 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.149 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  AG_MAX_NBONDS=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -2040,7 +2129,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
      */
     int from = max(ia-20, 0);
     int to   = min(ia + 20, num_receptor_atoms-1);
-	fflush(logFile); /* MP @@@@@@*/
+    fflush(logFile);
 
     /*
      * We consider three cases for atom 'ia':
@@ -2056,6 +2145,8 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
          * RECEPTOR hydrogen-BOND DONOR.
          * Search (index ib) for nearby atoms of any type, 
          *  set rexp[ia] according to ib atom type,
+	 *  set rvector[ia] to the normalized bond vector,
+	 *  do not set rvector2[ia] to anything,
          *  add bond between ia and ib.
          * Note by MP 2018-11, the original code exited (break) the ib
          *  search after finding the first nearby atom.  
@@ -2063,7 +2154,6 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
          */
 
         for ( int ib = from; ib <= to; ib++) if (ib != ia) { /* ib = i_receptor_atom_b */
-	fflush(logFile); /* MP @@@@@@*/
                 /*
                  * =>  NH-> or OH-> or SH-> ...
                  */
@@ -2158,6 +2248,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
      *  with 'nearby' cutoff determined by ib atom type
      *    (hydrogen, nonHB_hydrogen or not).
      *  Set rvector[ia] according to the ib atoms' types.
+     *  Set rvector2[ia] to cross products
      *  If ib is oxygen with @@@Add bond between ia and ib
      */
 
@@ -2171,7 +2262,6 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 	int i1, i2;
         for (int ib = from; ib <= to; ib++) if ( ib != ia ) {
                 float rd2 = 0.;
-	fflush(logFile); /* MP @@@@@@*/
 
                 for (int i = 0;  i < XYZ;  i++) {
                     dc[i] = coord[ia][i] - coord[ib][i];
@@ -2206,7 +2296,8 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 
         if (nbond == 1) {
 
-            /* calculate normalized carbonyl bond vector rvector[ia][] */
+            /* calculate normalized carbonyl bond vector rvector[ia][] 
+		and sometimes cross product rvector2[ia] */
 
             float rd2 = 0.;
             for (int i = 0;  i < XYZ;  i++) {
@@ -2397,7 +2488,6 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
         int nbond = 0;
 	int i1, i2, i3;
         for (int ib = from; ib <= to; ib++) if ( ib != ia) {
-	fflush(logFile); /* MP @@@@@@*/
                 float rd2 = 0.;
 
                 for (int i = 0;  i < XYZ;  i++) {
@@ -2457,7 +2547,6 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
         /* two bonds: X1-N=X2 */
         else if (nbond == 2) {
                 /* normalized vector from Nitrogen to midpoint between X1 and X2 */
-	fflush(logFile); /* MP @@@@@@*/
 
                 rd2 = 0.;
                 for (int i = 0;  i < XYZ;  i++) {
@@ -2523,7 +2612,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
  * Designed 2018-11 by Stefano Forli, coded by MPique
  */
 if (disorder_h) {
-    int hcountstat[num_receptor_atoms]; /* for statistics table only */
+    int hcountstat[num_receptor_atoms]; /* for disorder table printing only */
 
     fprintf(logFile, "\nSetting list of disordered atom groups.\n");
     for (int ia=0; ia<num_receptor_atoms; ia++) {
@@ -2537,9 +2626,9 @@ if (disorder_h) {
 		if ( atom_type[ba] == hydrogen) hcount++;
 		else if(atom_type[ia]!=hydrogen) {
 			fprintf(logFile, 
-			"WARNING Atom %d[type %d %2s][hbond %d][nbonds %d] includes bond to a non-hydrogen atom %d[type %d %2s][hbond %d][ nbonds %d]\n", 
-			   ia+1, atom_type[ia], receptor_types[atom_type[ia]], hbond[ia], nbonds[ia],
-			   ba+1, atom_type[ba], receptor_types[atom_type[ba]], hbond[ba], nbonds[ba]);
+			"WARNING Atom %d[type %d %2s][hbond %d %2s][nbonds %d] includes bond to a non-hydrogen atom %d[type %d %2s][hbond %d %2s][ nbonds %d]\n", 
+			   ia+1, atom_type[ia], receptor_types[atom_type[ia]], hbond[ia], hbtname[min(7,hbond[ia])], nbonds[ia],
+			   ba+1, atom_type[ba], receptor_types[atom_type[ba]], hbond[ba], hbtname[min(7,hbond[ba])], nbonds[ba]);
 			}
 		}
 	hcountstat[ia] = hcount;
@@ -2549,8 +2638,9 @@ if (disorder_h) {
 	   (atom_type[ia] == nonHB_nitrogen && hcount == 3) ||
 	   (atom_type[ia] == oxygen && hcount == 1) ||
 	   (atom_type[ia] == sulphur && hcount == 1) ) {
-		fprintf(logFile, "  Setting atom %2d [atom_type %d %2s] [ nbonds %d] to disordered\n", 
-		   ia+1, atom_type[ia], receptor_types[atom_type[ia]], nbonds[ia]); 
+		fprintf(logFile, "  Setting atom %2d [atom_type %d %2s] [hbond %d %2s] [ nbonds %d] to disordered\n", 
+		   ia+1, atom_type[ia], receptor_types[atom_type[ia]],
+		    hbond[ia], hbtname[min(7,hbond[ia])], nbonds[ia]); 
 		disorder[ia] = true;
 		for (int b=0;b<AG_MAX_NBONDS&&b<nbonds[ia];b++) {
 			int ba=bonded[ia][b];
@@ -2565,13 +2655,11 @@ if (disorder_h) {
 
    }
 	/* second loop just to print the final table */
-    fprintf(logFile, "\n\n Resulting table of disorder values:\n");
+    fprintf(logFile, "\n\n Table of disorder values:\n");
     for (int ia=0; ia<num_receptor_atoms; ia++) {
-	//char c_s[8*3+1];
-        //sprintf(c_s, "%8.3f%8.3f%8.3f", coord[(ia)][0], coord[(ia)][1],coord[(ia)][2]);
-	fprintf(logFile, "Atom %3d [atom_type %d %2s][nbonds %d] [#bonded-hydrogens %d] %8.3f%8.3f%8.3f %sordered\n", 
-	  ia+1, atom_type[ia], receptor_types[atom_type[ia]], nbonds[ia], hcountstat[ia],
-               coord[ia][0]+center[0], coord[ia][1]+center[1],coord[ia][2]+center[2],
+	fprintf(logFile, "Atom %3d [atom_type %d %2s] [hbond %d %2s] [nbonds %d] [#bonded-hydrogens %d] %sordered\n", 
+	  ia+1, atom_type[ia], receptor_types[atom_type[ia]], 
+	  hbond[ia], hbtname[min(7,hbond[ia])], nbonds[ia], hcountstat[ia],
 		disorder[ia] ? "<-- dis" : "");
 	}
     fprintf(logFile, "\nFinished setting list of disordered atom groups.\n");
@@ -2938,7 +3026,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 /* END NEW2 calculate dot product of bond vector with bond vector of best hbond */
                     }
                     /* endif (atom_type[ia] == hydrogen) */
-                } else if (hbond[ia] == 4) {/*A1*/
+                } else if (hbond[ia] == 4) {
                     /* NEW Directional N acceptor */
                     /*
                     **  ia-th macromolecule atom = Nitrogen ( 4 = H )
@@ -3111,7 +3199,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                                       += et.e_vdW_Hb[max(0, indx_n - lookup(1.10))][hydrogen][map_index] * Hramp * (racc + (1. - racc)*rsph);
 
                                 }
-                            } else if ((gridmap[map_index].hbond==4 || gridmap[map_index].hbond==6 ) /*A1, AD: N3P: modified*/
+			    } else if ((gridmap[map_index].hbond==4 || gridmap[map_index].hbond==6 ) /*A1, AD: N3P: modified*/
                                              &&(hbond[ia]==1||hbond[ia]==2||hbond[ia]==6)) { /*DS,D1, AD: N3P: modified*/
                                 hbondmin[map_index] = min( hbondmin[map_index],et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (racc+(1.-racc)*rsph));
                                 hbondmax[map_index] = max( hbondmax[map_index],et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (racc+(1.-racc)*rsph));
