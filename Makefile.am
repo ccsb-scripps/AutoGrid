@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.33 2016/06/23 23:16:33 mp Exp $
+# $Id: Makefile.am,v 1.34 2019/06/26 19:17:01 mp Exp $
 # 
 # AutoGrid 
 # 
@@ -37,6 +37,7 @@ dist-hook:
 bin_PROGRAMS = autogrid4 
 
 autogrid4_SOURCES = main.cpp \
+       bondmanager.cpp \
        bhtree.cpp \
        check_size.cpp \
        setflags.cpp \
@@ -53,6 +54,7 @@ autogrid4_SOURCES = main.cpp \
        read_parameter_library.cpp \
        parse_param_line.cpp \
        distdepdiel.cpp \
+       memalloc.cpp \
        mingw_getrusage.cpp \
        calc_vina_potential.cpp \
        threadlog.cpp \
@@ -61,11 +63,13 @@ autogrid4_SOURCES = main.cpp \
             autoglobal.h \
             autogrid.h \
             bhtree.h \
+	    bondmanager.h \
             constants.h \
             default_parameters.h \
             distdepdiel.h \
             gpftoken.h \
             grid.h \
+	    memalloc.h \
 	    mingw_sysconf.h \
 	    mingw_sys_times.h \
             mystdlib.h \

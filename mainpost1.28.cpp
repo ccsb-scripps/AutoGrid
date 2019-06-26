@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.151 2019/06/26 17:10:32 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.152 2019/06/26 19:17:01 mp Exp $
 
  AutoGrid 
 
@@ -67,6 +67,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include "bondmanager.h"
 #include "constants.h"
 #include "distdepdiel.h"
+#include "memalloc.h"
 #include "read_parameter_library.h"
 #include "threadlog.h"
 #include "timesys.h"
@@ -261,7 +262,7 @@ const int use_vina_potential = FALSE;
 /*see  atom_parameter_manager.c */
 static ParameterEntry thisparm;
 ParameterEntry * found_parm;
-char FN_parameter_library[MAX_CHARS];  // the AD4 parameters .dat file name
+static char FN_parameter_library[MAX_CHARS];  // the AD4 parameters .dat file name
 bool parameter_library_found = FALSE;
 
 
@@ -527,7 +528,6 @@ static const char xyz[] = "xyz"; // used to print headings
 static FILE *receptor_fileptr,
      *AVS_fld_fileptr,
      *xyz_fileptr,
-     *logFile,
      *floating_grid_fileptr;
 
 /*for NEW3 desolvation terms*/
@@ -656,9 +656,9 @@ job_start = times( &tms_job_start);
 #endif
 ,
 #ifdef _OPENMP
- TRUE
+ TRUE, MAXTHREADS
 #else
- FALSE
+ FALSE, 1
 #endif
 ,
 &logFile /* opened and set by setflags*/ );
@@ -700,7 +700,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.151 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.152 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  AG_MAX_NBONDS=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -728,6 +728,7 @@ fprintf(logFile,"        e_vdW_Hb table has %8ld entries of size %ld\n",
             fprintf(logFile, "  Run calculations in parallel if possible (_OPENMP): ");
 #ifdef _OPENMP
 	    fprintf(logFile, " yes\n");
+	    fprintf(logFile, "  Maximum number of parallel threads (MAXTHREADS): %d\n", MAXTHREADS);
 #else
 	    fprintf(logFile, " no\n");
 #endif
@@ -1207,6 +1208,10 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
 
 	nthreads = min(MAXTHREADS, min(n1[Z], omp_get_max_threads()));
+#ifdef _OPENMP
+	// make sure no more theads are used than we have allocated storage for:
+        omp_set_num_threads (nthreads);
+#endif
 	fprintf(logFile, "%d CPU thread%s will be used for calculation\n", 
 	 nthreads, plural(nthreads));
 
@@ -1717,10 +1722,10 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 #ifdef USE_BHTREE
 // M Sanner 2015 BHTREE
 // build BHTREE for receptor atoms	
- BHat = (BHpoint **)malloc(num_receptor_atoms*sizeof(BHpoint *));
+ BHat = (BHpoint **)malloc_t(num_receptor_atoms*sizeof(BHpoint *), "BHat data structure");
 
  for (int ia=0;ia<num_receptor_atoms;ia++) {
-   BHat[ia] = (BHpoint *)malloc(sizeof(BHpoint));
+   BHat[ia] = (BHpoint *)malloc_t(sizeof(BHpoint), "BHpoint data structure");
    BHat[ia]->x[0]=coord[ia][X];
    BHat[ia]->x[1]=coord[ia][Y];
    BHat[ia]->x[2]=coord[ia][Z];
@@ -1728,12 +1733,16 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
    BHat[ia]->at=ia;
  }
  bht = generateBHtree(BHat, num_receptor_atoms, 10);
+        if ( bht == NULL ) {
+            (void) sprintf( message, "Unable to allocate BHtree memory for %d receptor atoms", num_receptor_atoms);
+            print_error( logFile, FATAL_ERROR, message);
+        }
 // M Sanner 2015 BHTREE END
 	
 // allocate per-thread storage for the BH Tree queries
 for(int p=0;p<nthreads;p++) {
-  closeAtomsIndices[p] = (int *)malloc(num_receptor_atoms*sizeof(int));
-  closeAtomsDistances[p] = (float *)malloc(num_receptor_atoms*sizeof(float));
+  closeAtomsIndices[p] = (int *)malloc_t(num_receptor_atoms*sizeof(int), "closeAtomsIndices");
+  closeAtomsDistances[p] = (float *)malloc_t(num_receptor_atoms*sizeof(float), "closeAtomsDistances");
 }
 #endif
 

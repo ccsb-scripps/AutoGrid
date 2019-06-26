@@ -7,7 +7,7 @@
 # 
 # option -r   : removes these files, does not copy 
 #
-# $Id: copyfilesfromAD,v 1.5 2016/06/23 23:16:33 mp Exp $
+# $Id: copyfilesfromAD,v 1.6 2019/06/26 19:17:01 mp Exp $
 #
 # M Pique
 
@@ -35,6 +35,7 @@ DO="cp -p"
 
 # .cpp and .h if present in ../autodock
 for c in  \
+	memalloc \
 	mingw_getrusage \
 	mingw_sysconf \
 	mingw_sys_times \
