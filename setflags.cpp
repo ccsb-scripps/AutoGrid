@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.26 2018/11/12 20:05:37 mp Exp $
+ $Id: setflags.cpp,v 1.27 2019/06/26 19:17:36 mp Exp $
 
  AutoGrid 
 
@@ -40,7 +40,7 @@ extern int  debug;
 
 /*----------------------------------------------------------------------------*/
 
-int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp, FILE **logFile /* may be modified here */ )
+int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp, int maxthreads, FILE **logFile /* may be modified here */ )
 
 /*----------------------------------------------------------------------------*/
 
@@ -74,7 +74,7 @@ int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp,
 /* Initialize                                                                 */
 /*----------------------------------------------------------------------------*/
     argindex = 1;
-    programname = argv[0];
+    programname = strdup(argv[0]);
     GPF = stdin;
     *logFile = stderr;
 /*----------------------------------------------------------------------------*/
@@ -151,7 +151,7 @@ int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp,
 	    fprintf(stdout, use_bhtree?" yes\n":" no\n");
             fprintf(stdout, "  Run calculations in parallel if possible (_OPENMP): ");
 	    fprintf(stdout, use_omp?" yes\n":" no\n");
-
+	    if ( use_omp) fprintf(stdout, "  Maximum number of parallel threads (MAXTHREADS): %d\n", maxthreads);
 	    fprintf(stdout, "  Maximum number of receptor atoms (AG_MAX_ATOMS): %d\n", AG_MAX_ATOMS);
 	    fprintf(stdout, "  Maximum number of receptor atom types (NUM_RECEPTOR_TYPES): %d\n", NUM_RECEPTOR_TYPES);
 	    fprintf(stdout, "  Maximum number of bonds per receptor atom (AG_MAX_NBONDS): %d\n", AG_MAX_NBONDS);
