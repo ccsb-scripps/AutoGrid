@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.150 2019/04/10 01:53:54 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.151 2019/06/26 17:10:32 mp Exp $
 
  AutoGrid 
 
@@ -91,13 +91,15 @@ extern Real idct;
 // macros and private functions for 3-D distance work:
 #define xyzxyzdist(a,b) ( hypot( ((a)[X]-(b)[X]), hypot(((a)[Y]-(b)[Y]), ((a)[Z]-(b)[Z]))))
 #define vect3len(a) ( hypot( (a)[X], hypot( (a)[Y], (a)[Z])))
-static double vect_sub_normalize ( double v0[XYZ], double v1[XYZ], double v2[XYZ] );
+static double vect_sub_normalize ( double vresult[XYZ], double v1[XYZ], double v2[XYZ] );
 static double vect_normalize ( double v1[XYZ] );
 
 // distance_gt:
-// fast return TRUE if any X,Y,Z component > limit; else returns FALSE
-//  and sets dc[] to components and d to actual distance.
-// a, b, and dc are 3-element vectors; limit and d are scalars.
+// shortcut return TRUE if any X,Y,Z component > limit; else returns FALSE
+//  and sets dc[] to components a-b and d to actual distance.
+// a, b, and dc are 3-element vectors (const a,b) ; limit and d are scalars.
+// NOTE dc and d are correctly set ONLY if macro returns TRUE
+// CAUTION limit must be positive or zero
 #define distance_gt(a, b, limit, dc, d) (\
                     (dc[X] = (a)[X] - (b)[X]) > (limit) || \
                     dc[X] < -(limit) || \
@@ -107,9 +109,11 @@ static double vect_normalize ( double v1[XYZ] );
                     dc[Z] < -(limit)  , ((d = vect3len(dc))>(limit)))
 
 // distance_le:
-// fast return FALSE if any X,Y,Z component > limit; else returns TRUE
-//  and sets dc[] to components and d to actual distance.
-// a, b, and dc are 3-element vectors; limit and d are scalars.
+// shortcut return FALSE if any X,Y,Z component > limit; else returns TRUE
+//  and sets dc[] to components a-b and d to actual distance.
+// a, b, and dc are 3-element vectors (const a,b); limit and d are scalars.
+// NOTE dc and d are correctly set ONLY if macro returns TRUE
+// CAUTION limit must be positive or zero
 #define distance_le(a, b, limit, dc, d) (\
                     (dc[X] = (a)[X] - (b)[X]) <= (limit) && \
                     dc[X] >= -(limit) && \
@@ -381,14 +385,14 @@ static double rvector2[AG_MAX_ATOMS][XYZ];
         2. hbond[ia] == 5 ; A2 oxygen (ia)
 	      if the oxygen has zero bonds, a warning will be issued.
 		   rvector[ia] and rvector2[ia] will remain empty.
-	      if the oxygen has one bond it is assumed to be a carbon (atom i1)
+	      if the oxygen has exactly one bond it is assumed to be a carbon (atom i1)
 		thus the O (ia) is a Carbonyl Oxygen O=C-X 
-                   rvector[ia]  is set to vector C to O [i.e., i1-ia]
+                   rvector[ia]  is set to vector C to O [i.e., O-C: ia-i1]
 	           and a third atom X (i2), bonded to the carbon is found.
 		   rvector2[ia] is set to the cross product i2-i1 and O=C rvector
 		   (C=O cross C-X gives the lone pair plane normal).
 		   if a third atom is not found, rvector2 will be empty.
-	      if the oxygen has two bonds (i1, i2) it is Hydroxyl or Ether Oxygen X1-O-X2 
+	      if the oxygen has exactly two bonds (i1, i2) it is Hydroxyl or Ether Oxygen X1-O-X2 
 		   The 'disorder_h' global boolean option controls the behavior.
 		   if disorder_h and exactly one of (i1, i2) is hydrogen, atom (ib) is
 		     set to the one that is carbon or arom_carbon (if it is).
@@ -429,7 +433,7 @@ static double rvector2[AG_MAX_ATOMS][XYZ];
             if disorder[ia] "cylindrically disordered hydroxyl",
 	       Uses dot product of rvector[ia] and grid point-to-ia
 	       Does not use rvector2
-        After this point, ia rvector and rvector2 are unused
+        After this point, rvector[ia] and rvector2[ia] are unused
               
 
         At this grid point, for each map_index type 
@@ -442,9 +446,9 @@ static double rvector2[AG_MAX_ATOMS][XYZ];
 	       && hbond[ia]=={1,2,6} [DS or D1 or AD]
                 "PROBE can be an H-BOND ACCEPTOR"
 		if  disorder[ia]  
-		    gridmap.energy +=  ...[ hydrogen][map_index] * Hramp * 
+		    gridmap.energy +=  ...[r-1.10][ hydrogen][map_index] * Hramp * 
  			(racc + (1. - racc)*rsph)
-	        else gridmap.energy +=  ...[atom_type[ia]][map_index] * Hramp * 
+	        else gridmap.energy +=  ...[r][atom_type[ia]][map_index] * Hramp * 
 			(racc + (1. - racc)*rsph)
 
 	     2. elseif gridmap[map_index].hbond=={4,6}  [A1 or AD]
@@ -472,7 +476,7 @@ static double rvector2[AG_MAX_ATOMS][XYZ];
 static int hbond_12[AG_MAX_ATOMS], nhbond_12;  // indices of hbond[ia]==1 or 2; count
 
 
-/* ligand atom type number for autodock4 potential*/
+/* receptor atom type number for autodock4 potential*/
 static int hydrogen, nonHB_hydrogen, carbon, arom_carbon,
    oxygen, nitrogen, nonHB_nitrogen, sulphur, nonHB_sulphur,
    bromine, chlorine, fluorine, iodine;
@@ -535,7 +539,6 @@ double q_tot = 0.0;
 double diel, invdielcal=0.;//expected never used if uninitialized
 double PI_halved;
 double q_max = -BIG,  q_min = BIG;
-double ri, rd2, r, rd;
 double r_smooth = 0.5; //NEW ON BY DEFAULT Feb2012
 double spacing = 0.375; /* One quarter of a C-C bond length. */
 double covhalfwidth = 1.0;
@@ -697,7 +700,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.150 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.151 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  AG_MAX_NBONDS=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1562,9 +1565,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 	    if(outlev>=LOGETABLES)
             (void) fprintf( logFile, "  d   Dielectric\n ___  __________\n");
             for (int i = 0;  i <= min(500,NDIEL);  i += 10) {
-                ri = angstrom(i);
 	        if(outlev>=LOGETABLES)
-                (void) fprintf( logFile, "%4.1lf%9.2lf\n", ri, et.epsilon_fn[i]);
+                (void) fprintf( logFile, "%4.1lf%9.2lf\n", angstrom(i), et.epsilon_fn[i]);
             }
 	    if(outlev>=LOGETABLES) (void) fprintf( logFile, "\n");
             /* convert epsilon to factor / epsilon */
@@ -1860,8 +1862,6 @@ if (use_vina_potential) {
     //float I_H = 2.2;
     //float Met_D = 1.2; //metal_donor:Mg,Mn,Zn,Ca,Fe,Cl,Br
     //float Met_non_ad = 1.75;//metal_non_ad:Cu,Fe,Na,K,Hg,Co,U,Cd,Ni
-    double rddist; 
-    double delta_e = 0.0;
     //                                                               ia_dist
     //    interatom_distance                                   |.................|
     //    interatom_distance - xs_radius(t1) -xs_radius(t2)    .--|........|-----.  
@@ -1941,14 +1941,14 @@ for (int ia=0; ia<num_atom_maps; ia++){
                 (void) fprintf( logFile, "Calculating vina energies for %s-%s interactions (%d, %d).\n", gridmap[ia].type, receptor_types[i], ia, i );
 #endif
                 for (int indx_r = 1;  indx_r < NEINT;  indx_r++) {
-                    r  = angstrom(indx_r);
+                    double r  = angstrom(indx_r);
                     // compute rddist:                                   map_Rij  rddist   Rij
                     //  interatom_distance - xs_radius(t1) -xs_radius(t2)    .--|........|-----.  
-                    rddist =  r - (map_Rij + Rij);
+                    double rddist =  r - (map_Rij + Rij);
                     //use rddist for computing the vina component energies
                     //TODO: replace with functions from vina..
                     //attraction:
-                    delta_e = wt_gauss1 * exp(-pow(((rddist)/0.5),2)) + wt_gauss2 * exp(-pow(((rddist-3.)/2.),2));
+                    double delta_e = wt_gauss1 * exp(-pow(((rddist)/0.5),2)) + wt_gauss2 * exp(-pow(((rddist-3.)/2.),2));
                     //at distance 'indx_r': interaction of receptor atomtype 'ia' - ligand atomtype 'i'
                     et.e_vdW_Hb[indx_r][i][ia] += delta_e; 
                     //repulsion
@@ -2133,7 +2133,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
  */
 double sigma = 3.6;
 for (int indx_r = 1;  indx_r < NDIEL;  indx_r++) {
-     r  = angstrom(indx_r);
+     double r  = angstrom(indx_r);
      et.sol_fn[indx_r] = AD4.coeff_desolv * exp(-sq(r)/(2.*sq(sigma)));
 }
 
@@ -2164,7 +2164,6 @@ if(disorder_h) for (int ia=0; ia<num_receptor_atoms; ia++) {
     disorder[ia] = FALSE; 
 }
 for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
-    double d[XYZ];
     bool warned = false;
     /*
      * Set scan limits looking for bonded atoms
@@ -2205,6 +2204,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                      * Calculate the N-H or O-H bond distance, rd,
                      *                            ib-ia  ib-ia
                      */
+                double d[XYZ], rd;
 		if ( distance_le ( coord[ia], coord[ib], 1.378, d, rd)) {
                     //if (rd2 < sq(1.378))  /*INCREASED for H-S bonds*/
                     /*
@@ -2212,6 +2212,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                      */
                         /*
                          * Normalize the vector from ib to ia, N->H or O->H...
+			 * (AG 4.2.6 had rvector[ia]=coord[ia]-coord[ib]  MP)
                          */
 			for (int i=0; i<XYZ; i++) rvector[ia][i] = d[i];
 			rd = vect_normalize ( rvector[ia]);
@@ -2301,7 +2302,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 //if (((rd2 < sq(1.9)) && ((atom_type[ib] != hydrogen)&&(atom_type[ib]!=nonHB_hydrogen))) ||
                     //((rd2 < sq(1.3)) && ((atom_type[ib] == hydrogen)||(atom_type[ib]==nonHB_hydrogen)))) 
                     if (nbond == 2) {
-                        (void) sprintf( message, "Found an H-bonding atom with three bonded atoms, atom serial number %d\n", ia + 1);
+                        (void) sprintf( message, "Found an H-bonding O atom with three bonded atoms, atom serial number %d\n", ia + 1);
                         print_error( logFile, WARNING, message );
                     }
                     else if (nbond == 1) {
@@ -2326,10 +2327,10 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 
         if (nbond == 1) {
 
-            /* calculate normalized carbonyl bond vector rvector[ia][] 
+            /* calculate normalized carbonyl bond vector rvector[ia][] = coord[O]-coord[C]
 		and sometimes cross product rvector2[ia] */
 
-	    float rd = vect_sub_normalize ( rvector[ia], coord[ia], coord[i1]); // rvector= ia-i1
+	    double rd = vect_sub_normalize ( rvector[ia], coord[ia], coord[i1]); // rvector= ia-i1 as in AG 4.2.6 (MP)
             if (rd < APPROX_ZERO) {
                 if ((rd == 0.) && !warned) {
                     (void) sprintf ( message, "At receptor carbonyl oxygen i1:\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, i1 + 1);
@@ -2348,7 +2349,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 
                         /* d[i] vector from carbon to second atom */
                             // d[i] = coord[i2][i]-coord[i1][i];
-			rd = vect_normalize ( d );
+			double rd = vect_normalize ( d );
                         if (rd < APPROX_ZERO) {
                             if ((rd == 0.) && !warned) {
                                 (void) sprintf ( message, "At receptor carbonyl oxygen i2:\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", i1 + 1, i2 + 1);
@@ -2361,7 +2362,7 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                         rvector2[ia][0] = rvector[ia][1]*d[2] - rvector[ia][2]*d[1];
                         rvector2[ia][1] = rvector[ia][2]*d[0] - rvector[ia][0]*d[2];
                         rvector2[ia][2] = rvector[ia][0]*d[1] - rvector[ia][1]*d[0];
-                        rd2 = vect_normalize ( rvector2[ia]);
+                        double rd2 = vect_normalize ( rvector2[ia]);
 
                         if (rd2 < APPROX_ZERO) {
                             if ((rd2 == 0.) && !warned) {
@@ -2409,7 +2410,8 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 		rc= addbond (ia, ib, nbonds, bonded, outlev, logFile);
 		if (rc) print_error (logFile, FATAL_ERROR, "could not add bond");
 
-		rd = vect_sub_normalize ( rvector[ia], coord[ia], coord[ib] ); //rvector[ia] = coord[ia] - coord[ib]
+		/* set rvector[ia] = coord[ia] - coord[ib] as in AG 4.2.6 (MP) */
+		double rd = vect_sub_normalize ( rvector[ia], coord[ia], coord[ib] );
                 if ((rd == 0.) && (!warned)) {
                         (void) sprintf ( message, "At disordered hydroxyl:\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", ia + 1, ib + 1);
                         print_error( logFile, WARNING, message );
@@ -2421,12 +2423,13 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
                 /* not a disordered hydroxyl */
                 /* normalized X1 to X2 vector, defines lone pair plane */
 
-		rd = vect_sub_normalize ( rvector2[ia], coord[i2], coord[i1] ); //rvector2[ia] = coord[i2] - coord[i1]
+		/* rvector2[ia] = coord[i2] - coord[i1] as in AG 4.2.6 (MP) */
+		double rd = vect_sub_normalize ( rvector2[ia], coord[i2], coord[i1] );
                     if ((rd == 0.) && !warned) {
                         (void) sprintf ( message, "At not disordered hydroxyl:\nAttempt to divide by zero was just prevented.\nAre the coordinates of atoms %d and %d the same?\n\n", i1 + 1, i2 + 1);
                         print_error( logFile, WARNING, message );
                         warned = true;
-                }
+                    }
 
                 /* vector pointing between the lone pairs:
                 ** front of the vector is the oxygen atom,
@@ -2457,7 +2460,9 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 
 	/*
 	**  determine number of atoms bonded to the nitrogen, up to three.
-	**  set rvector of the nitrogen from the mean/midpoint of the three atoms
+	**  set rvector of the nitrogen from the mean/midpoint of the three atoms.
+	**  Vector direction is  coord[N] - coord[X] as in AG 4.2.6 (MP)
+	**
 	*/
         int nbond = 0;
 	int bondi[3]; //  i1, i2, i3 indices - 0 to nbond UNUSED SO FAR
@@ -2465,9 +2470,9 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 	double bondl[3]; // length of vector to atom ia from atom i1..i3 UNUSED SO FAR
         for (int ib = from; ib <= to; ib++) if ( ib != ia) {
 
-		if  ( distance_gt ( coord[ia], coord[ib], 
-		 (atom_type[ib] == hydrogen)||(atom_type[ib]==nonHB_hydrogen)?1.3:1.7,
-		  bondv[nbond], bondl[nbond])) continue;
+		if  (! distance_le ( coord[ia], coord[ib], 
+		 ((atom_type[ib] == hydrogen)||(atom_type[ib]==nonHB_hydrogen))?1.3:1.7,
+		  bondv[nbond], bondl[nbond])) continue; // caution, results are set only if test TRUE
 
                 //if (((rd < 1.7) && ((atom_type[ib] != hydrogen)&&(atom_type[ib]!=nonHB_hydrogen))) || 
                     //((rd < 1.3) && ((atom_type[ib] == hydrogen)||(atom_type[ib]==nonHB_hydrogen)))) 
@@ -2495,18 +2500,22 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 	    }
 	
 
-// MP TODO I think this should be just the meanvect, normalized 2018-11-15
+// MP TODO I think this should be just the meanvect, normalized 2018-11-15 @@2019416
 	/* compute rvector[ia] and normalize it if possible */
 	   /* rvector[ia][i] = norm(coord[ia][i]-meanvect[i]);*/
-	    rd = vect_sub_normalize ( rvector[ia], coord[ia], meanvect );
+	    {  /* local storage for simlicity */
+	    //@@20190416 double rd = vect_sub_normalize ( rvector[ia], coord[ia], meanvect );
+	    double rd =  vect_normalize(meanvect);
+	    for (int i=0;i<XYZ;i++) rvector[ia][i] = -1 * meanvect[i]; // AG 4.2.6 has rvector[N] = coord[N]-coord[others] (MP 2019)
 	    if ((rd == 0.) && (!warned)) {
-		(void) sprintf ( message, "At azide nitrogen with %d bond%s:\nAttempt to divide by zero was just prevented.\nAre atoms %d and its bonded atoms co-planar?\n\n", 
-		nbond, plural(nbond), ia+1); 
+		(void) sprintf ( message, "At atom %d N with %d bond%s:\nAttempt to divide by zero was just prevented.\nAre atoms %d and its bonded atoms co-planar?\n\n", 
+		ia+1, nbond, plural(nbond), ia+1); 
 		print_error( logFile, WARNING, message );
 		warned = true;
 	    }
+	  } /* local storage */
 
-	 /* endNEW directional N Acceptor */
+	 /* end else case for directional N Acceptor */
     } /* end test for atom type */
 
 } /* Do Next receptor atom ia ... */
@@ -2515,6 +2524,19 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
  * End bond vector loop
  ********************************************/
 } /* not use_vina_potential*/
+
+/* optionally report for all atoms rexp[] rvector[] and rvector2[] if non-empty */
+(void) fprintf( logFile, "\nTable of non-zero rexp[], rvector[], and rvector2[] (* is too long or short)\n");
+for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
+	for (int d=0;d<XYZ;d++) if (rexp[ia]!=0 || rvector[ia][d]!=0 || rvector2[ia][d]!=0 ) {
+		fprintf(logFile, "  Atom %3d[type %d %2s] rexp = %d rvector[] = %6.3f %6.3f %6.3f %s rvector2[] = %6.3f %6.3f %6.3f %s\n",
+			ia+1, atom_type[ia], receptor_types[atom_type[ia]],  rexp[ia],
+			rvector[ia][X], rvector[ia][Y], rvector[ia][Z], ((fabs(1-vect3len(rvector[ia]))>0.005)?"*":" "),
+			rvector2[ia][X], rvector2[ia][Y], rvector2[ia][Z], ((fabs(1-vect3len(rvector2[ia]))>0.005)?"*":" ") );
+		break;
+
+	}
+}
 
 /* optionally set disorder[] state for all atoms. 
  * Designed 2018-11 by Stefano Forli, coded by MPique
@@ -2661,10 +2683,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 	    double rminH;
 	    int closestH;
 	    double d[XYZ];
-	    double r, inv_r, inv_rmax;
-	    double inv_rd, rd2; /* re, r2, rd, */
 	    double racc, rdon;
-	    double t0, ti;
 	    int mapi = mapindex(ix, iy, iz);
 #ifdef DEBUG
 	    if(mapi<0||mapi>= n1[X]*n1[Y]*n1[Z]) {
@@ -2698,7 +2717,6 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
             }
 
             /* Initialize Min Hbond variables  for each new point*/
-            if (not use_vina_potential) //if vina_potential skip hbond stuff
             for (int map_index = 0; map_index < num_atom_maps; map_index++){
                 hbondmin[map_index] = 999999.;
                 hbondmax[map_index] = -999999.;
@@ -2751,10 +2769,9 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                 /*
                  *  Get distance, r, from current grid point, c, to this receptor atom, coord,
                  */
-                r = xyzxyzdist( coord[ia], c);
+                double r = xyzxyzdist( coord[ia], c);
                 if (r < APPROX_ZERO)  r = APPROX_ZERO;
-                inv_r  = 1./r;
-                inv_rmax = 1./max(r, 0.5);
+                double inv_rmax = 1./max(r, 0.5);
 
                 /* make sure lookup index is in the tables */
                 int indx_r = min(lookup(r), NDIEL-1);
@@ -2798,7 +2815,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 			}
                     }
 		    if(breakout) continue;
-                    r = hypotenuse( d[X],d[Y],d[Z] );
+                    double r = hypotenuse( d[X],d[Y],d[Z] );
                     if (r < rminH) {
                         rminH = r;
                         closestH = ia; 
@@ -2823,13 +2840,12 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 		bhTreeNbIndices, BH_cutoff_dist);
             for (int ibh = 0;  ibh < bhTreeNbIndices;  ibh++) {
 	      int ia = closeAtomsIndices[thread][ibh];
-	      r = closeAtomsDistances[thread][ibh];
+	      double r = closeAtomsDistances[thread][ibh];
 
 #else
             for (int ia = 0;  ia < num_receptor_atoms;  ia++) {
 #endif
 		double dnorm[XYZ]; // normalized grid-point- to - atom vector
-		double cos_theta;
 		bool warned = false;
                 /*
                  *  Get distance, r, from current grid point, c, to this receptor atom, coord,
@@ -2838,7 +2854,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                     d[i]  = coord[ia][i] - c[i];
                 }
 #ifndef USE_BHTREE
-                r = hypotenuse( d[X], d[Y], d[Z]);
+                double r = hypotenuse( d[X], d[Y], d[Z]);
 #endif
                 /*
                  * If distance from grid point to atom ia is too large,
@@ -2856,8 +2872,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                 if (r < APPROX_ZERO) {
                     r = APPROX_ZERO;
                 }
-                inv_r  = 1./r;
-                inv_rmax = 1./max(r, 0.5);
+                double inv_r  = 1./r;
 
                 for (int i = 0;  i < XYZ;  i++) {
                     dnorm[i] = d[i] * inv_r;
@@ -2866,7 +2881,6 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                 int indx_r = min(lookup(r), NDIEL-1);
 		int indx_n = min(lookup(r), NEINT-1);
 
-                if (not use_vina_potential){
 
                 racc = 1.;
                 rdon = 1.;
@@ -2881,7 +2895,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                      *  calculate racc for H-bond ACCEPTOR PROBES at this grid pt.
                      *            ====     ======================
                      */
-                    cos_theta = 0.;
+                    double cos_theta = 0.;
                     /*
                      *  dnorm[] = Unit vector from current grid pt to ia_th m/m atom.
                      *  cos_theta = d dot rvector == cos(angle) subtended.
@@ -2920,7 +2934,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                             Hramp = 1.;
                         } else {
 			    double theta;
-                            cos_theta = 0.;
+                            double cos_theta = 0.;
                             for (int i = 0;  i < XYZ;  i++) {
                                 cos_theta += rvector[closestH][i] * rvector[ia][i];
                             }
@@ -2939,7 +2953,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                     **  calculate rdon for H-bond Donor PROBES at this grid pt.
                     **            ====     ======================
                     */
-                    cos_theta = 0.;
+                    double cos_theta = 0.;
                     /*
                     **  dnorm[] = Unit vector from current grid pt to ia_th m/m atom.
                     **  cos_theta = d dot rvector == cos(angle) subtended.
@@ -2968,10 +2982,10 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                     **  => receptor H-bond acceptor, oxygen.
                     */
 
-                    rdon = 0.;
+		    double t0, ti;
 
                     /* check to see that probe is in front of oxygen, not behind */
-                    cos_theta = 0.;
+                    double cos_theta = 0.;
                     for (int i = 0;  i < XYZ;  i++) {
                         cos_theta -= dnorm[i] * rvector[ia][i];
                     }
@@ -3004,7 +3018,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                     cross[0] = dnorm[1] * rvector2[ia][2] - dnorm[2] * rvector2[ia][1];
                     cross[1] = dnorm[2] * rvector2[ia][0] - dnorm[0] * rvector2[ia][2];
                     cross[2] = dnorm[0] * rvector2[ia][1] - dnorm[1] * rvector2[ia][0];
-                    rd2 = sq(cross[0]) + sq(cross[1]) + sq(cross[2]);
+                    double rd2 = sq(cross[0]) + sq(cross[1]) + sq(cross[2]);
                     if (rd2 < APPROX_ZERO) {
                         if ((rd2 == 0.) && !warned) {
                             (void) sprintf ( message, 
@@ -3017,7 +3031,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                         }
                         rd2 = APPROX_ZERO;
                     }
-                    inv_rd = 1./sqrt(rd2);
+                    double inv_rd = 1./sqrt(rd2);
                     ti = 0.;
                     for (int i = 0;  i < XYZ;  i++) {
                         ti += cross[i] * inv_rd * rvector[ia][i];
@@ -3049,7 +3063,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                 } else if ( disorder[ia] && hbond[ia] == 5 ) {/*A2*/
                     /* cylindrically disordered hydroxyl */
 		    double theta;
-                    cos_theta = 0.;
+                    double cos_theta = 0.;
                     for (int i = 0;  i < XYZ;  i++) {
                         cos_theta -= dnorm[i] * rvector[ia][i];
                     }
@@ -3072,7 +3086,6 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                         racc = rdon;
                     }
                 } /* end atom_type tests used to set rdon and racc */
-                }//end  not use_vina_potential
 
                 /*
                  * For each probe atom-type,
@@ -3087,7 +3100,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                      * false... */                    
 
                     if (gridmap[map_index].is_covalent) continue;
-                    if ((not use_vina_potential) && (gridmap[map_index].is_hbonder == TRUE)) {
+                    if (gridmap[map_index].is_hbonder == TRUE) {
                             /*  current map_index PROBE forms H-bonds... */
 			    double rsph;
                             /* rsph ramps in angular dependence for distances with negative energy */
@@ -3098,20 +3111,25 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                                       &&(hbond[ia]==1||hbond[ia]==2||hbond[ia]==6)){/*DS or D1 or AD N3P:modified*/
                                   /* PROBE can be an H-BOND ACCEPTOR, */
                                 if ( !disorder[ia] ) {
-				fprintf(tlogFile, "    ORDER_H HBA %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f racc=%5.2f rsph=%5.2f flag=%d\n",
+				fprintf(tlogFile, "    ORDER_H HBA %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f racc=%5.2f rsph=%5.2f flag=%d",
 				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, racc, rsph, hbondflag[map_index]);
+				fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
 				    gridmap[map_index].energy[mapi]
                                       += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * Hramp * (racc + (1. - racc)*rsph);
+				fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
                                 } else {
-				fprintf(tlogFile, " DISORDER_H HBA %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f racc=%5.2f rsph=%5.2f flag=%d\n",
-				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, racc, rsph, hbondflag[map_index]);
+				int indx_h = min(max(0, lookup(r - 1.10)), NEINT-1);
+				fprintf(tlogFile, " DISORDER_H HBA %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f rh=%3.1f Hramp=%5.2f racc=%5.2f rsph=%5.2f flag=%d",
+				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, max(0,r-1.10),Hramp, racc, rsph, hbondflag[map_index]);
+				fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
 				    gridmap[map_index].energy[mapi]
-                                      += et.e_vdW_Hb[max(0, indx_n - lookup(1.10))][hydrogen][map_index] * Hramp * (racc + (1. - racc)*rsph);
+                                      += et.e_vdW_Hb[indx_h][hydrogen][map_index] * Hramp * (racc + (1. - racc)*rsph);
+				fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
 
                                 }
 			    } else if ((gridmap[map_index].hbond==4 || gridmap[map_index].hbond==6 ) /*A1, AD: N3P: modified*/
                                              &&(hbond[ia]==1||hbond[ia]==2||hbond[ia]==6)) { /*DS,D1, AD: N3P: modified*/
-				fprintf(tlogFile, " ---ORDER_H HBA %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f racc=%5.2f rsph=%5.2f flag=%d=1\n",
+				fprintf(tlogFile, " ---ORDER_H HBA %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f racc=%5.2f rsph=%5.2f flag=%d:=1\n",
 				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, racc, rsph, hbondflag[map_index]);
                                 hbondmin[map_index] = min( hbondmin[map_index],et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (racc+(1.-racc)*rsph));
                                 hbondmax[map_index] = max( hbondmax[map_index],et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (racc+(1.-racc)*rsph));
@@ -3122,16 +3140,19 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                                 /*  PROBE is H-BOND DONOR, */
                                 if ( disorder[ia] ) {
 				    /* MP experimental @@@@ added 2018-11-20 */
+				int indx_h = min(max(0, lookup(r - 1.10)), NEINT-1);
 				   /* debug print: */
-				fprintf(tlogFile, " DISORDER_H HBD %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f rdon=%5.2f rsph=%5.2f flag=%d\n",
-				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, rdon, rsph, hbondflag[map_index]);
+				fprintf(tlogFile, " DISORDER_H HBD %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f rh=%3.1f Hramp=%5.2f rdon=%5.2f rsph=%5.2f flag=%d",
+				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, max(0,r-1.10),Hramp, rdon, rsph, hbondflag[map_index]);
 
+				fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
 				    gridmap[map_index].energy[mapi]
-                                      += et.e_vdW_Hb[max(0, indx_n - lookup(1.10))][hydrogen][map_index] \
+                                      += et.e_vdW_Hb[indx_h][hydrogen][map_index] \
 					* Hramp * (rdon + (1. - rdon)*rsph);
+				fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
 
                                 } else {
-				fprintf(tlogFile, "    ORDER_H HBD %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f rdon=%5.2f rsph=%5.2f flag=%d=1\n",
+				fprintf(tlogFile, "    ORDER_H HBD %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f rdon=%5.2f rsph=%5.2f flag=%d:=1\n",
 				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, rdon, rsph, hbondflag[map_index]);
                                 temp_hbond_enrg = et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (rdon + (1. - rdon)*rsph);
                                 hbondmin[map_index] = min( hbondmin[map_index], temp_hbond_enrg);
@@ -3140,10 +3161,12 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 			        }
                             } else {
                                 /*  hbonder PROBE-ia cannot form a H-bond..., */
+				fprintf(tlogFile, "   NO-HBOND MAP %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f rdon=%5.2f rsph=%5.2f flag=%d",
+				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, rdon, rsph, hbondflag[map_index]);
+				fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
 				    gridmap[map_index].energy[mapi]
                                   += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index];
-				fprintf(tlogFile, "   NO-HBOND MAP %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f rdon=%5.2f rsph=%5.2f flag=%d\n",
-				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, rdon, rsph, hbondflag[map_index]);
+				fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
                             }
                         } else { /*end of is_hbonder*/
                             /*  PROBE does not form H-bonds..., */
@@ -3189,11 +3212,15 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 	     * have the same energy and it was incorrectly being added twice.
              * M Pique TODO can this damage covalent maps? (prob not as they are not hbondflag)
              */
-            if (not use_vina_potential) 
             for (int map_index = 0; map_index < num_atom_maps; map_index++) {
                 if (hbondflag[map_index]) {
+		// DEBUG print MP 2019-04 
+	        fprintf(tlogFile, " adjust map[%2d] gridpt %5.1f %5.1f %5.1f E was %8.4f hbondmin=%6.2f hbondmax=%6.2f ",
+			map_index, c[X], c[Y], c[Z], gridmap[map_index].energy[mapi], hbondmin[map_index], hbondmax[map_index]);
                     gridmap[map_index].energy[mapi] 
                      += ( hbondmin[map_index] + max(hbondmax[map_index],0) );
+		// DEBUG print MP 2019-04 
+	        fprintf(tlogFile, " now %8.4f\n", gridmap[map_index].energy[mapi]);
                 }
             }
 	    } // end if num_atom_maps>0 or dsolvPE>=0
