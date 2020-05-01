@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 # 
 #
-# $Id: test_autogrid4.py,v 1.19 2015/10/14 06:28:18 mp Exp $
+# $Id: test_autogrid4.py,v 1.20 2020/05/01 17:50:35 mp Exp $
 #
 """
 Test AutoGrid.
@@ -196,7 +196,9 @@ class AutoGrid_hsg1_sm_test(unittest.TestCase):
           self.compare_autogrid4_maps("hsg1_sm", 'N') and
           self.compare_autogrid4_maps("hsg1_sm", 'HD') and
           self.compare_autogrid4_maps("hsg1_sm", 'NA') and
-          self.compare_autogrid4_maps("hsg1_sm", 'OA') 
+          self.compare_autogrid4_maps("hsg1_sm", 'OA') and
+	  self.compare_autogrid4_maps("hsg1_sm", 'e') and
+	  self.compare_autogrid4_maps("hsg1_sm", 'd') 
 	  )
     def test_hsg1_sm_elecmaps(self):
         # compare resulting map with saved map
@@ -207,12 +209,12 @@ class AutoGrid_hsg1_sm_test(unittest.TestCase):
 		  )
 	else:
 		True
-    def Ttest_hsg1_estat(self):
+    def test_hsg1_estat(self):
         """test_hsg1 estat case"""
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'e')
 
-    def Ttest_hsg1_dsolv(self):
+    def test_hsg1_dsolv(self):
         """test_hsg1 dsolv case"""
         # compare resulting map with saved map
         self.compare_autogrid4_maps("hsg1_sm", 'd')
