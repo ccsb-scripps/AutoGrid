@@ -1,6 +1,6 @@
 /*
 
- $Id: banner.cpp,v 1.18 2017/05/18 21:19:34 mp Exp $
+ $Id: banner.cpp,v 1.19 2020/05/01 20:03:04 mp Exp $
 
  AutoGrid 
 
@@ -70,9 +70,9 @@ void banner( char * version_num, FILE *logFile)
 (void) fprintf(logFile,"               |            Ruth Huey, TSRI           |\n");
 (void) fprintf(logFile,"               |        David S. Goodsell, TSRI       |\n");
 (void) fprintf(logFile,"               |         Arthur J. Olson, TSRI        |\n");
-(void) fprintf(logFile,"               |     (MODIFIED VERSION DUAL HB)       |\n");
+/* (void) fprintf(logFile,"               |     (MODIFIED VERSION DUAL HB)       |\n"); */
 (void) fprintf(logFile,"               |                                      |\n");
-(void) fprintf(logFile,"               |        (C) 1989-2009, TSRI           |\n");
+(void) fprintf(logFile,"               |        (C) 1989-2020, TSRI           |\n");
 (void) fprintf(logFile,"               |   The Scripps Research Institute     |\n");
 (void) fprintf(logFile,"               |______________________________________|\n");
 (void) fprintf(logFile,"\n");
