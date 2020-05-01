@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.152 2019/06/26 19:17:01 mp Exp $
+ $Id: main.cpp,v 1.153 2020/05/01 17:52:13 mp Exp $
 
  AutoGrid 
 
@@ -67,7 +67,7 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include "bondmanager.h"
 #include "constants.h"
 #include "distdepdiel.h"
-#include "memalloc.h"
+#include "memalloc.h"    // malloc_t() and calloc_t()
 #include "read_parameter_library.h"
 #include "threadlog.h"
 #include "timesys.h"
@@ -200,7 +200,7 @@ static int get_map_index(const char key[]);
 /* M Pique */
 #include <omp.h>
  // MAXTHREADS is max number of hardware threads to use for computation.
-#define MAXTHREADS 16
+#define MAXTHREADS 32
 #else
 #define omp_get_thread_num() (0)
 #define omp_get_max_threads() (1)
@@ -317,7 +317,7 @@ MapObject *gridmap = NULL; /* was statically assigned  MapObject gridmap[MAX_MAP
 #define mapindex2(ix,iy) ( (ix) + ((iy)*n1[X]) )
 #define mapindex(ix,iy,iz) ( (ix) + n1[X] * ( (iy) + n1[Y] * (iz) ) ) 
 
-double *r_min; /* allocated full [z][y][x] for floating grid */
+static double *r_min; /* allocated full [z][y][x] for floating grid */
 
 /*variables for RECEPTOR:*/
 /*each type is now at most two characters, eg 'NA\0'*/
@@ -700,7 +700,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.152 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.153 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  AG_MAX_NBONDS=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -2668,7 +2668,9 @@ for (iz=0;iz<n1[Z];iz++) {
      *  c[0:2] contains the current grid point coordinates (angstroms)
      */
     c[Z] = ((double)icoord[Z]) * spacing;
-    int thread = omp_get_thread_num(); // this thread's working BHTREE storage and
+    int thread = omp_get_thread_num(); // this thread's working BHTREE storage index
+    if(thread>=nthreads) print_error( logFile, FATAL_ERROR,
+      "openMP thread number out of expected range");
     if(nthreads>1) tlogFile = threadLogOpen(iz);
     else tlogFile=logFile;
     if(tlogFile==NULL) print_error( logFile, FATAL_ERROR, 
