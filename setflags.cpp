@@ -1,6 +1,6 @@
 /*
 
- $Id: setflags.cpp,v 1.27 2019/06/26 19:17:36 mp Exp $
+ $Id: setflags.cpp,v 1.28 2020/05/01 17:52:51 mp Exp $
 
  AutoGrid 
 
@@ -85,6 +85,7 @@ int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp,
 
         switch(argv[1][1]){
 #ifdef FOO
+	// sample code
         case 'n':
             ncount = atoi(argv[2]);
             argv++;
@@ -159,8 +160,8 @@ int setflags( int argc, char **argv, char *version, int use_bhtree, int use_omp,
 	    fprintf(stdout, "  Maximum number of maps (MAX_MAPS): %d\n", MAX_MAPS);
 	    fprintf(stdout, "  Maximum dimension of map x, y, or z (MAX_GRID_PTS): %d\n", MAX_GRID_PTS);
 	    /* print sizes of key types for this compilation */
-	    fprintf(stdout, "  Size of int %d, long %d, float %d, double %d, Real %d bytes.\n",
-		(int)(sizeof(int)), (int)(sizeof(long)), 
+	    fprintf(stdout, "  Size of int %d, long %d, long long %d, float %d, double %d, Real %d bytes.\n",
+		(int)(sizeof(int)), (int)(sizeof(long)), (int)(sizeof(long long)),
 		(int)(sizeof(float)), (int)(sizeof(double)), (int)(sizeof(Real)) );
 
 
