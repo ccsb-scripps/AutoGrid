@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.153 2020/05/01 17:52:13 mp Exp $
+ $Id: main.cpp,v 1.154 2020/05/03 21:41:08 mp Exp $
 
  AutoGrid 
 
@@ -700,7 +700,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.153 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.154 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  AG_MAX_NBONDS=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -2535,15 +2535,17 @@ for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
 } /* not use_vina_potential*/
 
 /* optionally report for all atoms rexp[] rvector[] and rvector2[] if non-empty */
-(void) fprintf( logFile, "\nTable of non-zero rexp[], rvector[], and rvector2[] (* is too long or short)\n");
-for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
-	for (int d=0;d<XYZ;d++) if (rexp[ia]!=0 || rvector[ia][d]!=0 || rvector2[ia][d]!=0 ) {
-		fprintf(logFile, "  Atom %3d[type %d %2s] rexp = %d rvector[] = %6.3f %6.3f %6.3f %s rvector2[] = %6.3f %6.3f %6.3f %s\n",
-			ia+1, atom_type[ia], receptor_types[atom_type[ia]],  rexp[ia],
-			rvector[ia][X], rvector[ia][Y], rvector[ia][Z], ((fabs(1-vect3len(rvector[ia]))>0.005)?"*":" "),
-			rvector2[ia][X], rvector2[ia][Y], rvector2[ia][Z], ((fabs(1-vect3len(rvector2[ia]))>0.005)?"*":" ") );
-		break;
+if (outlev>LOGRUNV) {
+	(void) fprintf( logFile, "\nTable of non-zero rexp[], rvector[], and rvector2[] (* is too long or short)\n");
+	for (int ia=0; ia<num_receptor_atoms; ia++) {  /*** ia = i_receptor_atom_a ***/
+		for (int d=0;d<XYZ;d++) if (rexp[ia]!=0 || rvector[ia][d]!=0 || rvector2[ia][d]!=0 ) {
+			fprintf(logFile, "  Atom %3d[type %d %2s] rexp = %d rvector[] = %6.3f %6.3f %6.3f %s rvector2[] = %6.3f %6.3f %6.3f %s\n",
+				ia+1, atom_type[ia], receptor_types[atom_type[ia]],  rexp[ia],
+				rvector[ia][X], rvector[ia][Y], rvector[ia][Z], ((fabs(1-vect3len(rvector[ia]))>0.005)?"*":" "),
+				rvector2[ia][X], rvector2[ia][Y], rvector2[ia][Z], ((fabs(1-vect3len(rvector2[ia]))>0.005)?"*":" ") );
+			break;
 
+		}
 	}
 }
 
@@ -3122,26 +3124,32 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                                       &&(hbond[ia]==1||hbond[ia]==2||hbond[ia]==6)){/*DS or D1 or AD N3P:modified*/
                                   /* PROBE can be an H-BOND ACCEPTOR, */
                                 if ( !disorder[ia] ) {
-				fprintf(tlogFile, "    ORDER_H HBA %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f racc=%5.2f rsph=%5.2f flag=%d",
-				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, racc, rsph, hbondflag[map_index]);
-				fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
+				   if (outlev>LOGRUNVVV) {
+					fprintf(tlogFile, "    ORDER_H HBA %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f racc=%5.2f rsph=%5.2f flag=%d",
+					gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, racc, rsph, hbondflag[map_index]);
+					fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
+				    }
 				    gridmap[map_index].energy[mapi]
                                       += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * Hramp * (racc + (1. - racc)*rsph);
-				fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
+				    if (outlev>LOGRUNVVV) fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
                                 } else {
 				int indx_h = min(max(0, lookup(r - 1.10)), NEINT-1);
-				fprintf(tlogFile, " DISORDER_H HBA %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f rh=%3.1f Hramp=%5.2f racc=%5.2f rsph=%5.2f flag=%d",
-				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, max(0,r-1.10),Hramp, racc, rsph, hbondflag[map_index]);
-				fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
-				    gridmap[map_index].energy[mapi]
+				   if (outlev>LOGRUNVVV) {
+				   fprintf(tlogFile, " DISORDER_H HBA %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f rh=%3.1f Hramp=%5.2f racc=%5.2f rsph=%5.2f flag=%d",
+				   gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, max(0,r-1.10),Hramp, racc, rsph, hbondflag[map_index]);
+				   fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
+				}
+				gridmap[map_index].energy[mapi] \
                                       += et.e_vdW_Hb[indx_h][hydrogen][map_index] * Hramp * (racc + (1. - racc)*rsph);
-				fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
+				if (outlev>LOGRUNVVV) fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
 
                                 }
 			    } else if ((gridmap[map_index].hbond==4 || gridmap[map_index].hbond==6 ) /*A1, AD: N3P: modified*/
                                              &&(hbond[ia]==1||hbond[ia]==2||hbond[ia]==6)) { /*DS,D1, AD: N3P: modified*/
-				fprintf(tlogFile, " ---ORDER_H HBA %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f racc=%5.2f rsph=%5.2f flag=%d:=1\n",
-				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, racc, rsph, hbondflag[map_index]);
+				if (outlev>LOGRUNVVV) {
+				   fprintf(tlogFile, " ---ORDER_H HBA %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f racc=%5.2f rsph=%5.2f flag=%d:=1\n",
+				   gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, racc, rsph, hbondflag[map_index]);
+				}
                                 hbondmin[map_index] = min( hbondmin[map_index],et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (racc+(1.-racc)*rsph));
                                 hbondmax[map_index] = max( hbondmax[map_index],et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (racc+(1.-racc)*rsph));
                                 hbondflag[map_index] = TRUE;
@@ -3152,19 +3160,23 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                                 if ( disorder[ia] ) {
 				    /* MP experimental @@@@ added 2018-11-20 */
 				int indx_h = min(max(0, lookup(r - 1.10)), NEINT-1);
+				if (outlev>LOGRUNVVV) {
 				   /* debug print: */
-				fprintf(tlogFile, " DISORDER_H HBD %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f rh=%3.1f Hramp=%5.2f rdon=%5.2f rsph=%5.2f flag=%d",
-				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, max(0,r-1.10),Hramp, rdon, rsph, hbondflag[map_index]);
+				   fprintf(tlogFile, " DISORDER_H HBD %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f rh=%3.1f Hramp=%5.2f rdon=%5.2f rsph=%5.2f flag=%d",
+				   gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, max(0,r-1.10),Hramp, rdon, rsph, hbondflag[map_index]);
 
-				fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
-				    gridmap[map_index].energy[mapi]
+				   fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
+				}
+				gridmap[map_index].energy[mapi] \
                                       += et.e_vdW_Hb[indx_h][hydrogen][map_index] \
 					* Hramp * (rdon + (1. - rdon)*rsph);
-				fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
+				if (outlev>LOGRUNVVV)  fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
 
                                 } else {
-				fprintf(tlogFile, "    ORDER_H HBD %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f rdon=%5.2f rsph=%5.2f flag=%d:=1\n",
-				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, rdon, rsph, hbondflag[map_index]);
+				if (outlev>LOGRUNVVV) {
+				   fprintf(tlogFile, "    ORDER_H HBD %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f rdon=%5.2f rsph=%5.2f flag=%d:=1\n",
+				   gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, rdon, rsph, hbondflag[map_index]);
+				}
                                 temp_hbond_enrg = et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (rdon + (1. - rdon)*rsph);
                                 hbondmin[map_index] = min( hbondmin[map_index], temp_hbond_enrg);
                                 hbondmax[map_index] = max( hbondmax[map_index], temp_hbond_enrg);
@@ -3172,12 +3184,16 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 			        }
                             } else {
                                 /*  hbonder PROBE-ia cannot form a H-bond..., */
-				fprintf(tlogFile, "   NO-HBOND MAP %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f rdon=%5.2f rsph=%5.2f flag=%d",
-				gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, rdon, rsph, hbondflag[map_index]);
-				fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
+				if (outlev>LOGRUNVVV) {
+				   fprintf(tlogFile, "   NO-HBOND MAP %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f rdon=%5.2f rsph=%5.2f flag=%d",
+				   gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, rdon, rsph, hbondflag[map_index]);
+				   fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
+				}
 				    gridmap[map_index].energy[mapi]
                                   += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index];
-				fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
+				if (outlev>LOGRUNVVV) {
+				   fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
+				}
                             }
                         } else { /*end of is_hbonder*/
                             /*  PROBE does not form H-bonds..., */
@@ -3226,12 +3242,13 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
             for (int map_index = 0; map_index < num_atom_maps; map_index++) {
                 if (hbondflag[map_index]) {
 		// DEBUG print MP 2019-04 
-	        fprintf(tlogFile, " adjust map[%2d] gridpt %5.1f %5.1f %5.1f E was %8.4f hbondmin=%6.2f hbondmax=%6.2f ",
+		if (outlev>LOGRUNVVV) fprintf(tlogFile, 
+			" adjust map[%2d] gridpt %5.1f %5.1f %5.1f E was %8.4f hbondmin=%6.2f hbondmax=%6.2f ",
 			map_index, c[X], c[Y], c[Z], gridmap[map_index].energy[mapi], hbondmin[map_index], hbondmax[map_index]);
                     gridmap[map_index].energy[mapi] 
                      += ( hbondmin[map_index] + max(hbondmax[map_index],0) );
 		// DEBUG print MP 2019-04 
-	        fprintf(tlogFile, " now %8.4f\n", gridmap[map_index].energy[mapi]);
+	        if (outlev>LOGRUNVVV) fprintf(tlogFile, " now %8.4f\n", gridmap[map_index].energy[mapi]);
                 }
             }
 	    } // end if num_atom_maps>0 or dsolvPE>=0
