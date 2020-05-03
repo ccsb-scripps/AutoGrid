@@ -1,5 +1,5 @@
 #! /bin/bash
-# $Id: configure-universalDarwin,v 1.4 2020/05/01 17:53:53 mp Exp $
+# $Id: configure-universalDarwin,v 1.5 2020/05/03 21:38:59 mp Exp $
 
 # run configure (or ../configure) for universalDarwinNN
 # NN=8  Mac OS X 10.4 Tiger
@@ -86,7 +86,7 @@ echo running env CXXFLAGS="-O3 $isysroot $archlist" \
     LDFLAGS="$archlist" \
     $config $configopts
 
-env CXXFLAGS="-O3 $isysroot $archlist" \
-    LDFLAGS="$archlist" \
+env CXX=clang CXXFLAGS="-Xpreprocessor -fopenmp -O3 $isysroot $archlist" \
+    LDFLAGS="$archlist -lomp -lc++" \
     $config $configopts
 
