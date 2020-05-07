@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.154 2020/05/03 21:41:08 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.155 2020/05/07 21:24:47 mp Exp $
 
  AutoGrid 
 
@@ -700,14 +700,14 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.154 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.155 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  AG_MAX_NBONDS=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
     AG_MAX_ATOMS, AG_MAX_NBONDS, MAX_MAPS, NDIEL, MAX_ATOM_TYPES);
 
-fprintf(logFile,"        e_vdW_Hb table has %8ld entries of size %ld\n",
-  (long)(sizeof et.e_vdW_Hb/sizeof ***et.e_vdW_Hb), (long)(sizeof ***et.e_vdW_Hb));
+fprintf(logFile,"        e_vdW_Hb table allows %8d entries of size %d\n",
+  MAX_ATOM_TYPES*MAX_ATOM_TYPES, NEINT);
 /*
  * Print out MAX_MAPS - maximum number of maps allowed
  */
@@ -1924,6 +1924,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
 #ifdef DEBUG
         printf("receptor_types_ct=%d\n", receptor_types_ct);
 #endif
+
         ParameterEntry * lig_parm = apm_find(ligand_types[ia]);
         for (int i = 0;  i < receptor_types_ct;  i++) {
 	    double cA,cB,Rij,epsij; int xA,xB; /* local copy of gridmap info, for code simplicity */
@@ -1935,6 +1936,14 @@ for (int ia=0; ia<num_atom_maps; ia++){
             Rij = gridmap[ia].nbp_r[i];
             epsij = gridmap[ia].nbp_eps[i];
             ParameterEntry * rec_parm = apm_find(receptor_types[i]);
+	    /* allocate NEINT-long ETableType (float or Real) for e_vdW_Hb[i][ia].
+	     * Note that unlike in AutoDock, [i][j] isn't symmetric with [j][i] so we
+	     * here fill in only one entry
+	     */
+	    et.e_vdW_Hb[i][ia] = (ETableType *) calloc( NEINT, sizeof (ETableType));
+	    if (et.e_vdW_Hb[i][ia] == NULL ) print_error( logFile, FATAL_ERROR, 
+	    "unable to allocate e_vdW_Hb table");
+
             if (use_vina_potential){//from vina: atom_constants.h
 #ifdef DEBUG
                 printf("in use_vina_potential loop ia=%d, i=%d\n", ia,i);
@@ -1959,11 +1968,11 @@ for (int ia=0; ia<num_atom_maps; ia++){
                     //attraction:
                     double delta_e = wt_gauss1 * exp(-pow(((rddist)/0.5),2)) + wt_gauss2 * exp(-pow(((rddist-3.)/2.),2));
                     //at distance 'indx_r': interaction of receptor atomtype 'ia' - ligand atomtype 'i'
-                    et.e_vdW_Hb[indx_r][i][ia] += delta_e; 
+                    et.e_vdW_Hb[i][ia][indx_r] += delta_e; 
                     //repulsion
                     if (rddist<0){
                         delta_e = wt_repulsion*pow(rddist,2);
-                        et.e_vdW_Hb[indx_r][i][ia] += delta_e;
+                        et.e_vdW_Hb[i][ia][indx_r] += delta_e;
                     }
                     //hbond
                     if (gridmap[ia].hbonder[i]>0){ //check that ia-i must be hbonder
@@ -1972,11 +1981,11 @@ for (int ia=0; ia<num_atom_maps; ia++){
 #endif
                         if (rddist<=0.7) { //what about EXACTLY 0.7?
                            delta_e = 1*wt_hydrogen;
-                           et.e_vdW_Hb[indx_r][i][ia] += delta_e;
+                           et.e_vdW_Hb[i][ia][indx_r] += delta_e;
                         }
                         if ((-0.7<rddist) && (rddist<=0.)){
                            delta_e =(rddist/0.7)*wt_hydrogen;
-                           et.e_vdW_Hb[indx_r][i][ia] -= delta_e;
+                           et.e_vdW_Hb[i][ia][indx_r] -= delta_e;
                         }
                     }
                     // hydrophobic: check using index 'i' compared with 'carbon',
@@ -1992,7 +2001,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
                         } else if (rddist<1.5){
                            delta_e = (0.5-rddist)*wt_hydrophobic;
                         }
-                        et.e_vdW_Hb[indx_r][i][ia] += delta_e;
+                        et.e_vdW_Hb[i][ia][indx_r] += delta_e;
                     }
                 } /*for each distance*/ 
 #ifdef DEBUG
@@ -2039,10 +2048,10 @@ for (int ia=0; ia<num_atom_maps; ia++){
 		// these should probably be assert()s - MP TODO
 		if(i>=NUM_RECEPTOR_TYPES) printf("i>=%d %d\n", NUM_RECEPTOR_TYPES,i);
 		if(ia>=MAX_MAPS) printf("ia>=%d %d\n", MAX_MAPS, ia);
-                et.e_vdW_Hb[indx_r][i][ia] = min(EINTCLAMP, (cA/rA - cB/rB));
+                et.e_vdW_Hb[i][ia][indx_r] = min(EINTCLAMP, (cA/rA - cB/rB));
             } /*for each distance*/ 
-            et.e_vdW_Hb[0][i][ia] = EINTCLAMP;
-            et.e_vdW_Hb[NEINT-1][i][ia] = 0.;
+            et.e_vdW_Hb[i][ia][0] = EINTCLAMP;
+            et.e_vdW_Hb[i][ia][NEINT-1] = 0.;
 
 #ifdef PRINT_BEFORE_SMOOTHING
             /*PRINT OUT INITIAL VALUES before smoothing here */
@@ -2060,7 +2069,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
 	    for (int j = 0;  j <= min(500,NEINT);  j += 10) {
                 (void) fprintf( logFile, "%4.1lf", angstrom(j));
                 for (int iat = 0;  iat < receptor_types_ct;  iat++) {
-                    (void) fprintf( logFile, (et.e_vdW_Hb[j][iat][ia]<100000.)?"%9.2lf":"%9.2lg", et.e_vdW_Hb[j][iat][ia]);
+                    (void) fprintf( logFile, (et.e_vdW_Hb[iat][ia][j]<100000.)?"%9.2lf":"%9.2lg", et.e_vdW_Hb[iat][ia][j]);
 				} 
                 (void) fprintf( logFile, "\n");
             } 
@@ -2078,11 +2087,11 @@ for (int ia=0; ia<num_atom_maps; ia++){
                 for (int indx_r = 0;  indx_r < NEINT;  indx_r++) {
                     energy_smooth[indx_r] = 100000.;
                     for (int j = max(0, indx_r - i_smooth);  j < min(NEINT, indx_r + i_smooth + 1);  j++) {
-                      energy_smooth[indx_r] = min(energy_smooth[indx_r], et.e_vdW_Hb[j][i][ia]);
+                      energy_smooth[indx_r] = min(energy_smooth[indx_r], et.e_vdW_Hb[i][ia][j]);
                     }
                 }
                 for (int indx_r = 0;  indx_r < NEINT;  indx_r++) {
-                    et.e_vdW_Hb[indx_r][i][ia] = energy_smooth[indx_r];
+                    et.e_vdW_Hb[i][ia][indx_r] = energy_smooth[indx_r];
                 }
             } /* endif smoothing */
         } /* end regular autogrid potential */
@@ -2105,7 +2114,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
         for (int j = 0;  j <= min(500,NEINT);  j += 10) {
             (void) fprintf( logFile, "%4.2lf", angstrom(j));
             for (int iat = 0;  iat < receptor_types_ct;  iat++) {
-                (void) fprintf( logFile, (et.e_vdW_Hb[j][iat][ia]<100000.)?"%9.5lf":"%9.5lg", et.e_vdW_Hb[j][iat][ia]);
+                (void) fprintf( logFile, (et.e_vdW_Hb[iat][ia][j]<100000.)?"%9.5lf":"%9.5lg", et.e_vdW_Hb[iat][ia][j]);
 		} /* iat */
             (void) fprintf( logFile, "\n");
         } /* j */
@@ -2124,7 +2133,7 @@ for (int ia=0; ia<num_atom_maps; ia++){
         for (int j = 0;  j <= min(500,NEINT);  j += 10) {
             (void) fprintf( logFile, "%4.2lf", angstrom(j));
             for (int iat = 0;  iat < receptor_types_ct;  iat++) {
-                (void) fprintf( logFile, (et.e_vdW_Hb[j][iat][ia]<100000.)?"%9.5lf":"%9.5lg", et.e_vdW_Hb[j][iat][ia]);
+                (void) fprintf( logFile, (et.e_vdW_Hb[iat][ia][j]<100000.)?"%9.5lf":"%9.5lg", et.e_vdW_Hb[iat][ia][j]);
 		} /* iat */
             (void) fprintf( logFile, "\n");
         } /* j */
@@ -3117,7 +3126,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                             /*  current map_index PROBE forms H-bonds... */
 			    double rsph;
                             /* rsph ramps in angular dependence for distances with negative energy */
-                            rsph = et.e_vdW_Hb[indx_n][atom_type[ia]][map_index]/100.;
+                            rsph = et.e_vdW_Hb[atom_type[ia]][map_index][indx_n]/100.;
                             rsph = max(rsph, 0.);
                             rsph = min(rsph, 1.);
                             if ((gridmap[map_index].hbond==3||gridmap[map_index].hbond==5||gridmap[map_index].hbond==6) /*AS or A2 or AD N3P:modified*/ 
@@ -3130,7 +3139,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 					fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
 				    }
 				    gridmap[map_index].energy[mapi]
-                                      += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * Hramp * (racc + (1. - racc)*rsph);
+                                      += et.e_vdW_Hb[atom_type[ia]][map_index][indx_n] * Hramp * (racc + (1. - racc)*rsph);
 				    if (outlev>LOGRUNVVV) fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
                                 } else {
 				int indx_h = min(max(0, lookup(r - 1.10)), NEINT-1);
@@ -3140,7 +3149,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 				   fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
 				}
 				gridmap[map_index].energy[mapi] \
-                                      += et.e_vdW_Hb[indx_h][hydrogen][map_index] * Hramp * (racc + (1. - racc)*rsph);
+                                      += et.e_vdW_Hb[hydrogen][map_index][indx_h] * Hramp * (racc + (1. - racc)*rsph);
 				if (outlev>LOGRUNVVV) fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
 
                                 }
@@ -3150,8 +3159,8 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 				   fprintf(tlogFile, " ---ORDER_H HBA %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f racc=%5.2f rsph=%5.2f flag=%d:=1\n",
 				   gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, racc, rsph, hbondflag[map_index]);
 				}
-                                hbondmin[map_index] = min( hbondmin[map_index],et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (racc+(1.-racc)*rsph));
-                                hbondmax[map_index] = max( hbondmax[map_index],et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (racc+(1.-racc)*rsph));
+                                hbondmin[map_index] = min( hbondmin[map_index],et.e_vdW_Hb[atom_type[ia]][map_index][indx_n] * (racc+(1.-racc)*rsph));
+                                hbondmax[map_index] = max( hbondmax[map_index],et.e_vdW_Hb[atom_type[ia]][map_index][indx_n] * (racc+(1.-racc)*rsph));
                                 hbondflag[map_index] = TRUE;
                             } else if ((gridmap[map_index].hbond==1||gridmap[map_index].hbond==2||gridmap[map_index].hbond==6)&& (hbond[ia]>2||hbond[ia]==6)){/*DS,D1 vs AS,A1,A2,AD N3P:modified*/
 
@@ -3168,7 +3177,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 				   fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
 				}
 				gridmap[map_index].energy[mapi] \
-                                      += et.e_vdW_Hb[indx_h][hydrogen][map_index] \
+                                      += et.e_vdW_Hb[hydrogen][map_index][indx_h] \
 					* Hramp * (rdon + (1. - rdon)*rsph);
 				if (outlev>LOGRUNVVV)  fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
 
@@ -3177,7 +3186,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 				   fprintf(tlogFile, "    ORDER_H HBD %2s map xyz(%5.1f %5.1f %5.1f) map_hbond=%2s atom ia=%2d hbond=%2s r=%3.1f Hramp=%5.2f rdon=%5.2f rsph=%5.2f flag=%d:=1\n",
 				   gridmap[map_index].type, c[X], c[Y], c[Z], hbtname[gridmap[map_index].hbond], ia+1, hbtname[hbond[ia]], r, Hramp, rdon, rsph, hbondflag[map_index]);
 				}
-                                temp_hbond_enrg = et.e_vdW_Hb[indx_n][atom_type[ia]][map_index] * (rdon + (1. - rdon)*rsph);
+                                temp_hbond_enrg = et.e_vdW_Hb[atom_type[ia]][map_index][indx_n] * (rdon + (1. - rdon)*rsph);
                                 hbondmin[map_index] = min( hbondmin[map_index], temp_hbond_enrg);
                                 hbondmax[map_index] = max( hbondmax[map_index], temp_hbond_enrg);
                                 hbondflag[map_index] = TRUE;
@@ -3190,7 +3199,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 				   fprintf(tlogFile, " was %.4f", gridmap[map_index].energy[mapi]);
 				}
 				    gridmap[map_index].energy[mapi]
-                                  += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index];
+                                  += et.e_vdW_Hb[atom_type[ia]][map_index][indx_n];
 				if (outlev>LOGRUNVVV) {
 				   fprintf(tlogFile, " now %.4f\n", gridmap[map_index].energy[mapi]);
 				}
@@ -3198,7 +3207,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                         } else { /*end of is_hbonder*/
                             /*  PROBE does not form H-bonds..., */
 				    gridmap[map_index].energy[mapi]
-                              += et.e_vdW_Hb[indx_n][atom_type[ia]][map_index];
+                              += et.e_vdW_Hb[atom_type[ia]][map_index][indx_n];
                         }/* end hbonder tests */
 
                         if (not use_vina_potential){
