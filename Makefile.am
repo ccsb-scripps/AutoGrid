@@ -1,6 +1,6 @@
 ## Process this file with automake to produce Makefile.in
 
-# $Id: Makefile.am,v 1.34 2019/06/26 19:17:01 mp Exp $
+# $Id: Makefile.am,v 1.35 2020/05/28 21:33:47 mp Exp $
 # 
 # AutoGrid 
 # 
@@ -58,6 +58,7 @@ autogrid4_SOURCES = main.cpp \
        mingw_getrusage.cpp \
        calc_vina_potential.cpp \
        threadlog.cpp \
+       targetfile.cpp \
        stop.cpp \
             atom_parameter_manager.h \
             autoglobal.h \
@@ -82,6 +83,7 @@ autogrid4_SOURCES = main.cpp \
             prototypes.h \
             ranlib.h \
             read_parameter_library.h \
+            targetfile.h \
             times.h \
             timesys.h \
             timesyshms.h \
