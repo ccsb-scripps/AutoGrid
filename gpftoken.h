@@ -1,6 +1,6 @@
 /*
 
- $Id: gpftoken.h,v 1.9 2016/02/16 23:49:27 mp Exp $
+ $Id: gpftoken.h,v 1.10 2020/07/02 21:27:09 mp Exp $
 
  AutoGrid 
 
@@ -50,3 +50,5 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #define GPF_USE_VINA_POTENTIAL	24
 #define GPF_OUTLEV	25
 #define GPF_MAP_RECEPTOR_INTERIOR 26
+#define GPF_CMAP	27
+#define GPF_CONSTRICTION_DISTANCE_CUTOFF	28

@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.155 2020/05/07 21:24:47 mp Exp $
+ $Id: main.cpp,v 1.156 2020/07/02 21:27:09 mp Exp $
 
  AutoGrid 
 
@@ -317,7 +317,9 @@ MapObject *gridmap = NULL; /* was statically assigned  MapObject gridmap[MAX_MAP
 #define mapindex2(ix,iy) ( (ix) + ((iy)*n1[X]) )
 #define mapindex(ix,iy,iz) ( (ix) + n1[X] * ( (iy) + n1[Y] * (iz) ) ) 
 
+// two kinds of "distance" grids, distinct from the affinity grids
 static double *r_min; /* allocated full [z][y][x] for floating grid */
+static int *c_count; /* allocated full [z][y][x] for constriction grid */
 
 /*variables for RECEPTOR:*/
 /*each type is now at most two characters, eg 'NA\0'*/
@@ -503,6 +505,7 @@ int ne[XYZ]; /* floor (nelements[i]/2) */
 /* MAX_CHARS: made static so will have strlen == 0 if not set */
 static char AVS_fld_filename[MAX_CHARS];
 static char floating_grid_filename[MAX_CHARS];
+static char constriction_grid_filename[MAX_CHARS];
 static char host_name[MAX_CHARS];
 static char receptor_filename[MAX_CHARS];
 static char xyz_filename[MAX_CHARS];
@@ -528,7 +531,8 @@ static const char xyz[] = "xyz"; // used to print headings
 static FILE *receptor_fileptr,
      *AVS_fld_fileptr,
      *xyz_fileptr,
-     *floating_grid_fileptr;
+     *floating_grid_fileptr,
+     *constriction_grid_fileptr;
 
 /*for NEW3 desolvation terms*/
 double solpar_q = .01097;  /*unweighted value restored 3:9:05 */
@@ -561,7 +565,12 @@ int num_atom_maps = 0; /* number of ligand atom types, from "ligand_types" keywo
 int num_maps = 0; /* number of "map", "elecmap", or "dsolvmap" keywords handled so far */
 int elecPE = -1; /* index (num_maps value) for electrostatic map, if requested */
 int dsolvPE = -1; /* index (num_maps value) for desolvation map, if requested */
+
+int num_distance_maps=0; // floating grid and/or constriction grid
 bool floating_grid = FALSE; // Untested for a long time - M Pique 2015
+bool constriction_grid = FALSE; // Added July 2020 - M Pique
+double constriction_distance_cutoff = 7.5; // change with constriction_distance_cutoff GPF statement
+
 bool dddiel = FALSE, disorder_h = FALSE;
 bool map_receptor_interior = FALSE; // default is to fast-skip over grid points within the receptor
  // set the value to be reported in the atomic affinity maps for interior grid points
@@ -700,7 +709,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.155 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.156 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  AG_MAX_NBONDS=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1192,19 +1201,20 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
          * the number of ligand atom types, 
 	 * plus (optionally) 1 for the electrostatic map 
 	 * plus (optionally) 1 for the desolvation map.
-	 * plus (optionally) 1 for the floating grid map.
+	 * Does not count the (optional)  floating grid map.
+	 * Does not count the (optional)  constriction grid map.
          * AutoDock can only read in MAX_MAPS maps, which must include
-         * the ligand atom maps and electrostatic, desolvation, and floating grid maps */
+         * the ligand atom maps and electrostatic, desolvation, floating grid, and constriction maps */
       
         /* Check to see if there is enough memory to store these map objects */
-        gridmap = (MapObject *)calloc(sizeof(MapObject), num_atom_maps+3);
+        gridmap = (MapObject *)calloc(sizeof(MapObject), num_atom_maps+2);
 
         if ( gridmap == NULL ) {
             (void) sprintf( message, "Too many ligand atom types; there is not enough memory to create these maps.  Try using fewer atom types than %d.\n", num_atom_maps);
             print_error( logFile, FATAL_ERROR, message);
         }
 	else fprintf(logFile, "Allocated space for %d gridmap objects\n",
-  	 num_atom_maps+3);
+  	 num_atom_maps+2);
 
 
 	nthreads = min(MAXTHREADS, min(n1[Z], omp_get_max_threads()));
@@ -1453,8 +1463,8 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
          * In this example, num_atom_maps would be 5, 
          * so if num_maps is > 4, there is something wrong in the number of
          * "map" keywords. */
-        if (num_maps+1 > num_atom_maps) {
-             (void) sprintf(message, "Too many \"map\" keywords (%d);  the \"ligand_types\" command declares only %d atom types.\nRemove a \"map\" keyword from the GPF.\n", num_maps + 1, num_atom_maps);
+        if (num_maps > num_atom_maps + ((elecPE>-1)?1:0) + ((dsolvPE>-1)?1:0)) {
+             (void) sprintf(message, "Too many \"map\" keywords (%d);  the \"ligand_types\" command declares only %d atom types.\nRemove a \"map\" keyword from the GPF.\n", num_maps, num_atom_maps);
             print_error( logFile, FATAL_ERROR, message );
         }
         /* Read in the filename for this grid map */ /* GPF_MAP */
@@ -1542,6 +1552,13 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
 /******************************************************************************/
 
+    case GPF_CONSTRICTION_DISTANCE_CUTOFF:
+        (void) sscanf( GPF_line, "%*s %lf", &constriction_distance_cutoff);
+        (void) fprintf( logFile, "\nConstriction map distance cutoff will be %.3lf Angstrom\n\n", constriction_distance_cutoff);
+        break;
+
+/******************************************************************************/
+
     case GPF_OUTLEV:
         (void) sscanf( GPF_line, "%*s %d", &outlev);
         (void) fprintf( logFile, "\nOutput level: %d\n\n", outlev);
@@ -1609,17 +1626,37 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 /******************************************************************************/
 
     case GPF_FMAP:
+	if (floating_grid) print_error( logFile, FATAL_ERROR, "Muliple requests for floating map are not allowed.");
         (void) sscanf( GPF_line, "%*s %s", floating_grid_filename);
 	if ( 0==strlen(floating_grid_filename)) {
-            print_error( logFile, FATAL_ERROR, "No name specified for desolvation map");
+            print_error( logFile, FATAL_ERROR, "No name specified for floating map");
 	}
         if ( (floating_grid_fileptr = ad_fopen( floating_grid_filename, "w", logFile)) == NULL) {
             (void) sprintf( message, "can't open file \"%s\" for writing floating map.\n", floating_grid_filename);
             print_error( logFile, FATAL_ERROR, message );
         }
         (void) fprintf( logFile, "\nFloating Grid file name = %s\n", floating_grid_filename);
-	/* do NOT increment num_maps because (for unknown reasons) this grid isn't counted - MPique */
+	/* do NOT increment num_maps because (for unclear reasons) this grid isn't counted - MPique */
         floating_grid = TRUE;
+	num_distance_maps++;
+        break;
+
+/******************************************************************************/
+
+    case GPF_CMAP:
+	if (constriction_grid) print_error( logFile, FATAL_ERROR, "Muliple requests for constriction map are not allowed.");
+        (void) sscanf( GPF_line, "%*s %s", constriction_grid_filename);
+	if ( 0==strlen(constriction_grid_filename)) {
+            print_error( logFile, FATAL_ERROR, "No name specified for constriction map");
+	}
+        if ( (constriction_grid_fileptr = ad_fopen( constriction_grid_filename, "w", logFile)) == NULL) {
+            (void) sprintf( message, "can't open file \"%s\" for writing constriction map.\n", constriction_grid_filename);
+            print_error( logFile, FATAL_ERROR, message );
+        }
+        (void) fprintf( logFile, "\nConstriction Grid file name = %s\n", constriction_grid_filename);
+	/* do NOT increment num_maps because (for unclear reasons) this grid isn't counted - MPique */
+        constriction_grid = TRUE;
+	num_distance_maps++;
         break;
 
 /******************************************************************************/
@@ -1746,7 +1783,7 @@ for(int p=0;p<nthreads;p++) {
 }
 #endif
 
-/* Map files checkpoint  (number of maps, desolv and elec maps )    SF  */
+/* Map files checkpoint  (number of maps, desolv, elec maps, optional distance maps )    SF  */
 
 /* Number of maps defined for atom types*/
 //DEBUG fprintf(logFile,"\n  num_atom_maps %d,  num_maps-2 %d\n", num_atom_maps, num_maps-2);fflush(logFile);
@@ -1783,7 +1820,16 @@ if ( floating_grid ) {
 	    for(int i=0;i<n1[X]*n1[Y]*n1[Z];i++) r_min[i] = BIG;
 }
 else {
-    // (void) fprintf( logFile, "\n\nNo Floating Grid was requested.\n");
+     (void) fprintf( logFile, "\n\nNo Floating Grid was requested.\n");
+}
+if ( constriction_grid ) {
+            c_count = (int *) calloc( n1[X]*n1[Y]*n1[Z], sizeof(*c_count));
+            if(NULL==c_count) {	
+		print_error(logFile, FATAL_ERROR, "unable to allocate Constriction grid c_count storage");
+	    }
+}
+else {
+    (void) fprintf( logFile, "\n\nNo Constriction Grid was requested.\n");
 }
 
 if ( AVS_fld_fileptr == NULL ) {
@@ -1805,7 +1851,7 @@ if ( AVS_fld_fileptr == NULL ) {
 (void) fprintf( AVS_fld_fileptr, "dim2=%d\t\t\t# number of y-elements\n", n1[Y]);
 (void) fprintf( AVS_fld_fileptr, "dim3=%d\t\t\t# number of z-elements\n", n1[Z]);
 (void) fprintf( AVS_fld_fileptr, "nspace=3\t\t# number of physical coordinates per point\n");
-(void) fprintf( AVS_fld_fileptr, "veclen=%d\t\t# number of affinity values at each point\n", num_maps+(floating_grid?1:0));
+(void) fprintf( AVS_fld_fileptr, "veclen=%d\t\t# number of affinity values at each point\n", num_maps+num_distance_maps);
 (void) fprintf( AVS_fld_fileptr, "data=float\t\t# data type (byte, integer, float, double)\n");
 (void) fprintf( AVS_fld_fileptr, "field=uniform\t\t# field type (uniform, rectilinear, irregular)\n");
 for (int i = 0;  i < XYZ;  i++) {
@@ -1819,7 +1865,12 @@ if(elecPE>=0)
 if(dsolvPE>=0)
 (void) fprintf( AVS_fld_fileptr, "label=Desolvation\t# component label for variable %d\n", dsolvPE+1);
 if (floating_grid) {
-    (void) fprintf( AVS_fld_fileptr, "label=Floating_Grid\t# component label for variable %d\n", num_maps);
+    (void) fprintf( AVS_fld_fileptr, "label=Floating_Grid\t# component label for variable %d\n", 
+		num_atom_maps+(elecPE>=0)+(dsolvPE>=0)+1 );
+}
+if (constriction_grid) {
+    (void) fprintf( AVS_fld_fileptr, "label=Constriction_Grid\t# component label for variable %d\n", 
+		num_atom_maps+(elecPE>=0)+(dsolvPE>=0)+ (floating_grid?1:0)+1 );
 }
 (void) fprintf( AVS_fld_fileptr, "#\n# location of affinity grid files and how to read them\n#\n");
 for (int i = 0;  i < num_atom_maps;  i++) {
@@ -1828,9 +1879,12 @@ for (int i = 0;  i < num_atom_maps;  i++) {
 if(elecPE>=0)
 (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_atom_maps + 1, gridmap[elecPE].map_filename);
 if(dsolvPE>=0)
-(void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_atom_maps + 2, gridmap[dsolvPE].map_filename);
+(void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_atom_maps + ((elecPE>=0)?2:1), gridmap[dsolvPE].map_filename);
 if (floating_grid) {
     (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_maps+1, floating_grid_filename);
+}
+if (constriction_grid) {
+    (void) fprintf( AVS_fld_fileptr, "variable %d file=%s filetype=ascii skip=6\n", num_maps+(floating_grid?1:0)+1, constriction_grid_filename);
 }
 (void) fclose( AVS_fld_fileptr);
 AVS_fld_fileptr = NULL;
@@ -2618,7 +2672,7 @@ if (disorder_h) {
 
 (void) fprintf( logFile, "Beginning grid calculations.\n");
 (void) fprintf( logFile, "\nCalculating %d grid%s over %d element%s, around %d receptor atom%s.\n\n",
-num_maps+(floating_grid?1:0), plural(num_maps+(floating_grid?1:0)),
+num_maps+num_distance_maps, plural(num_maps+num_distance_maps),
 num_grid_points_per_map, plural(num_grid_points_per_map),
 num_receptor_atoms, plural(num_receptor_atoms));
 (void) fflush( logFile);
@@ -2645,6 +2699,14 @@ if (floating_grid) {
     (void) fprintf( floating_grid_fileptr, "SPACING %.3lf\n", spacing);
     (void) fprintf( floating_grid_fileptr, "NELEMENTS %d %d %d\n", nelements[X], nelements[Y], nelements[Z]);
     (void) fprintf( floating_grid_fileptr, "CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
+}
+if (constriction_grid) {
+    (void) fprintf( constriction_grid_fileptr, "GRID_PARAMETER_FILE %s\n", grid_param_fn );
+    (void) fprintf( constriction_grid_fileptr, "GRID_DATA_FILE %s\n", AVS_fld_filename);
+    (void) fprintf( constriction_grid_fileptr, "MACROMOLECULE %s\n", receptor_filename);
+    (void) fprintf( constriction_grid_fileptr, "SPACING %.3lf\n", spacing);
+    (void) fprintf( constriction_grid_fileptr, "NELEMENTS %d %d %d\n", nelements[X], nelements[Y], nelements[Z]);
+    (void) fprintf( constriction_grid_fileptr, "CENTER %.3lf %.3lf %.3lf\n", center[X], center[Y], center[Z]);
 }
 
 if(outlev>=LOGFORADT) {
@@ -2748,9 +2810,20 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 // M Sanner 2015 use BHTree to find atoms very close to grid point: 
 //  write electrostatic map as 0
 //  write floating grid map as collision distance
+//  write constriction grid map as count of atoms within constriction_distance_cutoff
 	    bool is_collision = FALSE;
 #ifdef USE_BHTREE
 	    
+	     if (constriction_grid) {
+	       int bhTreeNbIndices = findBHcloseAtomsdist(bht, fcc, 
+	     	constriction_distance_cutoff,
+	     	closeAtomsIndices[thread], closeAtomsDistances[thread],
+	     	num_receptor_atoms);
+	        c_count[mapi] = bhTreeNbIndices;
+// DEBUG
+//		  fprintf(tlogFile, "\n CMAP xyz= %7.3f %7.3f %7.3f  %2d atom within %5.3f Ang\n",
+//		fcc[X], fcc[Y], fcc[Z], bhTreeNbIndices, constriction_distance_cutoff);
+	     }
          
 	     if ((! map_receptor_interior) && (elecPE>=0 || floating_grid)) {
 	       // check for collision with any receptor atoms
@@ -3335,6 +3408,14 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 	            }
 		}
 	 }
+         if (constriction_grid) {
+		for( int a=0; a<n1[X]*n1[Y]*n1[Z]; a++) {
+                    if ((!problem_wrt)&&(fprintf(constriction_grid_fileptr, "%d\n",
+			c_count[a]) <0)) {
+                    problem_wrt = TRUE;
+	            }
+		}
+	 }
 
         if (problem_wrt) {
           (void) sprintf( message, "Problems writing grid maps - there may not be enough disk space.\n");
@@ -3377,6 +3458,9 @@ for (int i = 0;  i < num_maps;  i++) {
 }
 if (floating_grid) {
     (void) fclose(floating_grid_fileptr);
+}
+if (constriction_grid) {
+    (void) fclose(constriction_grid_fileptr);
 }
 
 /* Free up the memory allocated to the gridmap objects... */

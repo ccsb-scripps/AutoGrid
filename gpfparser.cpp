@@ -1,6 +1,6 @@
 /*
 
- $Id: gpfparser.cpp,v 1.16 2016/03/25 18:42:04 mp Exp $
+ $Id: gpfparser.cpp,v 1.17 2020/07/02 21:27:09 mp Exp $
 
  AutoGrid 
 
@@ -147,6 +147,11 @@ int gpfparser( char line[LINE_LEN] )
     } else if (streq(c,"map_receptor_interior")) {
         token = GPF_MAP_RECEPTOR_INTERIOR;
 
+    } else if (streq(c,"cmap") || streq(c,"constriction_map")) {
+        token = GPF_CMAP;
+
+    } else if (streq(c,"constriction_distance_cutoff")) {
+        token = GPF_CONSTRICTION_DISTANCE_CUTOFF;
     }
     return(token);
 }
