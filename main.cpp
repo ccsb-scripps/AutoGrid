@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.156 2020/07/02 21:27:09 mp Exp $
+ $Id: main.cpp,v 1.157 2020/08/10 19:41:08 mp Exp $
 
  AutoGrid 
 
@@ -339,11 +339,10 @@ int lc; /* receptor pdbqt file line counter */
 char * receptor_atom_types[NUM_RECEPTOR_TYPES];
 
 // M Sanner 2015 BHTREE
+const double  BH_collision_dist=1.5; // supported only with USE_BHTREE so far, but defined here anyway for simplicity
 #ifdef USE_BHTREE
  BHtree *bht;
  BHpoint **BHat;
-// too big I think - MP #define BH_collision_dist 2.0
-#define BH_collision_dist 1.5
 // MP next is strictly for debug
 //#define BH_collision_dist 3.0
 #define BH_cutoff_dist NBC
@@ -572,7 +571,7 @@ bool constriction_grid = FALSE; // Added July 2020 - M Pique
 double constriction_distance_cutoff = 7.5; // change with constriction_distance_cutoff GPF statement
 
 bool dddiel = FALSE, disorder_h = FALSE;
-bool map_receptor_interior = FALSE; // default is to fast-skip over grid points within the receptor
+bool map_receptor_interior = FALSE; // default with USE_BHTREE is to fast-skip over grid points within the receptor
  // set the value to be reported in the atomic affinity maps for interior grid points
 #define INTERIOR_VALUE  9999.
 int fprintf_retval = 0;
@@ -709,7 +708,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.156 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.157 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  AG_MAX_NBONDS=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1617,9 +1616,13 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
              "Mapping receptor interior instead of reporting collision if nearer than %.2f to any atom.", BH_collision_dist);
 	}
 	else {
+#ifdef USE_BHTREE
 	   map_receptor_interior = FALSE;
            (void) fprintf( logFile, 
              "Reporting collision if nearer than %.2f to any atom.", BH_collision_dist);
+#else
+		print_error( logFile, FATAL_ERROR, "'map_receptor_interior off'  is supported only with USE_BHTREE.");
+#endif
 	}
 	break;
 
@@ -2853,11 +2856,17 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 
             /*
              *  Loop 1 of 2:
-	     *  Performed only if electrostatic or floating maps are requested.
+             *  Do all Receptor atoms, regardless of distance cutoff.
+	     *  Performed only if electrostatic or floating maps are requested,
+	     *  or a constriction_grid is requested and USE_BHTREE isn't defined,
 	     *  and the grid point is not in collision with any receptor atom.
-             *  Do all Receptor atoms, regardless of distance cutoff
+             *  Note that 'is_collision' is always false if USE_BHTREE isn't defined.
              */
-            if( (!is_collision) && (elecPE>=0 || floating_grid)) {
+            if( (!is_collision) && (elecPE>=0 || floating_grid 
+#ifndef USE_BHTREE
+		|| constriction_grid  
+#endif
+		) ) {
 
 	      double e =  0; /* local accumumlator for this grid point */
 	      for (int ia = 0;  ia < num_receptor_atoms;  ia++) {
@@ -2875,6 +2884,11 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                     /* Calculate the so-called "Floating Grid"... */
                     r_min[mapi] = min(r, r_min[mapi]);
                 }
+#ifndef USE_BHTREE
+                if (constriction_grid && r <= constriction_distance_cutoff) {
+                   c_count[mapi]++;
+                }
+#endif
 
                 /* elecPE is the next-to-last last grid map, i.e. electrostatics */
                 /* if use_vina_potential, electPE is -1 */
