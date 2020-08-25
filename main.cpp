@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.157 2020/08/10 19:41:08 mp Exp $
+ $Id: main.cpp,v 1.158 2020/08/25 20:26:43 mp Exp $
 
  AutoGrid 
 
@@ -88,6 +88,8 @@ extern Real idct;
 
 // convenience macro for plural counts in log files:
 #define plural(i) ( (i)==1?"":"s" )
+// convenience macro for string equality
+#define streq(a,b) (strcmp((a),(b))==0)
 
 // macros and private functions for 3-D distance work:
 #define xyzxyzdist(a,b) ( hypot( ((a)[X]-(b)[X]), hypot(((a)[Y]-(b)[Y]), ((a)[Z]-(b)[Z]))))
@@ -270,7 +272,7 @@ bool parameter_library_found = FALSE;
 /* LIGAND: 
  *  maximum is MAX_MAPS (really ATOM_MAPS) */
 /*each type is now at most two characters plus '\0'*/
-char ligand_types[MAX_MAPS][3];
+char ligand_types[MAX_MAPS][3]; /* one entry for each atom map, so two for separate_desolvation_maps */
 
 /*array of ptrs used to parse input line*/
 char * ligand_atom_types[MAX_MAPS];
@@ -560,10 +562,12 @@ const double factor=332.0L;  /* Used to convert between calories and SI units */
 
 float timeRemaining = 0.;
 
-int num_atom_maps = 0; /* number of ligand atom types, from "ligand_types" keyword */
+int num_atom_types = 0; /* number of ligand atom types, from "ligand_types" keyword */
+int num_atom_maps = 0; /* number of ligand atom maps, from "ligand_types" keyword but larger if separate_desolvation_maps */
 int num_maps = 0; /* number of "map", "elecmap", or "dsolvmap" keywords handled so far */
 int elecPE = -1; /* index (num_maps value) for electrostatic map, if requested */
 int dsolvPE = -1; /* index (num_maps value) for desolvation map, if requested */
+bool separate_desolvation_maps = FALSE; /* write affinity and desolvation into successive maps instead of summing */
 
 int num_distance_maps=0; // floating grid and/or constriction grid
 bool floating_grid = FALSE; // Untested for a long time - M Pique 2015
@@ -708,7 +712,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.157 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.158 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  AG_MAX_NBONDS=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1168,12 +1172,24 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             print_error( logFile, FATAL_ERROR, 
             "You need to set the \"npts\" before setting the ligand types\".\n" );
         }
-        num_atom_maps = parsetypes(GPF_line, ligand_atom_types, MAX_ATOM_TYPES);
-        for (int i=0; i<num_atom_maps; i++) {
-            strcpy(ligand_types[i], ligand_atom_types[i]);
-#ifdef DEBUG
-            (void) fprintf(logFile, "%d %s ->%s\n",i, ligand_atom_types[i], ligand_types[i]);
+        num_atom_types = parsetypes(GPF_line, ligand_atom_types, MAX_ATOM_TYPES);
+	/* if separate_desolvation_maps is on, each non-covalent type becomes two maps */
+        for (int i=0; i<num_atom_types; i++) {
+            strcpy(ligand_types[num_atom_maps], ligand_atom_types[i]);
+// debug for separate_desolvation_maps:
+#define DEBUGSDM
+#ifdef DEBUGSDM
+            (void) fprintf(logFile, "%d '%s' ->'%s' vdW/Hb/cov\n",i, ligand_atom_types[i], ligand_types[num_atom_maps]);
 #endif
+	    num_atom_maps++;
+            if ((!streq(ligand_atom_types[i],"Z")) /* if not covalent */
+	    && separate_desolvation_maps) {
+		strcpy(ligand_types[num_atom_maps], ligand_atom_types[i]);
+#ifdef DEBUGSDM
+            (void) fprintf(logFile, "%d '%s' ->'%s' desolv\n",i, ligand_atom_types[i], ligand_types[num_atom_maps]);
+#endif
+		num_atom_maps++;
+		}
         }
 	// MPique note: the rest of this block should be moved to
 	// after the whole GPF is read; this would remove the need for this
@@ -1191,13 +1207,14 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             else {
                  // return error here
 		char message[1000];
-                (void) sprintf( message, "unknown ligand atom type %s\nadd parameters for it to the parameter library first!\n", ligand_atom_types[i]);
+                (void) sprintf( message, "unknown ligand atom type %s\nadd parameters for it to the parameter library first!\n", ligand_types[i]);
                  print_error(logFile, FATAL_ERROR, message);
              }
         };
 
         /* num_maps is the number of maps to be created:
-         * the number of ligand atom types, 
+         * the number of ligand atom types, including covalent pseudo-type,
+         * with two maps for each non-covalent type if 'separate_desolvation_maps' is on,
 	 * plus (optionally) 1 for the electrostatic map 
 	 * plus (optionally) 1 for the desolvation map.
 	 * Does not count the (optional)  floating grid map.
@@ -1280,10 +1297,10 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             gridmap[i].solpar_probe = found_parm->solpar;
             gridmap[i].vol_probe = found_parm->vol;
             gridmap[i].Rij = found_parm->Rij;
-            gridmap[i].epsij = found_parm->epsij; // already weighted by coeff_vdW, see read_parameter_library.cc
+            gridmap[i].epsij = found_parm->epsij_unweighted * AD4.coeff_vdW; // not already weighted by coeff_vdW, see read_parameter_library.cc
             gridmap[i].hbond = found_parm->hbond;
             gridmap[i].Rij_hb = found_parm->Rij_hb;
-            gridmap[i].epsij_hb = found_parm->epsij_hb; // already weighted by coeff_hbond, see read_parameter_library.cc
+            gridmap[i].epsij_hb = found_parm->epsij_hb_unweighted * AD4.coeff_hbond; // not already weighted by coeff_hbond, see read_parameter_library.cc
             if (gridmap[i].hbond>0){       //enum: NON,DS,D1,AS,A1,A2,AD /* N3P added AD type*/
                 gridmap[i].is_hbonder=TRUE;}
 
@@ -1337,7 +1354,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 	if(num_atom_maps>0)
 	(void) fprintf( logFile, "\nAtom type names for ligand atom types 1-%d used for ligand-atom affinity grid maps:\n\n", num_atom_maps);
         for (int i = 0;  i < num_atom_maps;  i++) {
-            (void) fprintf( logFile, "\t\t\tAtom type number %d corresponds to atom type name \"%s\".\n", gridmap[i].map_index, gridmap[i].type);
+            (void) fprintf( logFile, "\t\t\tAtom type number %d corresponds to atom type name \"%s\".\n", gridmap[i].map_index+1, gridmap[i].type);
             if (gridmap[i].is_covalent == TRUE) {
               (void) fprintf( logFile, "\nAtom type number %d will be used to calculate a covalent affinity grid map\n\n", i + 1);
             }
@@ -1558,6 +1575,17 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
 
 /******************************************************************************/
 
+    case GPF_SEPARATE_DESOLVATION_MAPS:
+	if (num_atom_maps>0) {
+		print_error( logFile, FATAL_ERROR, "\"separate_desolvation_maps\" must be specified before \"ligand_types\"");
+	}
+	separate_desolvation_maps=TRUE;
+        (void) fprintf( logFile, 
+	   "\nTwo maps will be created for each non-covalent ligand atom type: vdW/Hb and charge-independent desolvation\n");
+        break;
+
+/******************************************************************************/
+
     case GPF_OUTLEV:
         (void) sscanf( GPF_line, "%*s %d", &outlev);
         (void) fprintf( logFile, "\nOutput level: %d\n\n", outlev);
@@ -1661,6 +1689,33 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
         constriction_grid = TRUE;
 	num_distance_maps++;
         break;
+
+/******************************************************************************/
+
+    case GPF_COEFF_VDW:
+	/* change vdW coefficient */
+        sscanf( GPF_line, "%*s " FDFMT, &AD4.coeff_vdW);
+	break;
+
+    case GPF_COEFF_HBOND:
+	/* change hbond coefficient */
+        sscanf( GPF_line, "%*s " FDFMT, &AD4.coeff_hbond);
+	break;
+
+    case GPF_COEFF_ESTAT:
+	/* change Electrostatic coefficient */
+        sscanf( GPF_line, "%*s " FDFMT, &AD4.coeff_estat);
+	break;
+
+    case GPF_COEFF_DESOLV:
+	/* change Desolvation coefficient */
+        sscanf( GPF_line, "%*s " FDFMT, &AD4.coeff_desolv);
+	break;
+
+    case GPF_COEFF_TORS:
+	/* change torsion coefficient - not currently used in AutoGrid */
+        sscanf( GPF_line, "%*s " FDFMT, &AD4.coeff_tors);
+	break;
 
 /******************************************************************************/
 
@@ -1862,6 +1917,10 @@ for (int i = 0;  i < XYZ;  i++) {
 }
 for (int i = 0;  i < num_atom_maps;  i++) {
     (void) fprintf( AVS_fld_fileptr, "label=%s-affinity\t# component label for variable %d\n", gridmap[i].type, (i + 1));
+    if (separate_desolvation_maps && !gridmap[i].is_covalent) {
+	    i++;
+	    (void) fprintf( AVS_fld_fileptr, "label=%s-desolv\t# component label for variable %d\n", gridmap[i].type, (i + 1));
+	}
 } /* i */
 if(elecPE>=0)
 (void) fprintf( AVS_fld_fileptr, "label=Electrostatics\t# component label for variable %d\n", elecPE+1);
@@ -3201,6 +3260,12 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
                  * Sum pairwise interactions between each probe
                  * at this grid point (c[0:2])
                  * and the current receptor atom, ia...
+                 *
+                 * Note: if option "separate_desolvation_maps" is on,
+                 *  (1) map_index will be incremented inside this loop.
+                 *  (2) map_index is the vdW/Hb map, whereas map_index+1
+                 *      is the paired charge-independent desolvation map.
+                 *      MPique 2020
                  */
                 for (int map_index = 0;  map_index < num_atom_maps;  map_index++) {
 
@@ -3301,6 +3366,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 
                         /* add desolvation energy  */
                         /* forcefield desolv coefficient/weight in sol_fn*/
+				if (separate_desolvation_maps) map_index++;
 				    gridmap[map_index].energy[mapi]
 				  += gridmap[map_index].solpar_probe * vol[ia]*et.sol_fn[indx_r] + 
 				(solpar[ia]+solpar_q*fabs(charge[ia]))*gridmap[map_index].vol_probe*et.sol_fn[indx_r];
@@ -3346,7 +3412,7 @@ fprintf(tlogFile, "Starting plane iz=%d icoord=%d z=%8.2f thread=%d\n", iz,icoor
 		// DEBUG print MP 2019-04 
 	        if (outlev>LOGRUNVVV) fprintf(tlogFile, " now %8.4f\n", gridmap[map_index].energy[mapi]);
                 }
-            }
+            } // map_index loop for hbondflag handling
 	    } // end if num_atom_maps>0 or dsolvPE>=0
         } /* ix/icoord[X] loop */
     } /* iy/icoord[Y] loop */

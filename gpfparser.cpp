@@ -1,6 +1,6 @@
 /*
 
- $Id: gpfparser.cpp,v 1.17 2020/07/02 21:27:09 mp Exp $
+ $Id: gpfparser.cpp,v 1.18 2020/08/25 20:26:43 mp Exp $
 
  AutoGrid 
 
@@ -108,6 +108,21 @@ int gpfparser( char line[LINE_LEN] )
     } else if (streq(c,"covalentmap")) {
         token = GPF_COVALENTMAP;
 
+    } else if (streq(c,"coeff_vdw")) {
+        token = GPF_COEFF_VDW;
+
+    } else if (streq(c,"coeff_hbond")) {
+        token = GPF_COEFF_HBOND;
+
+    } else if (streq(c,"coeff_estat")) {
+        token = GPF_COEFF_ESTAT;
+
+    } else if (streq(c,"coeff_desolv")) {
+        token = GPF_COEFF_DESOLV;
+
+    } else if (streq(c,"coeff_tors")) {
+        token = GPF_COEFF_TORS;
+
     } else if (streq(c,"nbp_coeffs")) {
         token = GPF_NBP_COEFFS;
 
@@ -152,6 +167,9 @@ int gpfparser( char line[LINE_LEN] )
 
     } else if (streq(c,"constriction_distance_cutoff")) {
         token = GPF_CONSTRICTION_DISTANCE_CUTOFF;
+
+    } else if (streq(c,"separate_desolvation_maps")) {
+        token = GPF_SEPARATE_DESOLVATION_MAPS;
     }
     return(token);
 }

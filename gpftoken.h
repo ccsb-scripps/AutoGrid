@@ -1,6 +1,6 @@
 /*
 
- $Id: gpftoken.h,v 1.10 2020/07/02 21:27:09 mp Exp $
+ $Id: gpftoken.h,v 1.11 2020/08/25 20:26:44 mp Exp $
 
  AutoGrid 
 
@@ -52,3 +52,9 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #define GPF_MAP_RECEPTOR_INTERIOR 26
 #define GPF_CMAP	27
 #define GPF_CONSTRICTION_DISTANCE_CUTOFF	28
+#define GPF_SEPARATE_DESOLVATION_MAPS	29
+#define GPF_COEFF_VDW		30
+#define GPF_COEFF_HBOND		31
+#define GPF_COEFF_ESTAT		32
+#define GPF_COEFF_DESOLV	33
+#define GPF_COEFF_TORS		34
