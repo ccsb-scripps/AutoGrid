@@ -1,6 +1,6 @@
 /*
 
- $Id: mainpost1.28.cpp,v 1.158 2020/08/25 20:26:43 mp Exp $
+ $Id: mainpost1.28.cpp,v 1.159 2021/04/02 19:02:07 mp Exp $
 
  AutoGrid 
 
@@ -712,7 +712,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.158 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.159 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  AG_MAX_NBONDS=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -1298,9 +1298,11 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             gridmap[i].vol_probe = found_parm->vol;
             gridmap[i].Rij = found_parm->Rij;
             gridmap[i].epsij = found_parm->epsij_unweighted * AD4.coeff_vdW; // not already weighted by coeff_vdW, see read_parameter_library.cc
+            //gridmap[i].epsij = found_parm->epsij; // already weighted by coeff_vdW, see read_parameter_library.cc
             gridmap[i].hbond = found_parm->hbond;
             gridmap[i].Rij_hb = found_parm->Rij_hb;
             gridmap[i].epsij_hb = found_parm->epsij_hb_unweighted * AD4.coeff_hbond; // not already weighted by coeff_hbond, see read_parameter_library.cc
+            //gridmap[i].epsij_hb = found_parm->epsij_hb; // already weighted by coeff_hbond, see read_parameter_library.cc
             if (gridmap[i].hbond>0){       //enum: NON,DS,D1,AS,A1,A2,AD /* N3P added AD type*/
                 gridmap[i].is_hbonder=TRUE;}
 
@@ -1311,7 +1313,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
             for (int j=0; j<receptor_types_ct; j++){
                 found_parm = apm_find(receptor_types[j]);
                 gridmap[i].nbp_r[j] = (gridmap[i].Rij + found_parm->Rij)/2.;  // arithmetic mean
-		gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij * found_parm->epsij); // geometric mean
+		gridmap[i].nbp_eps[j] = sqrt(gridmap[i].epsij * found_parm->epsij_unweighted * AD4.coeff_vdW); // geometric mean
                 gridmap[i].xA[j] = 12;
                 /*setup hbond dependent stuff*/
                 gridmap[i].xB[j] = 6;
@@ -1325,7 +1327,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                      * parm_data.dat file as Rii and epsii for heavy atom
                      * hb factors*/
                     gridmap[i].nbp_r[j] = gridmap[i].Rij_hb;
-                    gridmap[i].nbp_eps[j] = gridmap[i].epsij_hb;
+                    gridmap[i].nbp_eps[j] = gridmap[i].epsij_hb; // already weighted by coeff_hbond
 
 #ifdef DEBUG
                     (void) fprintf(logFile, "set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
@@ -1339,7 +1341,7 @@ while( fgets( GPF_line, LINE_LEN, GPF ) != NULL ) {
                      * parm_data.dat file as Rii and epsii for heavy atom
                      * hb factors*/
                     gridmap[i].nbp_r[j] = found_parm->Rij_hb;
-                    gridmap[i].nbp_eps[j] = found_parm->epsij_hb;
+                    gridmap[i].nbp_eps[j] = found_parm->epsij_hb_unweighted * AD4.coeff_hbond;
 
 #ifdef DEBUG
                     (void) fprintf(logFile, "2: set %d-%d hb eps to %6.4f*%6.4f=%6.4f\n",i,j,gridmap[i].epsij_hb,found_parm->epsij_hb, gridmap[i].nbp_eps[j]);
