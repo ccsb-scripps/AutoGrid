@@ -1,6 +1,6 @@
 /*
 
- $Id: main.cpp,v 1.159 2021/04/02 19:02:07 mp Exp $
+ $Id: main.cpp,v 1.160 2021/04/04 18:10:56 mp Exp $
 
  AutoGrid 
 
@@ -712,7 +712,7 @@ for (int i=0; i<NUM_RECEPTOR_TYPES; i++) {
 banner( version_num, logFile);
 
 /* report compilation options: this is mostly a duplicate of code in setflags.cpp */
-(void) fprintf(logFile, "                           $Revision: 1.159 $\n");
+(void) fprintf(logFile, "                           $Revision: 1.160 $\n");
 (void) fprintf(logFile, "Compilation parameters:  NUM_RECEPTOR_TYPES=%d NEINT=%d\n",
     NUM_RECEPTOR_TYPES, NEINT);
 (void) fprintf(logFile, "  AG_MAX_ATOMS=%d  AG_MAX_NBONDS=%d MAX_MAPS=%d NDIEL=%d MAX_ATOM_TYPES=%d\n",
@@ -2782,6 +2782,18 @@ if(outlev>=LOGFORADT) {
  (void) fflush( logFile);
  threadLogAlloc(n1[Z]); /* allocate space for per-plane log files */
 
+ /*
+  *  M Pique - avoid race condition by creating all thread log files
+  *  outside of parallel region.
+  */
+static FILE **tfileptr /*[n1[Z]:number of planes]*/;
+if(nthreads>1) {
+	tfileptr =  (FILE **) calloc_t(n1[Z], sizeof (FILE*), "thread log fileptrs");
+	for (int j=0; j<n1[Z]; j++) {
+		tfileptr[j] =  threadLogOpen(j); // threadLogOpen will stop() if NULL 
+	}
+}
+
 /*
  * Iterate over all grid points, Z( Y ( X ) ) (X is fastest)...
  * The "schedule(static,4)" gives each thread 4 contiguous Z-planes;
@@ -2808,7 +2820,7 @@ for (iz=0;iz<n1[Z];iz++) {
     int thread = omp_get_thread_num(); // this thread's working BHTREE storage index
     if(thread>=nthreads) print_error( logFile, FATAL_ERROR,
       "openMP thread number out of expected range");
-    if(nthreads>1) tlogFile = threadLogOpen(iz);
+    if(nthreads>1) tlogFile = tfileptr[iz];
     else tlogFile=logFile;
     if(tlogFile==NULL) print_error( logFile, FATAL_ERROR, 
       "failed to create thread log file");
