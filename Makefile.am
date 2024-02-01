@@ -41,58 +41,58 @@ autogrid4_SOURCES = main.cpp \
        bhtree.cpp \
        check_size.cpp \
        setflags.cpp \
-       timesys.cpp \
-       timesyshms.cpp \
-       printhms.cpp \
+       ad4_shared/timesys.cc \
+       ad4_shared/timesyshms.cc \
+       ad4_shared/printhms.cc \
        prHMSfixed.cpp \
-       printdate.cpp \
+       ad4_shared/printdate.cc \
        strindex.cpp \
        banner.cpp \
        gpfparser.cpp \
        parsetypes.cpp \
        atom_parameter_manager.cpp \
-       read_parameter_library.cpp \
-       parse_param_line.cpp \
+       ad4_shared/read_parameter_library.cc \
+       ad4_shared/parse_param_line.cc \
        distdepdiel.cpp \
-       memalloc.cpp \
-       mingw_getrusage.cpp \
+       ad4_shared/memalloc.cc \
+       ad4_shared/mingw_getrusage.cc \
        calc_vina_potential.cpp \
-       threadlog.cpp \
-       targetfile.cpp \
-       stop.cpp \
-            atom_parameter_manager.h \
-            autoglobal.h \
-            autogrid.h \
-            bhtree.h \
-	    bondmanager.h \
-            constants.h \
-            default_parameters.h \
-            distdepdiel.h \
-            gpftoken.h \
-            grid.h \
-	    memalloc.h \
-	    mingw_sysconf.h \
-	    mingw_sys_times.h \
-            mystdlib.h \
-            parameters.h \
-            parm.h \
-            parse_param_line.h \
-            partokens.h \
-            printdate.h \
-            printhms.h \
-            prototypes.h \
-            ranlib.h \
-            read_parameter_library.h \
-            targetfile.h \
-            times.h \
-            timesys.h \
-            timesyshms.h \
-            typedefs.h \
-            util.h \
-            calc_vina_potential.h \
-	    threadlog.h \
-            gridmap.h \
-            version.h 
+       ad4_shared/threadlog.cc \
+       ad4_shared/targetfile.cc \
+       ad4_shared/stop.cc \
+       atom_parameter_manager.h \
+       ad4_shared/autoglobal.h \
+       autogrid.h \
+       bhtree.h \
+       bondmanager.h \
+       ad4_shared/constants.h \
+       default_parameters.h \
+       distdepdiel.h \
+       gpftoken.h \
+       grid.h \
+       ad4_shared/memalloc.h \
+       ad4_shared/mingw_sysconf.h \
+       ad4_shared/mingw_sys_times.h \
+       ad4_shared/mystdlib.h \
+       parameters.h \
+       parm.h \
+       parse_param_line.h \
+       ad4_shared/partokens.h \
+       ad4_shared/printdate.h \
+       ad4_shared/printhms.h \
+       prototypes.h \
+       ranlib.h \
+       ad4_shared/read_parameter_library.h \
+       ad4_shared/targetfile.h \
+       times.h \
+       ad4_shared/timesys.h \
+       ad4_shared/timesyshms.h \
+       ad4_shared/typedefs.h \
+       util.h \
+       calc_vina_potential.h \
+       ad4_shared/threadlog.h \
+       gridmap.h \
+       version.h 
 
 
 # Define the AutoGrid 4 source code files:
@@ -100,14 +100,12 @@ autogrid4_SOURCES = main.cpp \
 # "default_parameters.h" is generated using the rules below
 # which invoke "paramdat2h.csh" to convert the AD4.1_bound.dat
 # parameter library file into a C++ header file.
-# This same step runs "copyfilesfromAD" to copy common source files 
-# from the autodock source directory to the autogrid build directory.
 BUILT_SOURCES = default_parameters.h
 
 
 AM_CFLAGS = -Wall -O3 # All warnings, Agressive optimization
 
-AM_CPPFLAGS = -Wall -O3 -I $(srcdir) -I$(srcdir)/../autodock # All warnings, Agressive optimization
+AM_CPPFLAGS = -Wall -O3 -I $(srcdir) -I$(srcdir)/ad4_shared # All warnings, Agressive optimization
 AM_CPPFLAGS += -Wno-write-strings # increase compatibility with pre 4.x compilers for string handling
 #  M Pique - add USE_8A_NBCUTOFF
 AM_CPPFLAGS += -DUSE_8A_NBCUTOFF
@@ -184,12 +182,11 @@ test : autogrid4 $(srcdir)/Tests/test_autogrid4.py
 #endif
 
 
-main.o : $(srcdir)/../autodock/autocomm.h
+main.o : $(srcdir)/ad4_shared/autocomm.h
 
-default_parameters.h : $(srcdir)/../autodock/paramdat2h.csh  $(srcdir)/../autodock/AD4_parameters.dat $(srcdir)/../autodock/AD4.1_bound.dat
+default_parameters.h : $(srcdir)/ad4_shared/paramdat2h.csh  $(srcdir)/ad4_shared/AD4_parameters.dat $(srcdir)/ad4_shared/AD4.1_bound.dat
 	rm -f $@
-	csh $(srcdir)/../autodock/paramdat2h.csh $(srcdir)/../autodock/AD4_parameters.dat  $(srcdir)/../autodock/AD4.1_bound.dat > $@
-	sh $(srcdir)/copyfilesfromAD
+	csh $(srcdir)/ad4_shared/paramdat2h.csh $(srcdir)/ad4_shared/AD4_parameters.dat  $(srcdir)/ad4_shared/AD4.1_bound.dat > $@
 
 # 2007-04-30 MP & GMM: this line is necessary to be able to compile read_parameter_library.o
 read_parameter_library.o : default_parameters.h
@@ -203,7 +200,6 @@ VPATH  = @srcdir@
 clean-local: clean-local-check
 .PHONY: clean-local-check
 clean-local-check:
-	sh $(srcdir)/copyfilesfromAD -r
 	-rm -f default_parameters.h
 	-rm -rf Testruns
 #

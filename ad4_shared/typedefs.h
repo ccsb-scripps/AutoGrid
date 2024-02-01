@@ -1,12 +1,12 @@
 /*
 
- $Id: typedefs.h,v 1.5 2009/05/08 23:17:35 rhuey Exp $
+ $Id: typedefs.h,v 1.14 2020/05/04 17:00:40 mp Exp $
 
- AutoGrid 
+ AutoDock  
 
 Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
- AutoGrid is a Trade Mark of The Scripps Research Institute.
+ AutoDock is a Trade Mark of The Scripps Research Institute.
 
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
@@ -45,25 +45,48 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
  ******************************************************************************/
 
 
-#ifdef USE_INT_AS_LONG
+#ifdef USE_INT_AS_FOURBYTELONG
     typedef int  FourByteLong;
     typedef unsigned int UnsignedFourByteLong;
+#define FBL_FMT "%d"
+#define UFBL_FMT "%u"
 #else
     typedef long FourByteLong;
     typedef unsigned long UnsignedFourByteLong;
+#define FBL_FMT "%ld"
+#define UFBL_FMT "%lu"
 #endif
 
 #ifdef USE_DOUBLE
     typedef double Real;
+#   define FDFMT "%lf"
 #else
     typedef float Real;
+#   define FDFMT "%f"
 #endif
+#define FDFMT2 FDFMT " " FDFMT
+#define FDFMT3 FDFMT " " FDFMT " " FDFMT
+
+// MP note: "const2" tests were "const Real", "const3" tests were "const Real&"
+// "const4" tests (early November 2010) were "const Real&"
+// MP note: this type is for scalar declarations only, use "const Real a[NN];"
+//   for array definitions.
+#define ConstReal	const Real&
+#define ConstDouble	const double&
+
+typedef float MapType; //the grid map type can be changed independent of other 'Real's
+#   define MAPFMT "%f"
+//
+// the 1-D e_vdW_Hb internal energy table type - this table can range into gigabytes
+//  when MAX_ATOM_TYPES is large and the 8-Angstrom NB cutoff is not used.
+typedef float ETableType; // for_evdW_Hb
+
 
 #ifdef USE_VELOCITY_ENGINE
 typedef union
 {
 	vector float vec;
-	float		 elements[4];
+	float elements[4];
 } Float4;
 #endif
 
