@@ -1,12 +1,12 @@
 /*
 
- $Id: parameters.h,v 1.6 2015/03/31 00:20:46 forli Exp $
+ $Id: parameters.h,v 1.7 2020/08/25 20:22:05 mp Exp $
 
- AutoGrid 
+ AutoDock 
 
 Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 
- AutoGrid is a Trade Mark of The Scripps Research Institute.
+ AutoDock is a Trade Mark of The Scripps Research Institute.
 
  This program is free software; you can redistribute it and/or
  modify it under the terms of the GNU General Public License
@@ -34,14 +34,15 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #define MAX_LEN_AUTOGRID_TYPE 7
 
 enum hbond_type
-{ NON, DS, D1, AS, A1, A2, AD };	/* hbonding character: */ /* N3P: added acceptor/donor type "AD" */
+{ NON, DS, D1, AS, A1, A2 };	/* hbonding character: */
 
 typedef struct parameter_entry
 {				// was "parm_info" in earlier AutoGrid 4 code
-  char autogrid_type[MAX_LEN_AUTOGRID_TYPE + 1];	/* autogrid_type is based on babel_types assigned by PyBabel */
+  char autogrid_type[MAX_LEN_AUTOGRID_TYPE + 1];	/* autogrid_type is a string based on babel_types assigned by PyBabel */
   double Rij;			/* Lennard-Jones equilibrium separation */
-  double epsij;			/* Lennard-Jones energy well-depth */
-  double xs_radius;		/* AutoDock vina xs_vdw_radius */
+  double epsij;			/* Lennard-Jones energy well-depth weighted by coeff_vdW */
+  double epsij_unweighted;	/* Lennard-Jones energy well-depth */
+  double xs_radius;     /* AutoDock vina xs_vdw_radius */
   double vol;			/* solvation volume */
   double solpar;		/* solvation parameter */
   hbond_type hbond;		/* hbonding character: 
@@ -50,15 +51,16 @@ typedef struct parameter_entry
 				   D1: directional donor
 				   AS: spherical acceptor
 				   A1: acceptor of 1 directional hbond
-				   A2: acceptor of 2 directional hbonds
-                   AD: acceptor/donor type
-                   */
+				   A2: acceptor of 2 directional hbonds */
   double Rij_hb;		/* 12-10 Lennard-Jones equilibrium separation */
-  double epsij_hb;		/* 12-10 Lennard-Jones energy well-depth */
+  double epsij_hb;		/* 12-10 Lennard-Jones energy well-depth weighted by coeff_hbond */
+  double epsij_hb_unweighted;	/* 12-10 Lennard-Jones energy well-depth */
   int rec_index;		/* used to set up receptor atom_types */
   int map_index;		/* used to set up map atom_types */
   int bond_index;		/* used to set up bonds; corresponds to the enum in mdist.h */
 } ParameterEntry;
+
+#define is_hydrogen_type(t) ((strcmp(t,"H")==0) || (strcmp(t,"HD")==0) || (strcmp(t,"HS")==0))
 
 #endif
 /* EOF */
