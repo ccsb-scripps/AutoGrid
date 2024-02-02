@@ -112,7 +112,7 @@ AM_CPPFLAGS += -DUSE_8A_NBCUTOFF
 #  M Pique - add USE_DOUBLE to define Real as double instead of float, see typedefs.h
 AM_CPPFLAGS += -DUSE_DOUBLE
 #  MS 2015 Pique - add USE_BHTREE to speed up calculations
-AM_CPPFLAGS += -DUSE_BHTREE
+# AM_CPPFLAGS += -DUSE_BHTREE
 
 # autogrid4_CXXFLAGS = -Wall -O3 -ftree-vectorize # All warnings, Agressive optimization, GCC vectorization in Mac OS X
 
