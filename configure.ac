@@ -9,7 +9,8 @@ AC_PREREQ(2.69)
 # the m4_esyscmd following creates a string such as VERSION='4.2.5.x.2014-12-25'
 # indicating when the "autoreconf" was most recently run.
 # This date is also inserted into PACKAGE_VERSION and PACKAGE_STRING
-AC_INIT([autogrid],[m4_translit(m4_esyscmd(date +4.2.7.x.%Y-%m-%d),m4_newline)],[autodock@scripps.edu])
+# AC_INIT([autogrid],[m4_translit(m4_esyscmd(date +4.2.7.x.%Y-%m-%d),m4_newline)],[autodock@scripps.edu])
+AC_INIT([autogrid], [4.2.8], [autodock@scripps.edu])
 AC_CONFIG_SRCDIR([atom_parameter_manager.cpp])
 #AC_CONFIG_HEADER([config.h])
 
