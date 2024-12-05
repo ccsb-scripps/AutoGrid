@@ -44,7 +44,9 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #include <time.h>
 #include <stdlib.h>
 #ifndef HAVE_SYSCONF
+#ifdef _WIN32
 #include "mingw_sysconf.h" // for sysconf(_SC_CLK_TCK) and possibly gethostname
+#endif
 #endif
 
 #include <stddef.h> 

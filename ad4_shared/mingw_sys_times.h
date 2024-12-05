@@ -1,6 +1,7 @@
 // AutoDock WIN32 MinGW replacment for times()
 // adapted from MinGW include file  M Pique 2012
 // $Id: mingw_sys_times.h,v 1.2 2012/04/18 05:17:46 mp Exp $
+#ifdef _WIN32
 #ifndef	_SYS_TIMES_H
 #ifdef __cplusplus
 extern "C" {
@@ -43,3 +44,4 @@ return clock();
 }
 #endif
 #endif	/* !_SYS_TIMES_H */
+#endif // WIN32

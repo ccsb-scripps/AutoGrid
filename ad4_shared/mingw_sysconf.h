@@ -7,6 +7,8 @@
  *
  * unistd.h maps (roughly) to io.h
  */
+
+#ifdef _WIN32
 #include <io.h>
 #include <sys/locking.h>
  
@@ -26,7 +28,8 @@ else {
 	return (long) -1;
 }
 }
- 
+#endif 
+
 #ifdef __MINGW32__
 #define HAVE_GETHOSTNAME
 #include <windows.h>

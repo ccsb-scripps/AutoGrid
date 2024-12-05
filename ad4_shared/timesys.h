@@ -34,7 +34,11 @@ Copyright (C) 2009 The Scripps Research Institute. All rights reserved.
 #ifdef HAVE_TIMES
 #include <sys/times.h>
 #else
+#ifdef _WIN32
 #include "mingw_sys_times.h"
+#else
+#include <sys/times.h>
+#endif
 #endif
 
 #include <time.h>

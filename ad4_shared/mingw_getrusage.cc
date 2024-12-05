@@ -1,6 +1,7 @@
 // AutoDock WIN32 MinGW replacment for getrusage()
 // $Id: mingw_getrusage.cc,v 1.1 2012/04/18 05:17:41 mp Exp $
 
+#ifdef _WIN32 
 #ifndef HAVE_GETRUSAGE
 #ifdef __cplusplus
 extern "C" {
@@ -56,3 +57,4 @@ int __cdecl getrusage(int who, struct rusage *r_usage)
 }
 #endif
 #endif // HAVE_GETRUSAGE
+#endif // WIN32
