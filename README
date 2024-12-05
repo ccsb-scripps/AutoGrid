@@ -1,6 +1,9 @@
 What is AutoDock?
 =================
 
+This is the old README. 
+Check out the new README.md for current installation instructions. 
+
 AutoDock is a suite of automated docking tools. It is designed to
 predict how small molecules, such as substrates or drug candidates,
 bind to a receptor of known 3D structure.
