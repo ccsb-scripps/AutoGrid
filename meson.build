@@ -17,7 +17,7 @@ common_flags = [
     '-Wno-write-strings',  # Compatibility with older compilers
     '-DUSE_8A_NBCUTOFF',   # Preprocessor defines
     '-DUSE_DOUBLE',
-    '-DPACKAGE_BUGREPORT="bugreport@example.com"'  # Replace with actual email
+    '-DPACKAGE_BUGREPORT="autodock@scripps.edu"'  # Replace with actual email
 ]
 
 if openmp_dep.found()
