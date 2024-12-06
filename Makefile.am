@@ -29,6 +29,8 @@
 
 # Autotools
 
+AUTOMAKE_OPTIONS = foreign
+
 EXTRA_DIST = Tests
 
 dist-hook:
