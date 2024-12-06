@@ -1,4 +1,5 @@
 # CVS default ignores begin
+.vscode
 tags
 TAGS
 .make.state
